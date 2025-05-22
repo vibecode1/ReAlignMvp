@@ -1,24 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useClearAuth } from '@/hooks/use-clear-auth';
 
 export default function ClearState() {
   const [cleared, setCleared] = useState(false);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { clearAllAuthData } = useClearAuth();
 
   // Function to clear all client-side state
-  const clearAllState = () => {
+  const clearAllState = async () => {
     try {
-      // Clear localStorage
-      localStorage.clear();
+      // Use the dedicated auth clearing function
+      await clearAllAuthData();
       
-      // Clear sessionStorage
+      // Clear any other localStorage and sessionStorage items that might be left
+      localStorage.clear();
       sessionStorage.clear();
       
-      // Clear any cookies related to authentication (optional)
+      // Clear any cookies related to authentication
       document.cookie.split(';').forEach(cookie => {
         const [name] = cookie.trim().split('=');
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
@@ -29,7 +32,7 @@ export default function ClearState() {
       toast({
         title: "Success!",
         description: "All local storage has been cleared. You can now return to login.",
-        variant: "success"
+        variant: "default"
       });
     } catch (error) {
       console.error('Error clearing state:', error);
@@ -42,11 +45,11 @@ export default function ClearState() {
   };
 
   const goToLogin = () => {
-    navigate('/login');
+    setLocation('/login');
   };
 
   const goToRegister = () => {
-    navigate('/register-negotiator');
+    setLocation('/register-negotiator');
   };
 
   return (

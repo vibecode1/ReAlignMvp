@@ -116,6 +116,10 @@ function Router() {
       <Route path="/register-negotiator" component={RegisterNegotiator}/>
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
+      <Route path="/clear-state" component={(() => {
+        const ClearState = require('./pages/ClearState').default;
+        return ClearState;
+      })()}/>
       
       {/* Protected routes */}
       <Route path="/">
