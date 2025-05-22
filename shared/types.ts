@@ -94,6 +94,16 @@ export const UploadFileSchema = z.object({
   documentRequestId: z.string().uuid("Invalid document request ID").optional(),
 });
 
+export const NegotiatorRegistrationSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8)
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 // Frontend types
 export type PaginatedResponse<T> = {
   data: T[];

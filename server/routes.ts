@@ -35,6 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   authRouter.post('/login', authController.login);
   authRouter.post('/magic-link', magicLinkLimiter, authController.sendMagicLink);
   authRouter.post('/magic-link/resend', magicLinkLimiter, authController.resendMagicLink);
+  authRouter.post('/register/negotiator', authController.registerNegotiator);
   authRouter.get('/me', authenticateJWT, authController.getCurrentUser);
   
   // -- Transaction Routes --

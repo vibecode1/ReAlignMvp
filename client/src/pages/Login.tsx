@@ -127,18 +127,29 @@ export default function Login() {
             </Form>
           </CardContent>
           <CardFooter>
-            <div className="w-full text-center">
-              <p className="text-sm text-gray-500 mb-2">
-                Not a negotiator?
+            <div className="w-full text-center space-y-2">
+              <p className="text-sm text-gray-500">
+                Don't have an account?{" "}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-600 hover:text-blue-500"
+                  onClick={() => navigate("/register/negotiator")}
+                  disabled={isLoading}
+                >
+                  Register as Negotiator
+                </Button>
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleMagicLinkClick}
-                disabled={isLoading}
-              >
-                Sign in with Magic Link
-              </Button>
+              <p className="text-sm text-gray-500">
+                Not a negotiator?{" "}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-600 hover:text-blue-500"
+                  onClick={handleMagicLinkClick}
+                  disabled={isLoading}
+                >
+                  Sign in with Magic Link
+                </Button>
+              </p>
             </div>
           </CardFooter>
         </Card>

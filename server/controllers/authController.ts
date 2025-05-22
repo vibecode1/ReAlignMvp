@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { LoginSchema, MagicLinkRequestSchema } from '@shared/types';
+import { LoginSchema, MagicLinkRequestSchema, NegotiatorRegistrationSchema } from '@shared/types';
 import config from '../config';
 import { storage } from '../storage';
 import { notificationService } from '../services/notificationService';
@@ -267,4 +267,94 @@ export const authController = {
       });
     }
   },
+
+  /**
+   * Register a new negotiator
+   */
+  async registerNegotiator(req: Request, res: Response) {
+    try {
+      // Validate request body
+      const validation = NegotiatorRegistrationSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid registration data',
+            details: validation.error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message
+            }))
+          }
+        });
+      }
+
+      const { name, email, password } = validation.data;
+
+      // Check for existing user
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          error: {
+            code: 'USER_ALREADY_EXISTS',
+            message: 'An account with this email already exists.'
+          }
+        });
+      }
+
+      // Create Supabase user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Supabase signup error:', error);
+        return res.status(400).json({
+          error: {
+            code: 'SIGNUP_FAILED',
+            message: error.message || 'Failed to create account'
+          }
+        });
+      }
+
+      if (!data.user) {
+        return res.status(500).json({
+          error: {
+            code: 'SIGNUP_FAILED',
+            message: 'Failed to create account'
+          }
+        });
+      }
+
+      // Create local user record
+      try {
+        await storage.createUser({
+          id: data.user.id,
+          email: data.user.email!,
+          name,
+          role: 'negotiator'
+        });
+      } catch (storageError) {
+        console.error('Failed to create local user record:', storageError);
+        return res.status(500).json({
+          error: {
+            code: 'USER_CREATION_FAILED',
+            message: 'Failed to create user profile'
+          }
+        });
+      }
+
+      res.status(201).json({
+        message: "Negotiator registration successful. Please check your email to confirm your account."
+      });
+    } catch (error) {
+      console.error('Register negotiator error:', error);
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error'
+        }
+      });
+    }
+  }
 };

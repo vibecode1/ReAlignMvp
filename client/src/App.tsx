@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
+import RegisterNegotiator from "@/pages/RegisterNegotiator";
 import MagicLink from "@/pages/MagicLink";
 import MagicLinkCallback from "@/pages/MagicLinkCallback";
 import Dashboard from "@/pages/Dashboard";
@@ -77,6 +78,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login}/>
+      <Route path="/register/negotiator" component={RegisterNegotiator}/>
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
       
