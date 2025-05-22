@@ -1,169 +1,142 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { format, addWeeks } from 'date-fns';
+import { ChevronDown, ChevronUp, CheckCircle, Circle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-// Transaction phases based on API documentation
-const PHASES = [
-  "Transaction Initiated",
-  "Property Listed",
-  "Initial Document Collection",
-  "Offer Received",
-  "Offer Submitted",
-  "Lender Review",
-  "BPO Ordered",
-  "Approval Received",
-  "In Closing"
+// Define the transaction phases
+export const PHASES = [
+  { id: 'intro', label: 'Introduction', description: 'Initial contact and setup' },
+  { id: 'documents', label: 'Document Collection', description: 'Gathering necessary paperwork' },
+  { id: 'offer_review', label: 'Offer Review', description: 'Evaluating purchase offers' },
+  { id: 'offer_acceptance', label: 'Offer Acceptance', description: 'Finalizing purchase agreement' },
+  { id: 'lender_approval', label: 'Lender Approval', description: 'Getting lender sign-off' },
+  { id: 'escrow', label: 'Escrow', description: 'Managing escrow process' },
+  { id: 'closing_docs', label: 'Closing Documents', description: 'Preparing final paperwork' },
+  { id: 'funding', label: 'Funding', description: 'Securing transaction funding' },
+  { id: 'closed', label: 'Closed', description: 'Transaction complete' },
 ];
 
-// Phase descriptions for tooltips
-const PHASE_DESCRIPTIONS: Record<string, string> = {
-  "Transaction Initiated": "The transaction has been created and parties have been invited",
-  "Property Listed": "The property has been listed for sale",
-  "Initial Document Collection": "Collecting initial documents from the seller",
-  "Offer Received": "An offer has been received on the property",
-  "Offer Submitted": "The offer has been submitted to the lender for review",
-  "Lender Review": "The lender is reviewing the offer",
-  "BPO Ordered": "Broker Price Opinion has been ordered to assess property value",
-  "Approval Received": "The lender has approved the short sale",
-  "In Closing": "The transaction is in the closing process"
+// Calculate phase timing - simplified for MVP
+const getPhaseEstimate = (
+  creationDate: Date,
+  phaseIndex: number
+): { startDate: Date; endDate: Date } => {
+  // Simple MVP estimation: Each phase is roughly 2 weeks
+  const weeksPerPhase = 2;
+  const startWeeks = phaseIndex * weeksPerPhase;
+  const endWeeks = startWeeks + weeksPerPhase;
+
+  return {
+    startDate: addWeeks(creationDate, startWeeks),
+    endDate: addWeeks(creationDate, endWeeks),
+  };
 };
 
 interface PhaseTrackerProps {
-  transactionId: string;
   currentPhase: string;
+  showTimeline?: boolean;
   creationDate?: Date;
-  isNegotiator: boolean;
-  onPhaseChange?: (phase: string) => void;
 }
 
-export const PhaseTracker = ({ 
-  transactionId, 
-  currentPhase, 
-  creationDate, 
-  isNegotiator,
-  onPhaseChange
-}: PhaseTrackerProps) => {
-  const [selectedPhase, setSelectedPhase] = useState(currentPhase);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { toast } = useToast();
-
-  const handlePhaseUpdate = async () => {
-    if (selectedPhase === currentPhase) return;
-    
-    try {
-      setIsUpdating(true);
-      
-      await apiRequest('PATCH', `/api/v1/transactions/${transactionId}`, {
-        currentPhase: selectedPhase
-      });
-      
-      toast({
-        title: "Phase Updated",
-        description: `Transaction phase updated to ${selectedPhase}`,
-      });
-      
-      if (onPhaseChange) {
-        onPhaseChange(selectedPhase);
-      }
-    } catch (error) {
-      console.error('Failed to update phase:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to update transaction phase. Please try again.",
-        variant: "destructive",
-      });
-      // Reset to current phase on error
-      setSelectedPhase(currentPhase);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Get the index of the current phase to show progress
-  const currentPhaseIndex = PHASES.indexOf(currentPhase);
+export const PhaseTracker: React.FC<PhaseTrackerProps> = ({
+  currentPhase,
+  showTimeline = false,
+  creationDate,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  // Find the current phase index
+  const currentPhaseIndex = PHASES.findIndex(phase => phase.id === currentPhase);
+  const currentPhaseObj = PHASES[currentPhaseIndex] || PHASES[0];
+  
+  const toggleExpanded = () => setExpanded(!expanded);
   
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Transaction Progress</span>
-          {creationDate && (
-            <span className="text-sm font-normal text-muted-foreground">
-              Started: {new Date(creationDate).toLocaleDateString()}
-            </span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Progress bar */}
-        <div className="w-full h-2 bg-gray-200 rounded-full mb-6">
-          <motion.div 
-            className="h-2 bg-brand-primary rounded-full"
-            initial={{ width: '0%' }}
-            animate={{ width: `${((currentPhaseIndex + 1) / PHASES.length) * 100}%` }}
-            transition={{ duration: 0.5 }}
-          />
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
+      {/* Collapsed View */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Current Phase
+          </h3>
+          <p className="text-lg font-semibold text-primary">
+            {currentPhaseObj.label}
+          </p>
         </div>
         
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          {isNegotiator ? (
-            <>
-              <div className="flex-grow">
-                <Select
-                  value={selectedPhase}
-                  onValueChange={setSelectedPhase}
-                  disabled={isUpdating}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleExpanded}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse phase details" : "Expand phase details"}
+        >
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+      </div>
+      
+      {/* Expanded Timeline View */}
+      {expanded && (
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="space-y-4">
+            {PHASES.map((phase, index) => {
+              const isComplete = index < currentPhaseIndex;
+              const isCurrent = index === currentPhaseIndex;
+              
+              let dateRangeText = '';
+              if (showTimeline && creationDate && index <= currentPhaseIndex + 1) {
+                const { startDate, endDate } = getPhaseEstimate(creationDate, index);
+                dateRangeText = `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`;
+              }
+              
+              return (
+                <div 
+                  key={phase.id} 
+                  className={cn(
+                    "flex items-start gap-3 relative",
+                    isCurrent && "text-primary font-medium"
+                  )}
+                  aria-current={isCurrent ? "step" : undefined}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select phase" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PHASES.map((phase) => (
-                      <SelectItem key={phase} value={phase}>
-                        {phase}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                onClick={handlePhaseUpdate} 
-                disabled={selectedPhase === currentPhase || isUpdating}
-                className="whitespace-nowrap"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Phase'
-                )}
-              </Button>
-            </>
-          ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="p-3 bg-blue-50 text-blue-800 rounded-lg border border-blue-200 font-medium">
-                    Current Phase: {currentPhase}
+                  <div className="flex-shrink-0 mt-1">
+                    {isComplete ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : isCurrent ? (
+                      <Circle className="h-5 w-5 text-primary fill-current opacity-20" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 dark:text-gray-600" />
+                    )}
                   </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{PHASE_DESCRIPTIONS[currentPhase] || "No description available"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+                  
+                  <div className="flex-grow">
+                    <div className="flex justify-between">
+                      <p className={cn(
+                        "font-medium",
+                        isComplete && "text-green-500",
+                        isCurrent && "text-primary"
+                      )}>
+                        {phase.label}
+                      </p>
+                      
+                      {dateRangeText && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {dateRangeText}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {phase.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 

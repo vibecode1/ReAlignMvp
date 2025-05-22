@@ -1,22 +1,19 @@
-import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send, MessageCircle, Reply, AlertCircle, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient } from "@tanstack/react-query";
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Reply, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-interface MessageSender {
+export interface Message {
   id: string;
-  name: string;
-  role: string;
-}
-
-interface MessageInfo {
-  id: string;
-  sender: MessageSender;
+  sender: {
+    id: string;
+    name: string;
+    role: string;
+  };
   text: string;
   replyTo: string | null;
   isSeedMessage: boolean;
@@ -24,262 +21,297 @@ interface MessageInfo {
 }
 
 interface MessageThreadProps {
-  transactionId: string;
-  messages: MessageInfo[];
+  messages: Message[];
   currentUserRole: string;
-  isLoading?: boolean;
+  onSendMessage: (text: string, replyToId?: string) => void;
+  onUpload?: (file: File) => void;
+  initialMessageEditable?: boolean;
 }
 
-export const MessageThread = ({ 
-  transactionId, 
+export const MessageThread: React.FC<MessageThreadProps> = ({
   messages,
   currentUserRole,
-  isLoading = false
-}: MessageThreadProps) => {
-  const [newMessage, setNewMessage] = useState("");
-  const [replyToMessage, setReplyToMessage] = useState<MessageInfo | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  onSendMessage,
+  onUpload,
+  initialMessageEditable = false
+}) => {
+  const [messageText, setMessageText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [editingSeedMessage, setEditingSeedMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   
-  const canPostNewTopLevel = currentUserRole === 'negotiator';
+  // Helper to get the initial/seed message
+  const seedMessage = messages.find(msg => msg.isSeedMessage);
   
-  // Auto-scroll to bottom when messages change
+  // Get the message being replied to (if any)
+  const replyToMessage = replyingTo 
+    ? messages.find(msg => msg.id === replyingTo) 
+    : null;
+  
+  // Scroll to bottom when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
   
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-    
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      await apiRequest('POST', `/api/v1/transactions/${transactionId}/messages`, {
-        text: newMessage,
-        replyTo: replyToMessage?.id || null,
-        isSeedMessage: false
-      });
-      
-      // Reset input and reply state
-      setNewMessage("");
-      setReplyToMessage(null);
-      
-      // Invalidate messages query to refresh the list
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}/messages`] });
-      
-      toast({
-        title: "Message Sent",
-        description: "Your message has been sent successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      setError("Failed to send message. Please try again.");
-      toast({
-        title: "Failed to Send Message",
-        description: "There was an error sending your message. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+  // Handle sending a message
+  const handleSendMessage = () => {
+    if (messageText.trim()) {
+      onSendMessage(messageText, replyingTo || undefined);
+      setMessageText('');
+      setReplyingTo(null);
     }
   };
   
-  const handleCancelReply = () => {
-    setReplyToMessage(null);
+  // Handle saving edited seed message
+  const handleSaveSeedMessage = () => {
+    if (messageText.trim()) {
+      onSendMessage(messageText);
+      setMessageText('');
+      setEditingSeedMessage(false);
+    }
   };
-
-  // Group messages for replies
-  const messageGroups: Record<string, MessageInfo[]> = {};
-  const topLevelMessages: MessageInfo[] = [];
   
-  // First pass: collect all top-level messages and create empty groups
-  messages.forEach(msg => {
-    if (!msg.replyTo) {
-      topLevelMessages.push(msg);
-      messageGroups[msg.id] = [];
+  // Handle canceling reply
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+  
+  // Start editing seed message
+  const startEditingSeedMessage = () => {
+    if (seedMessage && initialMessageEditable) {
+      setMessageText(seedMessage.text);
+      setEditingSeedMessage(true);
     }
-  });
+  };
   
-  // Second pass: collect replies
-  messages.forEach(msg => {
-    if (msg.replyTo && messageGroups[msg.replyTo]) {
-      messageGroups[msg.replyTo].push(msg);
+  // Check if user can send new messages (only negotiators)
+  const canSendNewMessage = currentUserRole === 'negotiator';
+  
+  // Check if user can reply to messages (all users)
+  const canReplyToMessages = true;
+  
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
+  // Format role for display
+  const formatRole = (role: string) => {
+    switch(role) {
+      case 'negotiator': return 'Negotiator';
+      case 'seller': return 'Seller';
+      case 'buyer': return 'Buyer';
+      case 'listing_agent': return 'Listing Agent';
+      case 'buyers_agent': return 'Buyer\'s Agent';
+      case 'escrow': return 'Escrow';
+      default: return role;
     }
-  });
+  };
   
-  // Sort messages by date (oldest first)
-  const sortedTopLevelMessages = [...topLevelMessages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  // Get color for avatar based on role
+  const getRoleColor = (role: string) => {
+    switch(role) {
+      case 'negotiator': return 'bg-primary text-primary-foreground';
+      case 'seller': return 'bg-blue-500 text-white';
+      case 'buyer': return 'bg-green-500 text-white';
+      case 'listing_agent': return 'bg-purple-500 text-white';
+      case 'buyers_agent': return 'bg-indigo-500 text-white';
+      case 'escrow': return 'bg-amber-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
   
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <MessageCircle className="mr-2 h-5 w-5" />
-          Messages
-        </CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle>Transaction Messages</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 space-y-4 max-h-96 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          ) : sortedTopLevelMessages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <MessageCircle className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-              <p>No messages yet. {canPostNewTopLevel ? 'Start the conversation!' : 'Wait for the negotiator to start the conversation.'}</p>
-            </div>
-          ) : (
-            sortedTopLevelMessages.map(message => (
-              <div key={message.id} className="space-y-3">
-                {/* Parent message */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`
-                    p-3 rounded-lg 
-                    ${message.isSeedMessage ? 'bg-blue-50 border border-blue-100' : 'bg-gray-100'}
-                  `}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="font-medium flex items-center">
-                      {message.sender.name}
-                      <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded-full">
-                        {message.sender.role}
+      
+      <CardContent className="overflow-y-auto max-h-[500px]">
+        <div className="space-y-4">
+          {messages.map(message => {
+            // Check if this message is being replied to
+            const isBeingRepliedTo = message.id === replyingTo;
+            
+            // Check if this is a seed message being edited
+            const isEditableSeed = message.isSeedMessage && initialMessageEditable;
+            
+            // Check if this is a reply message
+            const isReply = !!message.replyTo;
+            
+            // Find parent message for replies
+            const parentMessage = isReply 
+              ? messages.find(m => m.id === message.replyTo)
+              : null;
+              
+            return (
+              <div 
+                key={message.id} 
+                className={cn(
+                  "relative",
+                  isBeingRepliedTo ? "bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-900" : "",
+                  isReply ? "pl-4 ml-6 border-l-2 border-gray-200 dark:border-gray-700" : ""
+                )}
+              >
+                {isReply && parentMessage && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <Reply className="h-3 w-3 inline mr-1" />
+                    Replying to {parentMessage.sender.name}
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <Avatar className={cn("h-8 w-8", getRoleColor(message.sender.role))}>
+                    <AvatarFallback>{getInitials(message.sender.name)}</AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{message.sender.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatRole(message.sender.role)}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {format(new Date(message.created_at), 'MMM d, h:mm a')}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(message.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="whitespace-pre-wrap">{message.text}</p>
-                  {!message.isSeedMessage && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="mt-1"
-                      onClick={() => setReplyToMessage(message)}
-                    >
-                      <Reply className="h-3 w-3 mr-1" />
-                      Reply
-                    </Button>
-                  )}
-                </motion.div>
-                
-                {/* Replies */}
-                {messageGroups[message.id]?.length > 0 && (
-                  <div className="pl-6 border-l-2 border-gray-200 space-y-3">
-                    {messageGroups[message.id]
-                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                      .map(reply => (
-                        <motion.div 
-                          key={reply.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="p-3 rounded-lg bg-gray-50"
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="font-medium flex items-center">
-                              {reply.sender.name}
-                              <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded-full">
-                                {reply.sender.role}
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(reply.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="whitespace-pre-wrap">{reply.text}</p>
+                    
+                    {isEditableSeed && editingSeedMessage ? (
+                      <div className="mt-1">
+                        <Textarea
+                          value={messageText}
+                          onChange={(e) => setMessageText(e.target.value)}
+                          className="min-h-[100px] mb-2"
+                          placeholder="Edit transaction introduction..."
+                        />
+                        <div className="flex justify-end gap-2">
                           <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mt-1"
-                            onClick={() => setReplyToMessage(message)}
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingSeedMessage(false);
+                              setMessageText('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={handleSaveSeedMessage}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-wrap">
+                          {message.text}
+                        </p>
+                        
+                        {canReplyToMessages && !isEditableSeed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                            onClick={() => setReplyingTo(message.id)}
                           >
                             <Reply className="h-3 w-3 mr-1" />
                             Reply
                           </Button>
-                        </motion.div>
-                    ))}
+                        )}
+                        
+                        {isEditableSeed && !editingSeedMessage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            onClick={startEditingSeedMessage}
+                          >
+                            Edit Introduction
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-            ))
-          )}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
-        
-        {error && (
-          <div className="mb-4 p-2 bg-red-50 text-red-600 rounded flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            {error}
-          </div>
-        )}
-        
-        {/* Reply notification */}
-        {replyToMessage && (
-          <div className="mb-4 p-2 bg-blue-50 text-blue-800 rounded-lg flex items-center justify-between">
-            <div className="flex items-center overflow-hidden">
-              <Reply className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span className="text-sm truncate">
-                Replying to <strong>{replyToMessage.sender.name}</strong>: {replyToMessage.text.slice(0, 50)}
-                {replyToMessage.text.length > 50 ? '...' : ''}
+      </CardContent>
+      
+      <CardFooter className="pt-3 border-t flex flex-col">
+        {replyingTo && replyToMessage && (
+          <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md text-sm flex justify-between items-center w-full">
+            <div>
+              <span className="font-medium">Replying to {replyToMessage.sender.name}:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-2">
+                {replyToMessage.text.length > 50 
+                  ? `${replyToMessage.text.substring(0, 50)}...` 
+                  : replyToMessage.text}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelReply}
-              className="ml-2 flex-shrink-0"
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={cancelReply}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             >
               Cancel
             </Button>
           </div>
         )}
         
-        {/* New message form */}
-        {(canPostNewTopLevel || replyToMessage) && (
-          <div className="flex flex-col space-y-2">
+        {/* Only allow negotiators to start new threads or allow replies from everyone */}
+        {(canSendNewMessage || (replyingTo && canReplyToMessages)) && (
+          <div className="w-full">
             <Textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={replyToMessage ? "Type your reply..." : "Type your message..."}
-              className="min-h-24 resize-none"
-              disabled={isSubmitting}
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder={replyingTo ? "Type your reply..." : "Type a new message..."}
+              className="min-h-[80px] mb-2"
             />
-            <div className="flex justify-end">
-              <Button
+            <div className="flex justify-between items-center">
+              {onUpload && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file && onUpload) {
+                        onUpload(file);
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  Attach File
+                </Button>
+              )}
+              
+              <Button 
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSubmitting}
+                disabled={!messageText.trim()}
+                className="ml-auto"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    {replyToMessage ? "Send Reply" : "Send Message"}
-                  </>
-                )}
+                <Send className="h-4 w-4 mr-2" />
+                {replyingTo ? 'Send Reply' : 'Send Message'}
               </Button>
             </div>
           </div>
         )}
-        
-        {!canPostNewTopLevel && !replyToMessage && (
-          <div className="text-center py-2 text-sm text-gray-500 bg-gray-50 rounded-lg">
-            Only negotiators can start new conversations. You can reply to existing messages.
-          </div>
-        )}
-      </CardContent>
+      </CardFooter>
     </Card>
   );
 };

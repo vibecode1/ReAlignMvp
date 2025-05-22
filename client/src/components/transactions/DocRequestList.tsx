@@ -1,391 +1,317 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FilePlus2, Clock, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient } from "@tanstack/react-query";
+import React, { useState } from 'react';
+import { 
+  Clock, 
+  Check, 
+  AlertTriangle, 
+  Send, 
+  RefreshCcw,
+  FileText,
+  Upload 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-// Document request templates
-const REQUEST_TEMPLATES = [
-  "Paystubs (30 Days)",
-  "Bank Statements (2 Months)",
-  "4506-C Form",
-  "Short Sale Affidavit",
-  "Last 2 Years of Tax Returns",
-  "Hardship Letter",
-  "Property Insurance",
-  "Mortgage Statement"
-];
-
-interface DocumentRequestInfo {
+export interface DocumentRequest {
   id: string;
   docType: string;
   assignedTo: string;
-  assignedToUserId: string;
   status: 'pending' | 'complete' | 'overdue';
   dueDate?: string;
   revisionNote?: string;
 }
 
-interface PartyInfo {
-  userId: string;
-  name: string;
-  role: string;
-}
-
 interface DocRequestListProps {
-  transactionId: string;
-  requests: DocumentRequestInfo[];
-  parties: PartyInfo[];
+  requests: DocumentRequest[];
   currentUserRole: string;
-  isLoading?: boolean;
+  onUpdateRequestStatus: (id: string, newStatus: string) => void;
+  onRemind: (id: string) => void;
+  onResetToPending: (id: string, note: string) => void;
+  onUploadForRequest: (requestId: string) => void;
 }
 
-export const DocRequestList = ({ 
-  transactionId, 
+// Document type templates for UI display
+export const REQUEST_TEMPLATES = [
+  { value: 'purchase_agreement', label: 'Purchase Agreement' },
+  { value: 'mortgage_statement', label: 'Mortgage Statement' },
+  { value: 'tax_returns', label: 'Tax Returns' },
+  { value: 'hoa_documents', label: 'HOA Documents' },
+  { value: 'bank_statements', label: 'Bank Statements' },
+  { value: 'hardship_letter', label: 'Hardship Letter' },
+  { value: 'income_verification', label: 'Income Verification' },
+  { value: 'photo_id', label: 'Photo ID' },
+  { value: 'property_photos', label: 'Property Photos' },
+  { value: 'insurance_docs', label: 'Insurance Documents' },
+  { value: 'other', label: 'Other Document' }
+];
+
+export const DocRequestList: React.FC<DocRequestListProps> = ({
   requests,
-  parties,
   currentUserRole,
-  isLoading = false
-}: DocRequestListProps) => {
-  const [selectedRequestForNote, setSelectedRequestForNote] = useState<string | null>(null);
-  const [revisionNote, setRevisionNote] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-  const [selectedParty, setSelectedParty] = useState<string>("");
-  const [dueDate, setDueDate] = useState<string>("");
-  const [isCreatingRequest, setIsCreatingRequest] = useState(false);
-  const [isUpdatingRequest, setIsUpdatingRequest] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  onUpdateRequestStatus,
+  onRemind,
+  onResetToPending,
+  onUploadForRequest
+}) => {
+  const [selectedRequest, setSelectedRequest] = useState<DocumentRequest | null>(null);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
   
+  // Format document type label
+  const getDocTypeLabel = (docType: string): string => {
+    const template = REQUEST_TEMPLATES.find(tpl => tpl.value === docType);
+    return template ? template.label : docType;
+  };
+  
+  // Handle status update
+  const handleStatusChange = (requestId: string, newStatus: string) => {
+    onUpdateRequestStatus(requestId, newStatus);
+  };
+  
+  // Handle send reminder
+  const handleRemind = (requestId: string) => {
+    onRemind(requestId);
+  };
+  
+  // Open revision dialog
+  const openRevisionDialog = (request: DocumentRequest) => {
+    setSelectedRequest(request);
+    setRevisionNote(request.revisionNote || '');
+    setDialogOpen(true);
+  };
+  
+  // Submit revision note
+  const submitRevisionNote = () => {
+    if (selectedRequest && revisionNote.trim()) {
+      onResetToPending(selectedRequest.id, revisionNote);
+      setDialogOpen(false);
+      setSelectedRequest(null);
+      setRevisionNote('');
+    }
+  };
+  
+  // Check if user can edit requests
   const isNegotiator = currentUserRole === 'negotiator';
-
-  const handleMakeRequest = async () => {
-    if (!selectedTemplate || !selectedParty) return;
-    
-    try {
-      setIsCreatingRequest(true);
-      
-      await apiRequest('POST', `/api/v1/transactions/${transactionId}/doc-requests`, {
-        docType: selectedTemplate,
-        assignedToUserId: selectedParty,
-        dueDate: dueDate || undefined
-      });
-      
-      // Reset form
-      setSelectedTemplate("");
-      setSelectedParty("");
-      setDueDate("");
-      
-      // Invalidate queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}/doc-requests`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
-      
-      toast({
-        title: "Document Requested",
-        description: "Document request has been sent successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to create document request:', error);
-      toast({
-        title: "Request Failed",
-        description: "Failed to create document request. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingRequest(false);
-    }
-  };
-
-  const handleResetToPending = async (requestId: string) => {
-    if (!revisionNote.trim()) return;
-    
-    try {
-      setIsUpdatingRequest(true);
-      
-      await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
-        status: 'pending',
-        revisionNote: revisionNote
-      });
-      
-      // Reset form
-      setSelectedRequestForNote(null);
-      setRevisionNote("");
-      
-      // Invalidate queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}/doc-requests`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
-      
-      toast({
-        title: "Request Updated",
-        description: "Document request has been reset to pending with revision note.",
-      });
-    } catch (error) {
-      console.error('Failed to update document request:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to update document request. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdatingRequest(false);
-    }
-  };
-
-  const handleMarkComplete = async (requestId: string) => {
-    try {
-      setIsUpdatingRequest(true);
-      
-      await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
-        status: 'complete'
-      });
-      
-      // Invalidate queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}/doc-requests`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
-      
-      toast({
-        title: "Request Completed",
-        description: "Document request has been marked as complete.",
-      });
-    } catch (error) {
-      console.error('Failed to update document request:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to mark request as complete. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdatingRequest(false);
-    }
-  };
-
-  // Status indicator component
-  const StatusIndicator = ({ status }: { status: string }) => {
-    switch (status) {
-      case 'complete':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Complete
-          </span>
-        );
-      case 'overdue':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <AlertCircle className="mr-1 h-3 w-3" />
-            Overdue
-          </span>
-        );
+  
+  // Group requests by status for visual organization
+  const pendingRequests = requests.filter(req => req.status === 'pending');
+  const overdueRequests = requests.filter(req => req.status === 'overdue');
+  const completedRequests = requests.filter(req => req.status === 'complete');
+  
+  // Render status icon
+  const renderStatusIcon = (status: string) => {
+    switch(status) {
       case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'complete':
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'overdue':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-            <Clock className="mr-1 h-3 w-3" />
-            Pending
-          </span>
-        );
+        return null;
     }
   };
-
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <FilePlus2 className="mr-2 h-5 w-5" />
-          Document Requests
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+  
+  // Render a single document request
+  const renderRequest = (request: DocumentRequest) => {
+    const isUserAssigned = request.assignedTo === currentUserRole;
+    const hasRevisionNote = !!request.revisionNote;
+    
+    return (
+      <div 
+        key={request.id} 
+        className={cn(
+          "border p-4 rounded-lg shadow-sm mb-3",
+          request.status === 'pending' ? "bg-white border-yellow-100 dark:bg-gray-800 dark:border-yellow-900" : "",
+          request.status === 'complete' ? "bg-white border-green-100 dark:bg-gray-800 dark:border-green-900" : "",
+          request.status === 'overdue' ? "bg-white border-red-100 dark:bg-gray-800 dark:border-red-900" : ""
+        )}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex items-start gap-2">
+            <div className="mt-1">{renderStatusIcon(request.status)}</div>
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                {getDocTypeLabel(request.docType)}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Assigned to: {request.assignedTo}
+              </p>
+              
+              {request.dueDate && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Due: {format(new Date(request.dueDate), 'MMM d, yyyy')}
+                </p>
+              )}
+              
+              {hasRevisionNote && (
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded text-sm">
+                  <p className="font-medium text-amber-800 dark:text-amber-400 text-xs mb-1">
+                    Revision Requested:
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">{request.revisionNote}</p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {requests.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FilePlus2 className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                <p>No document requests yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {requests.map((req) => (
-                  <motion.div 
-                    key={req.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 border rounded-lg"
+          
+          <div className="flex flex-col gap-2 items-end">
+            {/* Controls for negotiator */}
+            {isNegotiator && (
+              <div className="flex gap-2">
+                {request.status !== 'complete' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleStatusChange(request.id, 'complete')}
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="flex items-center">
-                          <h3 className="font-medium">{req.docType}</h3>
-                          <div className="ml-3">
-                            <StatusIndicator status={req.status} />
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Assigned to: {req.assignedTo}
-                        </p>
-                        {req.dueDate && (
-                          <p className="text-sm text-gray-500">
-                            Due: {new Date(req.dueDate).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {isNegotiator && req.status !== 'complete' && (
-                        <div className="mt-3 md:mt-0 flex flex-wrap gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={isUpdatingRequest}
-                            onClick={() => handleMarkComplete(req.id)}
-                          >
-                            <CheckCircle className="mr-1 h-4 w-4" />
-                            Mark Complete
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={isUpdatingRequest || selectedRequestForNote === req.id}
-                            onClick={() => setSelectedRequestForNote(req.id)}
-                          >
-                            Reset to Pending w/ Note
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {req.revisionNote && req.status === 'pending' && (
-                      <div className="mt-3 p-2 bg-amber-50 text-amber-800 rounded-md text-sm">
-                        <p className="font-medium">Revision Note:</p>
-                        <p>{req.revisionNote}</p>
-                      </div>
-                    )}
-                    
-                    {selectedRequestForNote === req.id && (
-                      <div className="mt-3">
-                        <Textarea 
-                          placeholder="Reason for revision..." 
-                          value={revisionNote} 
-                          onChange={(e) => setRevisionNote(e.target.value)}
-                          className="mb-2"
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm"
-                            disabled={!revisionNote.trim() || isUpdatingRequest}
-                            onClick={() => handleResetToPending(req.id)}
-                          >
-                            {isUpdatingRequest ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                              </>
-                            ) : (
-                              'Save Note & Reset'
-                            )}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRequestForNote(null);
-                              setRevisionNote("");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                    <Check className="h-4 w-4 mr-1" />
+                    Mark Complete
+                  </Button>
+                )}
+                
+                {request.status === 'complete' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={openRevisionDialog.bind(null, request)}
+                    className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                  >
+                    <RefreshCcw className="h-4 w-4 mr-1" />
+                    Request Revision
+                  </Button>
+                )}
+                
+                {(request.status === 'pending' || request.status === 'overdue') && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleRemind(request.id)}
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Send Reminder
+                  </Button>
+                )}
               </div>
             )}
             
-            {/* Request form for negotiators */}
-            {isNegotiator && (
-              <div className="mt-6 p-4 border rounded-lg">
-                <h3 className="font-medium mb-3">Request a New Document</h3>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Document Type
-                    </label>
-                    <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select document type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REQUEST_TEMPLATES.map((template) => (
-                          <SelectItem key={template} value={template}>{template}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assign To
-                    </label>
-                    <Select value={selectedParty} onValueChange={setSelectedParty}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select party" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parties.map((party) => (
-                          <SelectItem key={party.userId} value={party.userId}>
-                            {party.name} ({party.role})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Due Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  
-                  <Button
-                    className="w-full"
-                    disabled={!selectedTemplate || !selectedParty || isCreatingRequest}
-                    onClick={handleMakeRequest}
-                  >
-                    {isCreatingRequest ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Request...
-                      </>
-                    ) : (
-                      <>
-                        <FilePlus2 className="mr-2 h-4 w-4" />
-                        Create Document Request
-                      </>
-                    )}
-                  </Button>
-                </div>
+            {/* Controls for assigned parties */}
+            {isUserAssigned && request.status !== 'complete' && (
+              <Button 
+                onClick={() => onUploadForRequest(request.id)}
+                size="sm"
+                className="mt-2"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Upload Document
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center">
+          <FileText className="h-5 w-5 mr-2" />
+          Document Requests
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent>
+        {requests.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            No document requests yet.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Overdue requests */}
+            {overdueRequests.length > 0 && (
+              <div>
+                <h3 className="text-red-600 dark:text-red-400 font-medium mb-3 flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Overdue
+                </h3>
+                <div>{overdueRequests.map(renderRequest)}</div>
+              </div>
+            )}
+            
+            {/* Pending requests */}
+            {pendingRequests.length > 0 && (
+              <div>
+                <h3 className="text-yellow-600 dark:text-yellow-400 font-medium mb-3 flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Pending
+                </h3>
+                <div>{pendingRequests.map(renderRequest)}</div>
+              </div>
+            )}
+            
+            {/* Completed requests */}
+            {completedRequests.length > 0 && (
+              <div>
+                <h3 className="text-green-600 dark:text-green-400 font-medium mb-3 flex items-center">
+                  <Check className="h-4 w-4 mr-1" />
+                  Complete
+                </h3>
+                <div>{completedRequests.map(renderRequest)}</div>
               </div>
             )}
           </div>
         )}
       </CardContent>
+      
+      {/* Revision Note Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Document Revision</DialogTitle>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Please provide details about what needs to be corrected or added to the document:
+            </p>
+            <Textarea
+              value={revisionNote}
+              onChange={(e) => setRevisionNote(e.target.value)}
+              placeholder="Enter revision details..."
+              className="min-h-[100px]"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitRevisionNote}
+              disabled={!revisionNote.trim()}
+            >
+              Submit Revision Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
