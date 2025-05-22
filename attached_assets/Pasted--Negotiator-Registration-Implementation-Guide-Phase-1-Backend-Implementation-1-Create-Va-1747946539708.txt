@@ -1,0 +1,417 @@
+# Negotiator Registration Implementation Guide
+
+## Phase 1: Backend Implementation
+
+### 1. Create Validation Schema (`shared/types.ts`)
+
+```typescript
+import { z } from 'zod';
+
+// Add this schema to your existing types
+export const NegotiatorRegistrationSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8)
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
+
+export type NegotiatorRegistrationInput = z.infer<typeof NegotiatorRegistrationSchema>;
+```
+
+### 2. Add Route (`server/routes.ts`)
+
+```typescript
+// Add this to your authRouter
+authRouter.post('/register/negotiator', authController.registerNegotiator);
+```
+
+### 3. Implement Controller Method (`server/controllers/authController.ts`)
+
+```typescript
+import { Request, Response } from 'express';
+import { NegotiatorRegistrationSchema } from '../../shared/types';
+import { supabase } from '../lib/supabase'; // Adjust import path
+import { storage } from '../storage'; // Adjust import path
+
+export const registerNegotiator = async (req: Request, res: Response) => {
+  try {
+    // Validate request body
+    const validationResult = NegotiatorRegistrationSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input',
+          details: validationResult.error.errors
+        }
+      });
+    }
+
+    const { name, email, password } = validationResult.data;
+
+    // Check if user already exists
+    const existingUser = await storage.getUserByEmail(email);
+    
+    if (existingUser) {
+      return res.status(409).json({
+        error: {
+          code: 'USER_ALREADY_EXISTS',
+          message: 'An account with this email already exists.'
+        }
+      });
+    }
+
+    // Create Supabase user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (authError || !authData.user) {
+      console.error('Supabase signup error:', authError);
+      return res.status(500).json({
+        error: {
+          code: 'AUTH_ERROR',
+          message: authError?.message || 'Failed to create account'
+        }
+      });
+    }
+
+    // Create local user record
+    try {
+      await storage.createUser({
+        id: authData.user.id,
+        email: authData.user.email!,
+        name,
+        role: 'negotiator'
+      });
+    } catch (dbError) {
+      console.error('Database error creating user:', dbError);
+      // Note: Supabase user exists but local record failed
+      // For MVP, return error but log for manual resolution
+      return res.status(500).json({
+        error: {
+          code: 'DATABASE_ERROR',
+          message: 'Failed to complete registration. Please contact support.'
+        }
+      });
+    }
+
+    // Success response
+    return res.status(201).json({
+      message: "Negotiator registration successful. Please check your email to confirm your account."
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred. Please try again.'
+      }
+    });
+  }
+};
+```
+
+## Phase 2: Frontend Implementation
+
+### 1. Create Registration Page (`client/src/pages/RegisterNegotiator.tsx`)
+
+```tsx
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { NegotiatorRegistrationSchema, NegotiatorRegistrationInput } from '../../../shared/types';
+import { apiRequest } from '../lib/queryClient';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '../components/ui/form';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Loader2 } from 'lucide-react';
+
+export default function RegisterNegotiator() {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const form = useForm<NegotiatorRegistrationInput>({
+    resolver: zodResolver(NegotiatorRegistrationSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const onSubmit = async (values: NegotiatorRegistrationInput) => {
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const response = await apiRequest('/api/v1/auth/register/negotiator', {
+        method: 'POST',
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      setSuccessMessage(data.message);
+      form.reset();
+      
+      // Optionally redirect to login after a delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+      
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <img 
+            src="/logo.png" 
+            alt="ReAlign" 
+            className="mx-auto h-12 w-auto mb-4"
+          />
+          <CardTitle className="text-2xl font-bold">Create Negotiator Account</CardTitle>
+          <CardDescription>
+            Sign up to start managing your short sale transactions
+          </CardDescription>
+        </CardHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-4">
+              {successMessage && (
+                <Alert className="bg-green-50 text-green-800 border-green-200">
+                  <AlertDescription>{successMessage}</AlertDescription>
+                </Alert>
+              )}
+              
+              {errorMessage && (
+                <Alert className="bg-red-50 text-red-800 border-red-200">
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="John Doe" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="john@example.com" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+
+            <CardFooter className="flex flex-col space-y-4">
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Register'
+                )}
+              </Button>
+
+              <p className="text-center text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link 
+                  to="/login" 
+                  className="font-medium text-primary hover:underline"
+                >
+                  Sign In
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+    </div>
+  );
+}
+```
+
+### 2. Update App Routes (`client/src/App.tsx`)
+
+```tsx
+// Add this import
+import RegisterNegotiator from './pages/RegisterNegotiator';
+
+// Add this route in your router configuration
+<Route path="/register/negotiator" element={<RegisterNegotiator />} />
+```
+
+### 3. Update Login Page (`client/src/pages/Login.tsx`)
+
+Add a link to the registration page:
+
+```tsx
+// Add this somewhere in the login form, possibly in CardFooter
+<p className="text-center text-sm text-gray-600">
+  Don't have an account?{' '}
+  <Link 
+    to="/register/negotiator" 
+    className="font-medium text-primary hover:underline"
+  >
+    Register as Negotiator
+  </Link>
+</p>
+```
+
+## Common Issues and Solutions
+
+### 1. **Supabase Configuration Issues**
+- Ensure Supabase is properly initialized in both client and server
+- Check that email confirmations are configured in Supabase dashboard
+- Verify SMTP settings if using custom email templates
+
+### 2. **CORS Issues in Replit**
+- Add proper CORS headers in your Express server:
+```typescript
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}));
+```
+
+### 3. **Environment Variables in Replit**
+- Ensure all Supabase environment variables are set in Replit secrets:
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY` (for server-side operations)
+
+### 4. **Database Connection Issues**
+- Verify your database migrations include the user table with role field
+- Check that the storage.createUser method properly handles the negotiator role
+
+### 5. **Type Import Issues**
+- Ensure shared types are properly exported and imported
+- Use relative imports correctly based on your project structure
+
+## Testing Checklist
+
+- [ ] Valid registration creates user in both Supabase and local database
+- [ ] Duplicate email returns 409 error
+- [ ] Password validation works (min 8 characters)
+- [ ] Password confirmation matching works
+- [ ] Success message displays and form clears
+- [ ] Error messages display appropriately
+- [ ] Loading states work during submission
+- [ ] Navigation between login and register pages works
+- [ ] Email confirmation flow works (if enabled)
+- [ ] User can login after email confirmation
+
+## Debugging in Replit
+
+1. Check the Replit console for backend errors
+2. Use browser DevTools Network tab to inspect API calls
+3. Add console.log statements in the controller to trace execution
+4. Verify all imports resolve correctly in Replit's environment
+5. Check that all npm packages are installed in both client and
