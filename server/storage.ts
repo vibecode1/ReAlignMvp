@@ -7,9 +7,39 @@ import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize PostgreSQL client pool
-const pool = new Pool({
-  connectionString: config.databaseUrl,
-});
+// Parse database URL to avoid issues with special characters
+let dbConfig = {};
+if (config.databaseUrl && config.databaseUrl.includes('@')) {
+  try {
+    // Extract parts from the database URL format: postgresql://user:password@host:port/database
+    const dbUrlParts = config.databaseUrl.split('@');
+    const hostPart = dbUrlParts[1];
+    const userPart = dbUrlParts[0].split('://')[1];
+    
+    const [host, database] = hostPart.split('/');
+    const [hostName, port] = host.split(':');
+    const [user, password] = userPart.split(':');
+    
+    dbConfig = {
+      user,
+      password,
+      host: hostName,
+      port: Number(port) || 5432,
+      database
+    };
+    
+    console.log(`Connected to database: ${hostName}:${port}/${database}`);
+  } catch (error) {
+    console.error("Error parsing database URL:", error);
+    throw new Error("Invalid database URL format");
+  }
+} else {
+  dbConfig = {
+    connectionString: config.databaseUrl
+  };
+}
+
+const pool = new Pool(dbConfig);
 
 // Initialize Drizzle ORM
 const db = drizzle(pool, { schema });
