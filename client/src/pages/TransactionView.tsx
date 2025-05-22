@@ -26,6 +26,7 @@ import PartyCard, { PartyRole, PartyStatus } from "@/components/transactions/Par
 import MessageThread, { Message } from "@/components/transactions/MessageThread";
 import DocRequestList, { DocumentRequest } from "@/components/transactions/DocRequestList";
 import UploadWidget from "@/components/transactions/UploadWidget";
+import FileList from "@/components/transactions/FileList";
 import { motion } from "framer-motion";
 
 // Define transaction interface to help with TypeScript errors

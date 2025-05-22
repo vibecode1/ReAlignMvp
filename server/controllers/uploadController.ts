@@ -157,7 +157,7 @@ export const uploadController = {
           contentType: upload.content_type,
           sizeBytes: upload.size_bytes,
           fileUrl: upload.file_url,
-          uploadedBy: upload.uploaded_by,
+          uploadedBy: upload.uploaded_by_user_id,
           visibility: upload.visibility,
           uploadedAt: upload.uploaded_at.toISOString(),
         });
@@ -227,20 +227,8 @@ export const uploadController = {
         });
       }
 
-      // Update the visibility in the database using direct DB update
-      const [updatedUpload] = await storage.db.update(storage.schema.uploads)
-        .set({ visibility: visibility as 'private' | 'shared' })
-        .where(storage.eq(storage.schema.uploads.id, uploadId))
-        .returning();
-      
-      if (!updatedUpload) {
-        return res.status(404).json({
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Upload not found or could not be updated',
-          }
-        });
-      }
+      // Update the visibility in the database
+      const updatedUpload = await storage.updateUploadVisibility(uploadId, visibility);
 
       return res.status(200).json({
         message: 'File visibility updated successfully',
