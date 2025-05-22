@@ -15,7 +15,7 @@ export const Logo: React.FC<LogoProps> = ({ className, size = 'md' }) => {
   
   return (
     <img 
-      src="/images/logo.svg" 
+      src="/images/logo.png" 
       alt="ReAlign Logo" 
       className={`${sizeClasses[size]} ${className || ''}`} 
     />
