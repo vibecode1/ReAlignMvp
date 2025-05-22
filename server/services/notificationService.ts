@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import config from '../config';
 import * as schema from '@shared/schema';
 import { storage } from '../storage';
@@ -7,31 +7,20 @@ import { storage } from '../storage';
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);
 
-// Initialize Firebase Admin SDK with placeholder config
-// In production, these would come from environment variables
-const firebaseConfig = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECT_ID || "realign-placeholder",
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || "placeholder-key-id",
-  private_key: (process.env.FIREBASE_PRIVATE_KEY || "-----BEGIN PRIVATE KEY-----\nplaceholder\n-----END PRIVATE KEY-----\n").replace(/\\n/g, '\n'),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL || "firebase-adminsdk@realign-placeholder.iam.gserviceaccount.com",
-  client_id: process.env.FIREBASE_CLIENT_ID || "placeholder-client-id",
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL || "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk%40realign-placeholder.iam.gserviceaccount.com"
-};
-
-// Initialize Firebase Admin only if not already initialized
-if (!admin.apps.length) {
+// Initialize Firebase Admin SDK with environment variables
+if (admin.apps.length === 0 && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(firebaseConfig as admin.ServiceAccount),
-      projectId: firebaseConfig.project_id
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      }),
+      projectId: process.env.FIREBASE_PROJECT_ID
     });
     console.log('Firebase Admin SDK initialized successfully');
   } catch (error) {
-    console.warn('Firebase Admin SDK initialization failed (placeholder config):', error);
+    console.warn('Firebase Admin SDK initialization failed:', error);
   }
 }
 
@@ -49,7 +38,7 @@ export class NotificationService {
     data?: { [key: string]: string }
   ): Promise<boolean> {
     try {
-      if (!admin.apps.length) {
+      if (admin.apps.length === 0) {
         console.warn('Firebase Admin SDK not initialized, skipping push notification');
         return false;
       }
