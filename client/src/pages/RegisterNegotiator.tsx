@@ -79,9 +79,16 @@ const RegisterNegotiator: React.FC = () => {
       
       console.log('Registration API response:', response);
 
+      // Inspect the token from the response 
+      console.log('RegisterNegotiator: Token from registration response =', response.token ? `${response.token.substring(0, 20)}...` : 'No token received');
+      
       // Store user data and token in localStorage
       localStorage.setItem('realign_token', response.token);
       localStorage.setItem('realign_user', JSON.stringify(response.user));
+      
+      // Verify what was actually stored
+      const storedToken = localStorage.getItem('realign_token');
+      console.log('RegisterNegotiator: Token stored in localStorage =', storedToken ? `${storedToken.substring(0, 20)}...` : 'No token found in localStorage');
       console.log('Token and user set in localStorage');
       
       // Explicitly set Supabase session

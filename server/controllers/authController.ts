@@ -74,6 +74,10 @@ export const authController = {
         const newUser = await storage.createUser(insertData);
         console.log('User successfully saved to database:', newUser.email);
         
+        // Log the token being returned to the client
+        const token = authData.session?.access_token;
+        console.log('authController.registerNegotiator: Generated token =', token ? `${token.substring(0, 20)}...` : 'No token available');
+        
         // Return user info and token
         return res.status(201).json({
           user: {
@@ -83,7 +87,7 @@ export const authController = {
             name: newUser.name,
             trial_ends_at: newUser.trial_ends_at,
           },
-          token: authData.session?.access_token,
+          token: token,
         });
       } catch (dbError) {
         console.error('Failed to save user to application database:', dbError);
