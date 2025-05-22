@@ -11,7 +11,9 @@ const config = {
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
   
   // Database
-  databaseUrl: process.env.DATABASE_URL || '',
+  // Ensure the URL is properly decoded for special characters
+  databaseUrl: process.env.DATABASE_URL ? 
+    decodeURIComponent(process.env.DATABASE_URL) : '',
   
   // Auth
   jwtSecret: process.env.JWT_SECRET || 'your-jwt-secret',
