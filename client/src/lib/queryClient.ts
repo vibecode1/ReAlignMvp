@@ -25,9 +25,12 @@ export async function apiRequest<T = any>(
     headers["Content-Type"] = "application/json";
   }
   
-  // Add Authorization header if token exists
-  if (token) {
+  // Add Authorization header if token exists and is valid
+  if (token && token !== "undefined" && token !== "null") {
     headers["Authorization"] = `Bearer ${token}`;
+    console.log('apiRequest: Valid token found, added to Authorization header');
+  } else {
+    console.log('apiRequest: No valid token available for Authorization header');
   }
   
   console.log('apiRequest: Request headers =', headers);
@@ -58,10 +61,12 @@ export const getQueryFn: <T>(options: {
     // Create headers object
     const headers: Record<string, string> = {};
     
-    // Add Authorization header if token exists
-    if (token) {
+    // Add Authorization header if token exists and is valid
+    if (token && token !== "undefined" && token !== "null") {
       headers["Authorization"] = `Bearer ${token}`;
-      console.log('getQueryFn: Adding Authorization header');
+      console.log('getQueryFn: Valid token found, added to Authorization header');
+    } else {
+      console.log('getQueryFn: No valid token available for Authorization header');
     }
     
     console.log('getQueryFn: Request headers =', headers);
