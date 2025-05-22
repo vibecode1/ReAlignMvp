@@ -53,12 +53,20 @@ const RegisterNegotiator: React.FC = () => {
     try {
       setIsLoading(true);
       
+      console.log('Submitting registration data:', { 
+        name: data.name, 
+        email: data.email, 
+        password: '********' // Password masked for security
+      });
+      
       // Call the API to register a new negotiator
       const response = await apiRequest('POST', '/api/v1/auth/register-negotiator', {
         name: data.name,
         email: data.email,
         password: data.password
       });
+      
+      console.log('Registration API response:', response);
 
       // Store user data and token in localStorage
       localStorage.setItem('realign_token', response.token);
@@ -70,6 +78,7 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
+      console.log('About to redirect to dashboard...');
       // Redirect to dashboard
       setLocation('/dashboard');
     } catch (error: any) {
