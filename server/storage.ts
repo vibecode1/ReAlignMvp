@@ -51,6 +51,11 @@ export interface IStorage {
 
   // Storage methods
   generateUploadSignedUrl(path: string, contentType: string): Promise<string>;
+  
+  // Push notification device token methods
+  saveUserDeviceToken(userId: string, token: string, tokenType: string): Promise<schema.UserDeviceToken>;
+  getUserDeviceTokens(userId: string): Promise<schema.UserDeviceToken[]>;
+  deleteUserDeviceToken(token: string): Promise<void>;
 }
 
 class DrizzleStorage implements IStorage {
@@ -352,6 +357,62 @@ class DrizzleStorage implements IStorage {
     }
     
     return data.signedUrl;
+  }
+
+  // Push notification device token methods
+  async saveUserDeviceToken(userId: string, token: string, tokenType: string): Promise<schema.UserDeviceToken> {
+    try {
+      // First check if token already exists
+      const existingTokens = await db
+        .select()
+        .from(schema.user_device_tokens)
+        .where(eq(schema.user_device_tokens.device_token, token));
+
+      // If token exists, return it
+      if (existingTokens.length > 0) {
+        return existingTokens[0];
+      }
+
+      // Otherwise insert new token
+      const result = await db
+        .insert(schema.user_device_tokens)
+        .values({
+          user_id: userId,
+          device_token: token,
+          token_type: tokenType as any // Type assertion to handle enum
+        })
+        .returning();
+
+      return result[0];
+    } catch (error) {
+      console.error('Error saving device token:', error);
+      throw error;
+    }
+  }
+
+  async getUserDeviceTokens(userId: string): Promise<schema.UserDeviceToken[]> {
+    try {
+      const tokens = await db
+        .select()
+        .from(schema.user_device_tokens)
+        .where(eq(schema.user_device_tokens.user_id, userId));
+
+      return tokens;
+    } catch (error) {
+      console.error('Error getting user device tokens:', error);
+      throw error;
+    }
+  }
+
+  async deleteUserDeviceToken(token: string): Promise<void> {
+    try {
+      await db
+        .delete(schema.user_device_tokens)
+        .where(eq(schema.user_device_tokens.device_token, token));
+    } catch (error) {
+      console.error('Error deleting device token:', error);
+      throw error;
+    }
   }
 }
 

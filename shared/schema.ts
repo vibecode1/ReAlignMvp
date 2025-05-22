@@ -18,6 +18,7 @@ export const transactionPhaseEnum = pgEnum('transaction_phase', [
 export const partyStatusEnum = pgEnum('party_status', ['pending', 'complete', 'overdue']);
 export const documentStatusEnum = pgEnum('document_status', ['pending', 'complete', 'overdue']);
 export const visibilityEnum = pgEnum('visibility', ['private', 'shared']);
+export const deviceTokenTypeEnum = pgEnum('device_token_type', ['fcm', 'apn', 'web']);
 
 // Users table
 export const users = pgTable('users', {
@@ -41,19 +42,18 @@ export const transactions = pgTable('transactions', {
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Transaction participants join table
+// Transaction participants table
 export const transaction_participants = pgTable('transaction_participants', {
-  id: uuid('id').defaultRandom().primaryKey(),
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
-  user_id: uuid('user_id').notNull().references(() => users.id),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role_in_transaction: userRoleEnum('role_in_transaction').notNull(),
-  status: partyStatusEnum('status').default('pending').notNull(),
+  status: partyStatusEnum('status').notNull().default('pending'),
   last_action: text('last_action'),
-  last_updated: timestamp('last_updated').defaultNow().notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => {
   return {
-    // Ensure that a user has only one role per transaction
-    uniq: uniqueIndex('transaction_participants_uniq_idx').on(table.transaction_id, table.user_id, table.role_in_transaction),
+    pk: uniqueIndex('transaction_participants_pk').on(table.transaction_id, table.user_id, table.role_in_transaction),
   };
 });
 
@@ -63,8 +63,8 @@ export const messages = pgTable('messages', {
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
   sender_id: uuid('sender_id').references(() => users.id, { onDelete: 'set null' }),
   text: text('text').notNull(),
-  reply_to: uuid('reply_to').references((): any => messages.id),
-  is_seed_message: boolean('is_seed_message').default(false).notNull(),
+  reply_to: uuid('reply_to').references(() => messages.id),
+  is_seed_message: boolean('is_seed_message').notNull().default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -73,8 +73,9 @@ export const document_requests = pgTable('document_requests', {
   id: uuid('id').defaultRandom().primaryKey(),
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
   doc_type: text('doc_type').notNull(),
-  assigned_to_user_id: uuid('assigned_to_user_id').notNull().references(() => users.id),
-  status: documentStatusEnum('status').default('pending').notNull(),
+  assigned_to_user_id: uuid('assigned_to_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  requested_by_user_id: uuid('requested_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  status: documentStatusEnum('status').notNull().default('pending'),
   due_date: timestamp('due_date'),
   revision_note: text('revision_note'),
   created_at: timestamp('created_at').defaultNow().notNull(),
@@ -85,29 +86,32 @@ export const document_requests = pgTable('document_requests', {
 export const uploads = pgTable('uploads', {
   id: uuid('id').defaultRandom().primaryKey(),
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
-  document_request_id: uuid('document_request_id').references(() => document_requests.id),
-  uploaded_by: uuid('uploaded_by').notNull().references(() => users.id),
+  uploaded_by_user_id: uuid('uploaded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  document_request_id: uuid('document_request_id').references(() => document_requests.id, { onDelete: 'set null' }),
   doc_type: text('doc_type').notNull(),
-  visibility: visibilityEnum('visibility').default('private').notNull(),
-  file_url: text('file_url').notNull(),
   file_name: text('file_name').notNull(),
+  file_url: text('file_url').notNull(),
   content_type: text('content_type').notNull(),
   size_bytes: integer('size_bytes').notNull(),
+  visibility: visibilityEnum('visibility').notNull().default('private'),
   uploaded_at: timestamp('uploaded_at').defaultNow().notNull(),
 });
 
-// Zod schemas for validation
+// User device tokens table for push notifications
+export const user_device_tokens = pgTable('user_device_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  device_token: text('device_token').notNull().unique(),
+  token_type: deviceTokenTypeEnum('token_type').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
 
+// Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
-  email: z.string().email(),
-  name: z.string().min(2),
   role: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
-  phone: z.string().optional(),
 }).omit({ id: true, created_at: true, updated_at: true });
 
 export const insertTransactionSchema = createInsertSchema(transactions, {
-  title: z.string().min(3),
-  property_address: z.string().min(5),
   current_phase: z.enum([
     'Transaction Initiated',
     'Property Listed',
@@ -123,32 +127,24 @@ export const insertTransactionSchema = createInsertSchema(transactions, {
 
 export const insertTransactionParticipantSchema = createInsertSchema(transaction_participants, {
   role_in_transaction: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
-  status: z.enum(['pending', 'complete', 'overdue']).optional(),
-  last_action: z.string().optional(),
-}).omit({ id: true, last_updated: true });
+  status: z.enum(['pending', 'complete', 'overdue']),
+}).omit({ created_at: true, updated_at: true });
 
-export const insertMessageSchema = createInsertSchema(messages, {
-  text: z.string().min(1),
-  is_seed_message: z.boolean().optional(),
-}).omit({ id: true, created_at: true });
+export const insertMessageSchema = createInsertSchema(messages, {}).omit({ id: true, created_at: true });
 
 export const insertDocumentRequestSchema = createInsertSchema(document_requests, {
-  doc_type: z.string().min(1),
-  status: z.enum(['pending', 'complete', 'overdue']).optional(),
-  due_date: z.string().optional(),
-  revision_note: z.string().optional(),
+  status: z.enum(['pending', 'complete', 'overdue']),
 }).omit({ id: true, created_at: true, updated_at: true });
 
 export const insertUploadSchema = createInsertSchema(uploads, {
-  doc_type: z.string().min(1),
   visibility: z.enum(['private', 'shared']),
-  file_url: z.string().url(),
-  file_name: z.string().min(1),
-  content_type: z.string().min(1),
-  size_bytes: z.number().int().positive(),
 }).omit({ id: true, uploaded_at: true });
 
-// Export types
+export const insertUserDeviceTokenSchema = createInsertSchema(user_device_tokens, {
+  token_type: z.enum(['fcm', 'apn', 'web']),
+}).omit({ id: true, created_at: true });
+
+// Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
@@ -166,3 +162,6 @@ export type InsertDocumentRequest = z.infer<typeof insertDocumentRequestSchema>;
 
 export type Upload = typeof uploads.$inferSelect;
 export type InsertUpload = z.infer<typeof insertUploadSchema>;
+
+export type UserDeviceToken = typeof user_device_tokens.$inferSelect;
+export type InsertUserDeviceToken = z.infer<typeof insertUserDeviceTokenSchema>;
