@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
 
 // UI Components
 import {
@@ -71,6 +72,16 @@ const RegisterNegotiator: React.FC = () => {
       // Store user data and token in localStorage
       localStorage.setItem('realign_token', response.token);
       localStorage.setItem('realign_user', JSON.stringify(response.user));
+      console.log('Token and user set in localStorage');
+      
+      // Explicitly set Supabase session
+      if (response.token) {
+        await supabase.auth.setSession({
+          access_token: response.token,
+          refresh_token: response.refresh_token || ''
+        });
+        console.log('Supabase session explicitly set after registration');
+      }
       
       // Show success toast
       toast({
