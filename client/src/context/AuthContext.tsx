@@ -212,12 +212,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext: PASSWORD_RECOVERY event. User may need to sign in again after reset.');
           // No state change here, user needs to complete recovery and sign in.
           break;
-        case 'USER_DELETED':
-            console.log('AuthContext: USER_DELETED event.');
-            await performFullSignOut('USER_DELETED event received');
-            break;
+        // Default case handles any other events
         default:
-          console.log('AuthContext: Unhandled auth event:', event);
+          console.log(`AuthContext: Received event: ${event}`);
+          // Use string comparison to handle events that might be added in future Supabase versions
+          const eventString = String(event);
+          if (eventString.includes('USER_DELETED')) {
+            console.log('AuthContext: User deletion event detected.');
+            await performFullSignOut('User deletion event received');
+          } else {
+            console.log('AuthContext: Unhandled auth event:', event);
+          }
       }
       setIsLoading(false);
       console.log(`AuthContext: onAuthStateChange event ${event} processed. setIsLoading(false) executed.`);
