@@ -16,6 +16,110 @@ const supabase = createClient(config.supabaseUrl, config.supabaseKey);
  */
 export const authController = {
   /**
+   * Register a new negotiator with a 30-day trial
+   */
+  async registerNegotiator(req: Request, res: Response) {
+    try {
+      // Validate request body
+      const validation = NegotiatorRegistrationSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid registration data',
+            details: validation.error.errors,
+          }
+        });
+      }
+
+      const { name, email, password } = validation.data;
+
+      // Check if email already exists in our database
+      const existingUser = await storage.getUserByEmail(email);
+      
+      if (existingUser) {
+        return res.status(409).json({
+          error: {
+            code: 'EMAIL_EXISTS',
+            message: 'Email already in use',
+          }
+        });
+      }
+
+      // Create a new Supabase Auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: 'negotiator',
+          }
+        }
+      });
+
+      if (authError || !authData.user) {
+        return res.status(500).json({
+          error: {
+            code: 'AUTH_ERROR',
+            message: 'Failed to create authentication account',
+          }
+        });
+      }
+
+      // Calculate trial end date (30 days from now)
+      const trialEndsAt = addDays(new Date(), 30);
+
+      // Create user in our database with the Supabase user ID
+      const insertData = {
+        name,
+        email,
+        role: 'negotiator',
+        trial_ends_at: trialEndsAt,
+      };
+      
+      // Insert directly with Supabase to set the ID properly
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          ...insertData,
+          id: authData.user.id,
+        })
+        .select()
+        .single();
+        
+      if (userError || !userData) {
+        return res.status(500).json({
+          error: {
+            code: 'DATABASE_ERROR',
+            message: 'Failed to create user record',
+          }
+        });
+      }
+      
+      const newUser = userData;
+
+      // Return user info and token
+      return res.status(201).json({
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          name: newUser.name,
+          trial_ends_at: newUser.trial_ends_at,
+        },
+        token: authData.session?.access_token,
+      });
+    } catch (error) {
+      console.error('Negotiator registration error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to process registration request',
+        }
+      });
+    }
+  },
+  /**
    * Login with email and password (for negotiators)
    */
   async login(req: Request, res: Response) {
