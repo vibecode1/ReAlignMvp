@@ -15,11 +15,25 @@ import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRoleAccess } from "@/hooks/use-role-access";
+
+type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
 // Protected route component
-const ProtectedRoute = ({ component: Component, ...rest }: { component: React.ComponentType<any>, path?: string }) => {
+const ProtectedRoute = ({ 
+  component: Component, 
+  allowedRoles = [], 
+  ...rest 
+}: { 
+  component: React.ComponentType<any>, 
+  allowedRoles?: Role[],
+  path?: string 
+}) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { hasAccess } = useRoleAccess(allowedRoles);
   
+  // Loading state
   if (isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
@@ -28,10 +42,27 @@ const ProtectedRoute = ({ component: Component, ...rest }: { component: React.Co
     );
   }
   
+  // Not authenticated
   if (!isAuthenticated) {
     return <Redirect to="/login" />;
   }
   
+  // Authenticated but not authorized (wrong role)
+  if (allowedRoles.length > 0 && !hasAccess) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center flex-col p-4">
+        <div className="text-red-500 mb-4 text-xl">Access Denied</div>
+        <p className="text-gray-600 mb-6 text-center max-w-md">
+          You don't have permission to access this page. This feature requires a different role.
+        </p>
+        <Button onClick={() => window.location.href = '/dashboard'}>
+          Go to Dashboard
+        </Button>
+      </div>
+    );
+  }
+  
+  // All checks passed
   return (
     <AppShell>
       <Component />
@@ -58,7 +89,10 @@ function Router() {
         <ProtectedRoute component={TransactionList} />
       </Route>
       <Route path="/transactions/new">
-        <ProtectedRoute component={NewTransaction} />
+        <ProtectedRoute 
+          component={NewTransaction} 
+          allowedRoles={['negotiator']} 
+        />
       </Route>
       <Route path="/transactions/:id">
         {params => <ProtectedRoute component={() => <TransactionView id={params.id} />} />}
