@@ -39,10 +39,25 @@ const ProtectedRoute = ({
   // Check for pending registration navigation
   const registrationSuccess = sessionStorage.getItem('realign_registration_success');
   const newUserEmail = sessionStorage.getItem('realign_new_user_email');
+  const justRegistered = sessionStorage.getItem('realign_just_registered');
   
   // If we just registered, show loading without redirect
   if (registrationSuccess && newUserEmail) {
     console.log('ProtectedRoute: Registration success flag found, waiting for auth to complete');
+    
+    // Mark registration as processing to avoid oscillations if there are auth issues
+    if (!justRegistered) {
+      console.log('ProtectedRoute: Setting justRegistered flag to prevent looping');
+      sessionStorage.setItem('realign_just_registered', 'true');
+      
+      // For safety, reload the page after 1.5 seconds if still waiting
+      // This clears stale token state that might be causing issues
+      setTimeout(() => {
+        console.log('ProtectedRoute: Forcing page reload to clear state');
+        window.location.reload();
+      }, 1500);
+    }
+    
     return (
       <div className="h-screen w-full flex items-center justify-center flex-col">
         <Loader2 className="h-8 w-8 animate-spin text-brand-primary mb-4" />

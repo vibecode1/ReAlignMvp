@@ -43,13 +43,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const performFullSignOut = useCallback(async (logMessage: string) => {
     console.log(`AuthContext: ${logMessage}. Performing full sign out.`);
-    await supabase.auth.signOut();
+    
+    try {
+      // Only try to sign out if we're not already at the login page
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register-negotiator') {
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      console.error('Error during Supabase sign out:', error);
+    }
+    
+    // Clear all stored tokens and state
     localStorage.removeItem('realign_token');
+    localStorage.removeItem('realign_refresh_token');
     localStorage.removeItem('realign_user');
+    
+    // Reset React state
     setUser(null);
     setIsAuthenticated(false);
     queryClient.clear(); // Clear react-query cache
+    
     clearRegistrationFlags();
+    
+    // Special handling for registration flow - if we're in the middle of registering
+    // or just completed registration, don't navigate away
+    if (window.location.pathname !== '/register-negotiator' && 
+        !sessionStorage.getItem('realign_registration_success')) {
+      console.log('Sign out complete, redirecting to login page');
+    }
   }, [queryClient, clearRegistrationFlags]);
 
 
