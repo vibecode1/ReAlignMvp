@@ -47,6 +47,21 @@ export const authController = {
           }
         }
       });
+      
+      // Log the full authData to inspect its structure
+      console.log('authController.registerNegotiator: Full authData from Supabase signUp:', 
+        JSON.stringify({
+          user: authData.user ? {
+            id: authData.user.id,
+            email: authData.user.email,
+            role: authData.user.app_metadata?.role
+          } : null,
+          session: authData.session ? {
+            exists: true,
+            has_token: !!authData.session.access_token
+          } : null
+        }, null, 2)
+      );
 
       if (authError || !authData.user) {
         return res.status(500).json({
