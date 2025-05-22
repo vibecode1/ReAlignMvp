@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -105,13 +106,13 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
+
                 {authError && (
                   <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
                     {authError}
                   </div>
                 )}
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
