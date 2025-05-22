@@ -101,7 +101,7 @@ const RegisterNegotiator: React.FC = () => {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <div className="text-2xl font-bold text-brand-primary">ReAlign</div>
+              <img src="/realign-logo.png" alt="ReAlign Logo" className="h-10" />
             </div>
             <CardTitle className="text-2xl text-center">Negotiator Registration</CardTitle>
             <CardDescription className="text-center">
