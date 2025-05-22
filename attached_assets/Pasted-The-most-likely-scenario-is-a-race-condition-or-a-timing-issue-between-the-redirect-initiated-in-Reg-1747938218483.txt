@@ -1,0 +1,67 @@
+The most likely scenario is a race condition or a timing issue between the redirect initiated in RegisterNegotiator.tsx and the update of the isAuthenticated state in AuthContext.tsx.
+
+Here's the probable sequence leading to the failure:
+
+Registration Success (RegisterNegotiator.tsx):
+
+API call successful, token received and stored in localStorage.
+supabase.auth.setSession() is called with the new token. This should trigger Supabase's onAuthStateChange listener in AuthContext.tsx.
+window.location.href = '/dashboard' is executed. This initiates a full page reload and navigation to /dashboard.
+App Reloads & Auth Check (App.tsx & AuthContext.tsx):
+
+The application reloads because of window.location.href.
+AuthContext initializes. The checkSession function runs.
+It might find the realign_token in localStorage and try to set the session again.
+The onAuthStateChange listener is also set up.
+Crucially, the SIGNED_IN event processing within onAuthStateChange (which involves an async call to /api/v1/auth/me) might not have completed and set isAuthenticated to true by the time the ProtectedRoute for /dashboard renders and checks the auth state.
+ProtectedRoute Interception (App.tsx):
+
+The ProtectedRoute for /dashboard executes.
+If isLoading is false (meaning checkSession or initial auth setup has finished) but isAuthenticated is still false (because the SIGNED_IN event processing is pending or hasn't updated the state yet), ProtectedRoute will redirect the user to /login.
+Why the "missing redirect logs" from RegisterNegotiator.tsx might occur:
+The console.log statements in RegisterNegotiator.tsx (like "Setting window.location.href to /dashboard") are likely firing. However, because window.location.href causes an immediate navigation and page reload, these client-side console logs from the previous page context might be cleared or harder to catch before the new page loads and its own console messages start appearing. The "missing logs" might refer to logs after the redirect that would confirm the user landed and stayed on the dashboard.
+
+Recommendations:
+
+Prioritize window.location.href and Simplify RegisterNegotiator.tsx:
+
+The primary method for redirection after registration should be window.location.href = '/dashboard';. This ensures a clean state for the AuthContext to re-evaluate upon page load.
+Remove the setTimeout fallback and the setLocation call within the onSubmit handler if window.location.href is used, as they become redundant or conflicting.
+The localStorage.setItem('realign_post_auth_redirect', '/dashboard'); is a good fallback if window.location.href were to fail silently, but AuthContext needs to reliably use this.
+Strengthen AuthContext.tsx Initialization (checkSession):
+
+When checkSession finds a realign_token in localStorage (and potentially realign_post_auth_redirect if you decide to rely on it), it should more proactively attempt to authenticate and set isAuthenticated.
+The current logic correctly attempts supabase.auth.setSession() if a stored token is found without a Supabase session. After this, or if a Supabase session is found initially, the call to /api/v1/auth/me and setting isAuthenticated needs to happen reliably and promptly.
+The isLoading state should remain true until isAuthenticated is definitively determined (either true or false) after all checks (Supabase session, localStorage token, API call to /me).
+Ensure onAuthStateChange is Robust:
+
+The onAuthStateChange listener correctly fetches user info on SIGNED_IN. The main concern is its completion time relative to the ProtectedRoute check after a hard redirect.
+Revised Logic Flow Suggestion:
+
+In RegisterNegotiator.tsx's onSubmit:
+
+Successful API call.
+Store token in localStorage.
+Call await supabase.auth.setSession(...).
+Crucially, consider awaiting a signal from AuthContext that isAuthenticated is true before redirecting, or use a mechanism that AuthContext can pick up on the next load without ambiguity. A simpler approach is to rely on window.location.href and ensure AuthContext correctly re-authenticates from localStorage on the subsequent page load.
+Then, window.location.href = '/dashboard';.
+In AuthContext.tsx's checkSession (this runs on every app load/reload):
+
+setIsLoading(true).
+Attempt supabase.auth.getSession().
+If no session, but localStorage.getItem('realign_token') exists:
+Attempt await supabase.auth.setSession(...) with the stored token.
+Re-attempt await supabase.auth.getSession().
+If a session now exists (either initially or after manual setting):
+Call await apiRequest('GET', '/api/v1/auth/me').
+If successful: setUser(userInfo), setIsAuthenticated(true).
+If failed: Clear session/token, setUser(null), setIsAuthenticated(false).
+Else (no session and no token): setUser(null), setIsAuthenticated(false).
+setIsLoading(false).
+This ensures that when ProtectedRoute checks, isLoading is true until isAuthenticated has been properly determined from the available session/token information.
+
+The useEffect in RegisterNegotiator.tsx that calls setLocation('/dashboard') if isAuthenticated should generally be fine, as it's meant for users already authenticated who land there. However, ensure it doesn't interfere with the post-registration redirect. Given window.location.href causes a full reload, this useEffect will run in the new page context. If AuthContext successfully authenticates, this useEffect might fire, but the user should ideally already be on the dashboard or heading there.
+
+The logs showing an Authorization header on the register-negotiator API call is unusual. Registration endpoints typically don't require prior authorization. This might be a separate minor issue in apiRequest or how it's called, but it doesn't seem to be the primary cause of the redirect failure if the server successfully registers the user and returns a token.
+
+By ensuring AuthContext robustly re-establishes the authenticated state upon page load using the stored token before ProtectedRoute makes its decision, the redirect to /dashboard should work more reliably.

@@ -33,11 +33,27 @@ const ProtectedRoute = ({
   allowedRoles?: Role[],
   path?: string 
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { hasAccess } = useRoleAccess(allowedRoles);
   
-  // Loading state
+  // Check for pending registration navigation
+  const registrationSuccess = sessionStorage.getItem('realign_registration_success');
+  const newUserEmail = sessionStorage.getItem('realign_new_user_email');
+  
+  // If we just registered, show loading without redirect
+  if (registrationSuccess && newUserEmail) {
+    console.log('ProtectedRoute: Registration success flag found, waiting for auth to complete');
+    return (
+      <div className="h-screen w-full flex items-center justify-center flex-col">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-primary mb-4" />
+        <p className="text-gray-600">Setting up your account...</p>
+      </div>
+    );
+  }
+
+  // Standard loading state
   if (isLoading) {
+    console.log('ProtectedRoute: Auth state is loading...');
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-primary" />
@@ -45,9 +61,12 @@ const ProtectedRoute = ({
     );
   }
   
-  // Not authenticated - but only redirect if we're done loading
-  if (!isAuthenticated && !isLoading) {
+  // Only redirect after we're sure about the auth state
+  if (!isAuthenticated) {
     console.log('ProtectedRoute: Not authenticated, redirecting to login');
+    // Clear any stale registration flags
+    sessionStorage.removeItem('realign_registration_success');
+    sessionStorage.removeItem('realign_new_user_email');
     return <Redirect to="/login" />;
   }
   

@@ -41,9 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check for post-auth redirect flag in localStorage
         const postAuthRedirect = localStorage.getItem('realign_post_auth_redirect');
+        const registrationSuccess = sessionStorage.getItem('realign_registration_success');
+        
         if (postAuthRedirect) {
           console.log('AuthContext: Found post-auth redirect flag:', postAuthRedirect);
           localStorage.removeItem('realign_post_auth_redirect');
+        }
+        
+        if (registrationSuccess) {
+          console.log('AuthContext: Found registration success flag in sessionStorage');
+          sessionStorage.removeItem('realign_registration_success');
         }
         
         // Get current session
@@ -57,41 +64,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check for auth token in localStorage as fallback
         const storedToken = localStorage.getItem('realign_token');
-        if (!session && storedToken) {
-          console.log('AuthContext: No Supabase session but found token in localStorage');
+        let sessionExists = !!session;
+        
+        if (!sessionExists && storedToken) {
+          console.log('AuthContext: No Supabase session but found token in localStorage, length:', storedToken.length);
           try {
             // Try to set the session with the stored token
-            await supabase.auth.setSession({
+            const sessionResult = await supabase.auth.setSession({
               access_token: storedToken,
               refresh_token: '',
             });
-            console.log('AuthContext: Manually set Supabase session from localStorage token');
+            
+            if (sessionResult.data.session) {
+              console.log('AuthContext: Successfully set Supabase session from localStorage token');
+              sessionExists = true;
+            } else {
+              console.log('AuthContext: Failed to set session from token, no error but no session returned');
+            }
           } catch (tokenError) {
             console.error('AuthContext: Failed to set session from localStorage token:', tokenError);
           }
         }
         
-        // Check again after potential manual session setting
-        const { data: { session: updatedSession } } = await supabase.auth.getSession();
+        // This is critical - we need to determine authentication status before turning off isLoading
+        let authStatus = false;
         
-        if (updatedSession || storedToken) {
+        if (sessionExists || storedToken) {
           console.log('AuthContext: Valid session or token found, fetching user info');
           // Session exists, fetch user info from our API
           try {
-            console.log('AuthContext: Calling /api/v1/auth/me endpoint');
+            console.log('AuthContext: Calling /api/v1/auth/me endpoint with token available:', !!storedToken);
             const userData = await apiRequest('GET', '/api/v1/auth/me');
             const userInfo = await userData.json();
             console.log('AuthContext: User info fetched successfully:', userInfo.email);
             
             setUser(userInfo);
             setIsAuthenticated(true);
+            authStatus = true;
           } catch (apiError) {
             console.error('AuthContext: Failed to get user info:', apiError);
+            // Clear auth state on failure
+            localStorage.removeItem('realign_token');
+            localStorage.removeItem('realign_user');
             await supabase.auth.signOut();
+            setUser(null);
+            setIsAuthenticated(false);
+            authStatus = false;
           }
         } else {
           console.log('AuthContext: No valid session or token found');
+          setUser(null);
+          setIsAuthenticated(false);
+          authStatus = false;
         }
+        
+        console.log('AuthContext: Final authentication status determination:', authStatus);
       } catch (error) {
         console.error('AuthContext: Session check error:', error);
         toast({
@@ -99,9 +126,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "There was a problem with your authentication. Please try again.",
           variant: "destructive",
         });
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
-        setIsLoading(false);
         console.log('AuthContext: Session check completed, isAuthenticated =', isAuthenticated);
+        setIsLoading(false);
       }
     };
 
