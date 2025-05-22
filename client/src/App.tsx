@@ -15,6 +15,7 @@ import TransactionView from "@/pages/TransactionView";
 import PartyTransactionView from "@/pages/PartyTransactionView";
 import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
+import ClearState from "@/pages/ClearState";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -116,10 +117,7 @@ function Router() {
       <Route path="/register-negotiator" component={RegisterNegotiator}/>
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
-      <Route path="/clear-state" component={(() => {
-        const ClearState = require('./pages/ClearState').default;
-        return ClearState;
-      })()}/>
+      <Route path="/clear-state" component={ClearState}/>
       
       {/* Protected routes */}
       <Route path="/">
