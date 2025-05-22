@@ -110,13 +110,16 @@ export default function TransactionView({ id }: TransactionViewProps) {
     }
   });
   
+  // Get transaction details object for easier access with default empty object fallback
+  const transactionDetails = transaction || {} as TransactionDetail;
+
   // Reset edited fields when transaction data changes
   useEffect(() => {
     if (transaction) {
-      setEditedTitle(transactionDetails.title || '');
-      setEditedAddress(transactionDetails.property_address || '');
+      setEditedTitle(transaction.title || '');
+      setEditedAddress(transaction.property_address || '');
     }
-  }, [transaction, transactionDetails]);
+  }, [transaction]);
   
   // Handle updating transaction details
   const handleUpdateField = async (field: 'title' | 'property_address', value: string) => {
@@ -188,8 +191,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
     );
   }
   
-  // Define transaction details - safely access with optional chaining
-  const transactionDetails = transaction || {} as TransactionDetail;
+  // Render the transaction view
 
   return (
     <div>
