@@ -141,7 +141,8 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
-          <Router />
+          {/* Add key to force re-render of Router when URL changes */}
+  <Router key={window.location.href} />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

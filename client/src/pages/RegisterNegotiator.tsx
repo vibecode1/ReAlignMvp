@@ -141,17 +141,23 @@ const RegisterNegotiator: React.FC = () => {
         }
       }
       
-      // Use direct window location change after short delay
-      console.log('Registration successful, redirecting to dashboard in 1 second...');
+      // Use a simpler, more direct approach with multiple safeguards
+      console.log('Registration successful, redirecting to dashboard now...');
       
-      // Try forceful navigation approach with absolute URL to ensure it works
+      // Store success flag in sessionStorage (preserved across redirects but not tabs)
+      sessionStorage.setItem('realign_registration_success', 'true');
+      sessionStorage.setItem('realign_new_user_email', data.email);
+
+      // The most reliable way to navigate is to directly set window.location
+      console.log('Setting window.location.href to /dashboard');
+      
+      // Redirect to dashboard using absolute path
+      window.location.href = '/dashboard';
+      
+      // Just in case the above doesn't work:
       setTimeout(() => {
-        console.log('Executing redirect now...');
-        // Get the base URL of the current page
-        const baseUrl = window.location.origin;
-        // Use the most forceful redirect approach with absolute URL
-        console.log('Redirecting to:', `${baseUrl}/dashboard`);
-        window.location.href = `${baseUrl}/dashboard`;
+        console.log('Final fallback redirect executing');
+        document.location.href = '/dashboard';
       }, 1000);
     } catch (error: any) {
       console.error('Registration error:', error);
