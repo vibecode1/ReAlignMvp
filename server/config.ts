@@ -11,7 +11,7 @@ const config = {
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
   
   // Database
-  databaseUrl: process.env.DATABASE_URL || `postgresql://postgres:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}?sslmode=require`,
+  databaseUrl: process.env.DATABASE_URL || '',
   
   // Auth
   jwtSecret: process.env.JWT_SECRET || 'your-jwt-secret',
