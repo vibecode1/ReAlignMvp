@@ -27,7 +27,6 @@ export const users = pgTable('users', {
   phone: text('phone'),
   name: text('name').notNull(),
   role: userRoleEnum('role').notNull(),
-  trial_ends_at: timestamp('trial_ends_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -110,7 +109,6 @@ export const user_device_tokens = pgTable('user_device_tokens', {
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
-  trial_ends_at: z.date().optional(),
 }).omit({ id: true, created_at: true, updated_at: true });
 
 export const insertTransactionSchema = createInsertSchema(transactions, {

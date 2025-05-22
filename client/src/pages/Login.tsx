@@ -46,10 +46,6 @@ export default function Login() {
     navigate("/magic-link");
   };
 
-  const handleRegisterClick = () => {
-    navigate("/register-negotiator");
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <motion.div
@@ -61,7 +57,7 @@ export default function Login() {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <img src="/realign-logo.png" alt="ReAlign Logo" className="h-10" />
+              <div className="text-2xl font-bold text-brand-primary">ReAlign</div>
             </div>
             <CardTitle className="text-2xl text-center">Negotiator Login</CardTitle>
             <CardDescription className="text-center">
@@ -129,21 +125,7 @@ export default function Login() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="w-full text-center">
-              <p className="text-sm text-gray-500 mb-2">
-                New negotiator?
-              </p>
-              <Button 
-                variant="secondary" 
-                className="w-full"
-                onClick={handleRegisterClick}
-                disabled={isLoading}
-              >
-                Start 30-day free trial
-              </Button>
-            </div>
-            
+          <CardFooter>
             <div className="w-full text-center">
               <p className="text-sm text-gray-500 mb-2">
                 Not a negotiator?
@@ -156,13 +138,6 @@ export default function Login() {
               >
                 Sign in with Magic Link
               </Button>
-            </div>
-            
-            <div className="w-full text-center mt-4">
-              <p className="text-xs text-gray-400">
-                Having trouble logging in?{" "}
-                <a href="/clear-state" className="text-primary hover:underline">Clear stored data</a>
-              </p>
             </div>
           </CardFooter>
         </Card>

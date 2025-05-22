@@ -7,25 +7,9 @@ import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize PostgreSQL client pool
-let dbConfig = {};
-
-// For Neon PostgreSQL database, we need to enable SSL
-if (config.databaseUrl) {
-  // Use connection string directly but add SSL settings
-  dbConfig = {
-    connectionString: config.databaseUrl,
-    ssl: {
-      rejectUnauthorized: false // Allow self-signed certificates for development
-    }
-  };
-  
-  console.log(`Connecting to database using connection string with SSL enabled`);
-} else {
-  console.error("No DATABASE_URL provided. Database connection will fail.");
-  throw new Error("Missing DATABASE_URL environment variable");
-}
-
-const pool = new Pool(dbConfig);
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+});
 
 // Initialize Drizzle ORM
 const db = drizzle(pool, { schema });
@@ -38,7 +22,6 @@ export interface IStorage {
   getUserById(id: string): Promise<schema.User | undefined>;
   getUserByEmail(email: string): Promise<schema.User | undefined>;
   createUser(user: schema.InsertUser): Promise<schema.User>;
-  resetAllUsers(): Promise<void>; // Method to clear all users from the database
 
   // Transaction methods
   createTransaction(transaction: schema.InsertTransaction, userId: string): Promise<schema.Transaction>;
@@ -78,29 +61,8 @@ export interface IStorage {
 class DrizzleStorage implements IStorage {
   // User methods
   async getUserById(id: string): Promise<schema.User | undefined> {
-    console.log('storage.getUserById: Looking up user with ID:', id);
-    
-    // Construct query
-    const query = db.select().from(schema.users).where(eq(schema.users.id, id));
-    const querySQL = query.toSQL();
-    console.log('storage.getUserById: SQL query:', querySQL.sql);
-    console.log('storage.getUserById: Query parameters:', querySQL.params);
-    
-    try {
-      const users = await query;
-      console.log('storage.getUserById: Query result:', users.length ? 'User found' : 'No user found');
-      if (users.length > 0) {
-        console.log('storage.getUserById: User data:', {
-          id: users[0].id,
-          email: users[0].email,
-          role: users[0].role
-        });
-      }
-      return users[0];
-    } catch (error) {
-      console.error('storage.getUserById: Database error:', error);
-      throw error;
-    }
+    const users = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    return users[0];
   }
 
   async getUserByEmail(email: string): Promise<schema.User | undefined> {

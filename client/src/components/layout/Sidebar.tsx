@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
           {/* Logo */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex-1 whitespace-nowrap overflow-hidden">
-              <img src="/realign-logo.png" alt="ReAlign Logo" className="h-8" />
+              <span className="text-xl font-bold">ReAlign</span>
             </div>
             {!isMobile && (
               <Button 

@@ -1,22 +1,23 @@
+import React from 'react';
+import { Sidebar } from './Sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-import React from "react";
-import Sidebar from "./Sidebar";
-import { Toaster } from "@/components/ui/toaster";
-import { useAuth } from "@/context/AuthContext";
-import NotificationPermission from "@/components/notifications/NotificationPermission";
+interface AppShellProps {
+  children: React.ReactNode;
+}
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  const isMobile = useIsMobile();
+  
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {user && <Sidebar />}
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#f9f9f9]">
+      <Sidebar isMobile={isMobile} />
       
-      <main className={`flex-1 overflow-auto ${user ? 'ml-64' : ''}`}>
+      <main className={`flex-1 p-4 lg:p-8 ${isMobile ? '' : 'lg:ml-64'}`}>
         {children}
-        <Toaster />
-        {user && <NotificationPermission />}
       </main>
     </div>
   );
-}
+};
+
+export default AppShell;

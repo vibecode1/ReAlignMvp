@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { LoginSchema, MagicLinkRequestSchema, NegotiatorRegistrationSchema } from '@shared/types';
+import { LoginSchema, MagicLinkRequestSchema } from '@shared/types';
 import config from '../config';
 import { storage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
-import { addDays } from 'date-fns';
 
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);
@@ -15,187 +14,6 @@ const supabase = createClient(config.supabaseUrl, config.supabaseKey);
  * Controller for authentication routes
  */
 export const authController = {
-  /**
-   * Reset users - DEV ONLY - removes all users from the database
-   * WARNING: This is a dangerous operation and should only be used in development
-   */
-  async resetUsers(req: Request, res: Response) {
-    try {
-      if (process.env.NODE_ENV !== 'development') {
-        return res.status(403).json({
-          error: {
-            code: 'FORBIDDEN',
-            message: 'This operation is only allowed in development mode'
-          }
-        });
-      }
-      
-      console.log('Starting database user reset operation...');
-      
-      // Use the storage interface to reset users
-      const result = await storage.resetAllUsers();
-      
-      console.log('All users have been deleted from the database.');
-      
-      return res.status(200).json({
-        message: 'All users have been deleted from the database',
-        success: true
-      });
-    } catch (error) {
-      console.error('Failed to reset users:', error);
-      return res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to reset users'
-        }
-      });
-    }
-  },
-  /**
-   * Register a new negotiator with a 30-day trial
-   */
-  async registerNegotiator(req: Request, res: Response) {
-    try {
-      // Validate request body
-      const validation = NegotiatorRegistrationSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid registration data',
-            details: validation.error.errors,
-          }
-        });
-      }
-
-      const { name, email, password } = validation.data;
-
-      // Create a simplified version without checking for existing users
-      // The signUp function will return an error if the email already exists
-
-      // Log the registration attempt
-      console.log('authController.registerNegotiator: Attempting to register user:', email);
-      
-      // Create a new Supabase Auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: 'negotiator',
-          }
-        }
-      });
-      
-      // Log the full error if present for debugging
-      if (authError) {
-        console.error('authController.registerNegotiator: Supabase signUp error:', authError);
-      }
-      
-      // Log the full authData to inspect its structure
-      console.log('authController.registerNegotiator: Full authData from Supabase signUp:', 
-        JSON.stringify({
-          user: authData.user ? {
-            id: authData.user.id,
-            email: authData.user.email,
-            role: authData.user.app_metadata?.role
-          } : null,
-          session: authData.session ? {
-            exists: true,
-            has_token: !!authData.session.access_token
-          } : null
-        }, null, 2)
-      );
-
-      // If signup was successful but no session was created, explicitly sign in the user
-      let sessionData = authData.session;
-      if (authData.user && !sessionData) {
-        console.log('authController.registerNegotiator: No session from signUp, attempting explicit sign-in');
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (signInError) {
-          console.error('Failed to sign in after registration:', signInError);
-        } else {
-          console.log('authController.registerNegotiator: Successfully signed in after registration');
-          sessionData = signInData.session;
-        }
-      }
-
-      if (authError || !authData.user) {
-        return res.status(500).json({
-          error: {
-            code: 'AUTH_ERROR',
-            message: 'Failed to create authentication account',
-          }
-        });
-      }
-
-      // Calculate trial end date (30 days from now)
-      const trialEndsAt = addDays(new Date(), 30);
-
-      // Create user in our database with the Supabase user ID
-      try {
-        const insertData = {
-          id: authData.user.id, // Using Supabase user ID as our database user ID
-          name,
-          email,
-          role: 'negotiator' as const,
-          trial_ends_at: trialEndsAt,
-        };
-        
-        // Save user to our application database
-        const newUser = await storage.createUser(insertData);
-        console.log('User successfully saved to database:', newUser.email);
-        
-        // Get token from either the original session or the sign-in session
-        const token = sessionData?.access_token;
-        console.log('authController.registerNegotiator: Generated token =', token ? `${token.substring(0, 20)}...` : 'No token available');
-        
-        // Return user info and token
-        return res.status(201).json({
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            role: newUser.role,
-            name: newUser.name,
-            trial_ends_at: newUser.trial_ends_at,
-          },
-          token: token,
-          refresh_token: sessionData?.refresh_token || null,
-        });
-      } catch (dbError) {
-        console.error('Failed to save user to application database:', dbError);
-        
-        // Attempt to clean up the Supabase user since we couldn't create the app user
-        try {
-          // Note: In a production environment, you'd use admin functions to delete the user
-          // This is a simplified example - ideally we'd implement proper rollback
-          console.error('Could not save user to application database. Supabase user was created but app user creation failed.');
-        } catch (cleanupError) {
-          console.error('Failed to clean up Supabase user after database error:', cleanupError);
-        }
-        
-        return res.status(500).json({
-          error: {
-            code: 'DATABASE_ERROR',
-            message: 'Failed to create user profile in application database.',
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Negotiator registration error:', error);
-      return res.status(500).json({
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'Failed to process registration request',
-        }
-      });
-    }
-  },
-
   /**
    * Login with email and password (for negotiators)
    */
@@ -327,7 +145,7 @@ export const authController = {
       }
 
       return res.status(200).json({
-        message: 'Magic link sent successfully. Please check your email.',
+        message: 'Magic link sent successfully. Please check your email/SMS.',
       });
     } catch (error) {
       console.error('Magic link error:', error);
@@ -411,10 +229,8 @@ export const authController = {
    * Get current authenticated user's details
    */
   async getCurrentUser(req: AuthenticatedRequest, res: Response) {
-    console.log('authController.getCurrentUser: Function entered');
     try {
       if (!req.user) {
-        console.log('authController.getCurrentUser: No user in request, returning 401');
         return res.status(401).json({
           error: {
             code: 'UNAUTHENTICATED',
@@ -423,26 +239,10 @@ export const authController = {
         });
       }
 
-      console.log('authController.getCurrentUser: Authenticated request with user:', {
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role
-      });
-
       // Fetch detailed user information from database
-      const userId = req.user.id;
-      console.log('authController.getCurrentUser: Fetching user from database with ID:', userId);
-      const user = await storage.getUserById(userId);
-      
-      console.log('authController.getCurrentUser: Database query result:', user ? {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        exists: !!user
-      } : 'No user found');
+      const user = await storage.getUserById(req.user.id);
 
       if (!user) {
-        console.error('authController.getCurrentUser: User not found in database with ID:', req.user.id);
         return res.status(404).json({
           error: {
             code: 'USER_NOT_FOUND',

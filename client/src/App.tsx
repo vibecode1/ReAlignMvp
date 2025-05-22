@@ -8,14 +8,12 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import MagicLink from "@/pages/MagicLink";
 import MagicLinkCallback from "@/pages/MagicLinkCallback";
-import RegisterNegotiator from "@/pages/RegisterNegotiator";
 import Dashboard from "@/pages/Dashboard";
 import TransactionList from "@/pages/TransactionList";
 import TransactionView from "@/pages/TransactionView";
 import PartyTransactionView from "@/pages/PartyTransactionView";
 import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
-import ClearState from "@/pages/ClearState";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,42 +32,11 @@ const ProtectedRoute = ({
   allowedRoles?: Role[],
   path?: string 
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { hasAccess } = useRoleAccess(allowedRoles);
   
-  // Check for pending registration navigation
-  const registrationSuccess = sessionStorage.getItem('realign_registration_success');
-  const newUserEmail = sessionStorage.getItem('realign_new_user_email');
-  const justRegistered = sessionStorage.getItem('realign_just_registered');
-  
-  // If we just registered, show loading without redirect
-  if (registrationSuccess && newUserEmail) {
-    console.log('ProtectedRoute: Registration success flag found, waiting for auth to complete');
-    
-    // Mark registration as processing to avoid oscillations if there are auth issues
-    if (!justRegistered) {
-      console.log('ProtectedRoute: Setting justRegistered flag to prevent looping');
-      sessionStorage.setItem('realign_just_registered', 'true');
-      
-      // For safety, reload the page after 1.5 seconds if still waiting
-      // This clears stale token state that might be causing issues
-      setTimeout(() => {
-        console.log('ProtectedRoute: Forcing page reload to clear state');
-        window.location.reload();
-      }, 1500);
-    }
-    
-    return (
-      <div className="h-screen w-full flex items-center justify-center flex-col">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-primary mb-4" />
-        <p className="text-gray-600">Setting up your account...</p>
-      </div>
-    );
-  }
-
-  // Standard loading state
+  // Loading state
   if (isLoading) {
-    console.log('ProtectedRoute: Auth state is loading...');
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-primary" />
@@ -77,12 +44,8 @@ const ProtectedRoute = ({
     );
   }
   
-  // Only redirect after we're sure about the auth state
+  // Not authenticated
   if (!isAuthenticated) {
-    console.log('ProtectedRoute: Not authenticated, redirecting to login');
-    // Clear any stale registration flags
-    sessionStorage.removeItem('realign_registration_success');
-    sessionStorage.removeItem('realign_new_user_email');
     return <Redirect to="/login" />;
   }
   
@@ -114,10 +77,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login}/>
-      <Route path="/register-negotiator" component={RegisterNegotiator}/>
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
-      <Route path="/clear-state" component={ClearState}/>
       
       {/* Protected routes */}
       <Route path="/">
@@ -177,8 +138,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
-          {/* Add key to force re-render of Router when URL changes */}
-  <Router key={window.location.href} />
+          <Router />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
