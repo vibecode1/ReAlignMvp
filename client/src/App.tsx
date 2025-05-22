@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import MagicLink from "@/pages/MagicLink";
 import MagicLinkCallback from "@/pages/MagicLinkCallback";
+import RegisterNegotiator from "@/pages/RegisterNegotiator";
 import Dashboard from "@/pages/Dashboard";
 import TransactionList from "@/pages/TransactionList";
 import TransactionView from "@/pages/TransactionView";
@@ -77,6 +78,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login}/>
+      <Route path="/register-negotiator" component={RegisterNegotiator}/>
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
       
