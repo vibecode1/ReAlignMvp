@@ -61,33 +61,48 @@ export const authController = {
       const trialEndsAt = addDays(new Date(), 30);
 
       // Create user in our database with the Supabase user ID
-      const insertData = {
-        name,
-        email,
-        role: 'negotiator',
-        trial_ends_at: trialEndsAt,
-      };
-      
-      // Create a simplified user record - bypassing database issues for now
-      const newUser = {
-        id: authData.user.id,
-        name,
-        email,
-        role: 'negotiator',
-        trial_ends_at: trialEndsAt
-      };
-
-      // Return user info and token
-      return res.status(201).json({
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          role: newUser.role,
-          name: newUser.name,
-          trial_ends_at: newUser.trial_ends_at,
-        },
-        token: authData.session?.access_token,
-      });
+      try {
+        const insertData = {
+          id: authData.user.id, // Using Supabase user ID as our database user ID
+          name,
+          email,
+          role: 'negotiator' as const,
+          trial_ends_at: trialEndsAt,
+        };
+        
+        // Save user to our application database
+        const newUser = await storage.createUser(insertData);
+        
+        // Return user info and token
+        return res.status(201).json({
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+            name: newUser.name,
+            trial_ends_at: newUser.trial_ends_at,
+          },
+          token: authData.session?.access_token,
+        });
+      } catch (dbError) {
+        console.error('Failed to save user to application database:', dbError);
+        
+        // Attempt to clean up the Supabase user since we couldn't create the app user
+        try {
+          // Note: In a production environment, you'd use admin functions to delete the user
+          // This is a simplified example
+          console.error('Could not save user to application database. Supabase user was created but app user creation failed.');
+        } catch (cleanupError) {
+          console.error('Failed to clean up Supabase user after database error:', cleanupError);
+        }
+        
+        return res.status(500).json({
+          error: {
+            code: 'DATABASE_ERROR',
+            message: 'Failed to create user profile in application database.',
+          }
+        });
+      }
     } catch (error) {
       console.error('Negotiator registration error:', error);
       return res.status(500).json({
