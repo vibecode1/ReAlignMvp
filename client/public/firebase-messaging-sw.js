@@ -4,14 +4,15 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
-// Your Firebase configuration will be inserted at runtime from environment variables
+// Firebase configuration with placeholder values
+// In production, these would be replaced with actual values
 firebase.initializeApp({
-  apiKey: 'FIREBASE_API_KEY',
-  authDomain: 'FIREBASE_AUTH_DOMAIN',
-  projectId: 'FIREBASE_PROJECT_ID',
-  storageBucket: 'FIREBASE_STORAGE_BUCKET',
-  messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID',
-  appId: 'FIREBASE_APP_ID'
+  apiKey: 'placeholder-api-key',
+  authDomain: 'realign-placeholder.firebaseapp.com',
+  projectId: 'realign-placeholder',
+  storageBucket: 'realign-placeholder.appspot.com',
+  messagingSenderId: '123456789',
+  appId: '1:123456789:web:placeholder'
 });
 
 // Initialize Firebase Cloud Messaging

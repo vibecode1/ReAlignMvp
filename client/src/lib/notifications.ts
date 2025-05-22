@@ -1,7 +1,31 @@
 import { apiRequest } from './queryClient';
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+
+// Firebase configuration with placeholder values
+// In production, these would come from environment variables
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "placeholder-api-key",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "realign-placeholder.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "realign-placeholder", 
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "realign-placeholder.appspot.com",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:placeholder"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+let messaging: any = null;
+
+try {
+  messaging = getMessaging(app);
+  console.log('Firebase messaging initialized successfully');
+} catch (error) {
+  console.warn('Firebase messaging initialization failed (placeholder config):', error);
+}
 
 /**
- * Requests permission for notifications and registers the device token
+ * Requests permission for notifications and registers the FCM token
  * @returns Promise<boolean> - Whether permission was granted
  */
 export const requestNotificationPermission = async (): Promise<boolean> => {
@@ -16,16 +40,38 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      // Use a browser fingerprint as token for web notifications
-      const token = generateBrowserToken();
+      // Try to get FCM token first
+      let token: string | null = null;
       
-      // Send the token to the backend
+      if (messaging) {
+        try {
+          token = await getToken(messaging, {
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'placeholder-vapid-key'
+          });
+          
+          if (token) {
+            // Send FCM token to the backend
+            await apiRequest('/api/v1/notifications/device-tokens', 'POST', {
+              token,
+              type: 'fcm'
+            });
+            
+            console.log('FCM token registered successfully');
+            return true;
+          }
+        } catch (fcmError) {
+          console.warn('Failed to get FCM token (placeholder config), falling back to web token:', fcmError);
+        }
+      }
+      
+      // Fallback to web token if FCM fails
+      const webToken = generateBrowserToken();
       await apiRequest('/api/v1/notifications/device-tokens', 'POST', {
-        token,
+        token: webToken,
         type: 'web'
       });
       
-      console.log('Web notification permission granted');
+      console.log('Web notification permission granted with fallback token');
       return true;
     }
     
@@ -107,6 +153,49 @@ export const connectToWebSocket = (): WebSocket => {
   };
   
   return socket;
+};
+
+/**
+ * Sets up Firebase Cloud Messaging foreground message handler
+ */
+export const setupFCMHandler = (): void => {
+  if (!messaging) {
+    console.warn('Firebase messaging not available, skipping FCM handler setup');
+    return;
+  }
+  
+  try {
+    onMessage(messaging, (payload) => {
+      console.log('Received foreground FCM message:', payload);
+      
+      // Show a browser notification for foreground messages
+      if (Notification.permission === 'granted' && payload.notification) {
+        const notification = new Notification(
+          payload.notification.title || 'ReAlign Notification',
+          {
+            body: payload.notification.body || 'You have a new notification',
+            icon: '/logo.png',
+            data: payload.data
+          }
+        );
+        
+        notification.onclick = () => {
+          window.focus();
+          
+          // Navigate to specific page based on notification data
+          if (payload.data?.transactionId) {
+            window.location.href = `/transactions/${payload.data.transactionId}`;
+          }
+          
+          notification.close();
+        };
+      }
+    });
+    
+    console.log('FCM foreground message handler set up successfully');
+  } catch (error) {
+    console.error('Failed to set up FCM handler:', error);
+  }
 };
 
 /**

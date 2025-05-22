@@ -1,14 +1,104 @@
 import { createClient } from '@supabase/supabase-js';
+import * as admin from 'firebase-admin';
 import config from '../config';
 import * as schema from '@shared/schema';
+import { storage } from '../storage';
 
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+
+// Initialize Firebase Admin SDK with placeholder config
+// In production, these would come from environment variables
+const firebaseConfig = {
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID || "realign-placeholder",
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || "placeholder-key-id",
+  private_key: (process.env.FIREBASE_PRIVATE_KEY || "-----BEGIN PRIVATE KEY-----\nplaceholder\n-----END PRIVATE KEY-----\n").replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL || "firebase-adminsdk@realign-placeholder.iam.gserviceaccount.com",
+  client_id: process.env.FIREBASE_CLIENT_ID || "placeholder-client-id",
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL || "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk%40realign-placeholder.iam.gserviceaccount.com"
+};
+
+// Initialize Firebase Admin only if not already initialized
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(firebaseConfig as admin.ServiceAccount),
+      projectId: firebaseConfig.project_id
+    });
+    console.log('Firebase Admin SDK initialized successfully');
+  } catch (error) {
+    console.warn('Firebase Admin SDK initialization failed (placeholder config):', error);
+  }
+}
 
 /**
  * Notification service for sending various types of notifications
  */
 export class NotificationService {
+  /**
+   * Send a push notification via Firebase Cloud Messaging
+   */
+  async sendPushNotification(
+    userIds: string[],
+    title: string,
+    body: string,
+    data?: { [key: string]: string }
+  ): Promise<boolean> {
+    try {
+      if (!admin.apps.length) {
+        console.warn('Firebase Admin SDK not initialized, skipping push notification');
+        return false;
+      }
+
+      // Get FCM tokens for the specified users
+      const tokens: string[] = [];
+      for (const userId of userIds) {
+        const userTokens = await storage.getUserDeviceTokens(userId);
+        const fcmTokens = userTokens
+          .filter(token => token.token_type === 'fcm')
+          .map(token => token.device_token);
+        tokens.push(...fcmTokens);
+      }
+
+      if (tokens.length === 0) {
+        console.log('No FCM tokens found for users:', userIds);
+        return true; // Not an error, just no tokens to send to
+      }
+
+      // Prepare the message
+      const message: admin.messaging.MulticastMessage = {
+        notification: {
+          title,
+          body
+        },
+        data: data || {},
+        tokens: tokens
+      };
+
+      // Send the notification
+      const response = await admin.messaging().sendEachForMulticast(message);
+      
+      console.log(`Push notification sent: ${response.successCount}/${tokens.length} successful`);
+      
+      // Log any failures
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp: any, idx: number) => {
+          if (!resp.success) {
+            console.error(`Failed to send to token ${tokens[idx]}:`, resp.error);
+          }
+        });
+      }
+
+      return response.successCount > 0;
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+      return false;
+    }
+  }
   /**
    * Sends a magic link for authentication
    */
@@ -150,6 +240,18 @@ export class NotificationService {
 
       // In a real implementation, this would use a proper email service
       console.log(`Document request email to ${user.data.email}:\n${content}`);
+      
+      // Send push notification as well
+      await this.sendPushNotification(
+        [userId],
+        `Document Request: ${documentType}`,
+        `${negotiatorName} has requested you to upload: ${documentType}`,
+        {
+          type: 'document_request',
+          transactionId: transactionId,
+          documentType: documentType
+        }
+      );
       
       // If the user has provided a phone number and opted in for SMS,
       // also send an SMS notification (not implemented in MVP)
@@ -351,6 +453,19 @@ export class NotificationService {
         // In a real implementation, this would use a proper email service
         console.log(`Message notification email to ${participant.users.email}:\n${content}`);
       }
+      
+      // Send push notifications to all participants
+      const participantIds = participants.map(p => p.user_id);
+      await this.sendPushNotification(
+        participantIds,
+        `New Message in ${message.transactions.title}`,
+        `${sender.name}: ${textPreview}`,
+        {
+          type: 'message',
+          transactionId: message.transaction_id,
+          messageId: messageId
+        }
+      );
       
       return true;
     } catch (error) {
