@@ -30,42 +30,8 @@ interface TransactionSummary {
 }
 
 export default function Dashboard() {
-  const [location, navigate] = useLocation();
-  const { user, setUserSession } = useAuth();
-  
-  // Check for registration redirect parameters
-  useEffect(() => {
-    const checkRegistrationRedirect = async () => {
-      const url = new URL(window.location.href);
-      const isNewRegistration = url.searchParams.get('newRegistration') === 'true';
-      const userId = url.searchParams.get('userId');
-      
-      if (isNewRegistration && userId) {
-        console.log('Detected new registration redirect with userId:', userId);
-        
-        // Get user data from localStorage that was stored during registration
-        const storedUserData = localStorage.getItem('auth_user');
-        const storedToken = localStorage.getItem('auth_token');
-        
-        if (storedUserData && storedToken) {
-          const userData = JSON.parse(storedUserData);
-          
-          // Manually update auth context with the stored data
-          try {
-            await setUserSession(userData, storedToken);
-            console.log('Successfully restored user session from registration data');
-            
-            // Remove the URL parameters to clean up
-            navigate('/dashboard', { replace: true });
-          } catch (err) {
-            console.error('Failed to set user session from registration data:', err);
-          }
-        }
-      }
-    };
-    
-    checkRegistrationRedirect();
-  }, [location, navigate, setUserSession]);
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
   
   // Fetch transactions
   const { data, isLoading, error } = useQuery({

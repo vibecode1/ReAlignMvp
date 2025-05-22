@@ -6,8 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
 
 // UI Components
 import {
@@ -39,7 +37,6 @@ const RegisterNegotiator: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { setUserSession } = useAuth();
 
   // Set up form with validation
   const form = useForm<FormValues>({
@@ -63,35 +60,18 @@ const RegisterNegotiator: React.FC = () => {
         password: data.password
       });
 
-      console.log('Registration successful, response:', response);
+      // Store user data and token in localStorage
+      localStorage.setItem('realign_token', response.token);
+      localStorage.setItem('realign_user', JSON.stringify(response.user));
       
-      // Simplified approach - set minimal data needed to view dashboard
-      if (response && response.token && response.user) {
-        // Store credentials in localStorage immediately with needed formats
-        localStorage.setItem('auth_token', response.token); 
-        localStorage.setItem('auth_user', JSON.stringify({
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role
-        }));
-        
-        // Show success toast
-        toast({
-          title: 'Registration Successful',
-          description: 'Welcome to ReAlign! Your 30-day trial has started.',
-        });
-        
-        // Create a URL that explicitly passes authentication data
-        // This will force a new page load, bypassing any router-based navigation
-        const redirectUrl = new URL('/dashboard', window.location.origin);
-        redirectUrl.searchParams.append('newRegistration', 'true');
-        redirectUrl.searchParams.append('userId', response.user.id);
-        
-        // Force complete page refresh with new auth parameters
-        console.log('Redirecting to dashboard...');
-        window.location.href = redirectUrl.toString();
-      }
+      // Show success toast
+      toast({
+        title: 'Registration Successful',
+        description: 'Welcome to ReAlign! Your 30-day trial has started.',
+      });
+      
+      // Redirect to dashboard
+      setLocation('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
       
@@ -219,10 +199,10 @@ const RegisterNegotiator: React.FC = () => {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
               Already have an account?{' '}
-              <Link to="/login">
-                <span className="text-brand-primary hover:underline font-medium cursor-pointer">
+              <Link href="/login">
+                <a className="text-brand-primary hover:underline font-medium">
                   Login here
-                </span>
+                </a>
               </Link>
             </div>
           </CardFooter>
