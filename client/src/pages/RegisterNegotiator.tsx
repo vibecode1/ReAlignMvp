@@ -65,10 +65,10 @@ const RegisterNegotiator: React.FC = () => {
 
       console.log('Registration successful, response:', response);
       
-      // Manual approach - store both credentials and simulate logged in state directly
+      // Simplified approach - set minimal data needed to view dashboard
       if (response && response.token && response.user) {
-        // Store credentials for use after redirect
-        localStorage.setItem('auth_token', response.token);
+        // Store credentials in localStorage immediately with needed formats
+        localStorage.setItem('auth_token', response.token); 
         localStorage.setItem('auth_user', JSON.stringify({
           id: response.user.id,
           email: response.user.email,
@@ -76,27 +76,22 @@ const RegisterNegotiator: React.FC = () => {
           role: response.user.role
         }));
         
-        // Update auth context immediately to reflect logged in state
-        await setUserSession({
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role
-        }, response.token);
+        // Show success toast
+        toast({
+          title: 'Registration Successful',
+          description: 'Welcome to ReAlign! Your 30-day trial has started.',
+        });
+        
+        // Create a URL that explicitly passes authentication data
+        // This will force a new page load, bypassing any router-based navigation
+        const redirectUrl = new URL('/dashboard', window.location.origin);
+        redirectUrl.searchParams.append('newRegistration', 'true');
+        redirectUrl.searchParams.append('userId', response.user.id);
+        
+        // Force complete page refresh with new auth parameters
+        console.log('Redirecting to dashboard...');
+        window.location.href = redirectUrl.toString();
       }
-      
-      // Show success toast
-      toast({
-        title: 'Registration Successful',
-        description: 'Welcome to ReAlign! Your 30-day trial has started.',
-      });
-      
-      // Add a brief delay to allow state updates to propagate
-      setTimeout(() => {
-        // Force navigation to dashboard
-        window.location.replace('/dashboard');
-      }, 500);
-      
     } catch (error: any) {
       console.error('Registration error:', error);
       
