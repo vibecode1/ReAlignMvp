@@ -367,31 +367,89 @@ export default function TransactionView({ id }: TransactionViewProps) {
             <DocRequestList 
               requests={transactionDetails.documentRequests || []}
               currentUserRole={user?.role || 'unknown'}
-              onUpdateRequestStatus={(requestId, newStatus) => {
-                toast({
-                  title: "Document Status Updated",
-                  description: `Document request status has been updated to ${newStatus}.`,
-                });
-                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              onUpdateRequestStatus={async (requestId, newStatus) => {
+                try {
+                  await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
+                    status: newStatus
+                  });
+                  
+                  toast({
+                    title: "Document Status Updated",
+                    description: `Document request status has been updated to ${newStatus}.`,
+                  });
+                  queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                } catch (error) {
+                  console.error('Failed to update document status:', error);
+                  toast({
+                    title: "Update Failed",
+                    description: "There was an error updating the document status. Please try again.",
+                    variant: "destructive",
+                  });
+                }
               }}
-              onRemind={(requestId) => {
-                toast({
-                  title: "Reminder Sent",
-                  description: "A reminder has been sent to the assigned party.",
-                });
+              onRemind={async (requestId) => {
+                try {
+                  // Call notification service to send a reminder
+                  await apiRequest('POST', `/api/v1/doc-requests/${requestId}/remind`, {});
+                  
+                  toast({
+                    title: "Reminder Sent",
+                    description: "A reminder has been sent to the assigned party.",
+                  });
+                } catch (error) {
+                  console.error('Failed to send reminder:', error);
+                  toast({
+                    title: "Reminder Failed",
+                    description: "There was an error sending the reminder. Please try again.",
+                    variant: "destructive",
+                  });
+                }
               }}
-              onResetToPending={(requestId, note) => {
-                toast({
-                  title: "Revision Requested",
-                  description: "The document has been reset to pending with your revision notes.",
-                });
-                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              onResetToPending={async (requestId, note) => {
+                try {
+                  await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
+                    status: 'pending',
+                    revision_note: note
+                  });
+                  
+                  toast({
+                    title: "Revision Requested",
+                    description: "The document has been reset to pending with your revision notes.",
+                  });
+                  queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                } catch (error) {
+                  console.error('Failed to request revision:', error);
+                  toast({
+                    title: "Update Failed",
+                    description: "There was an error requesting the revision. Please try again.",
+                    variant: "destructive",
+                  });
+                }
               }}
               onUploadForRequest={(requestId) => {
-                toast({
-                  title: "Upload Initiated",
-                  description: "Please use the upload panel to submit your document.",
-                });
+                // Find the document type from the request
+                const docRequest = transactionDetails.documentRequests?.find(req => req.id === requestId);
+                
+                // Scroll to the upload section
+                const uploadSection = document.getElementById('upload-section');
+                if (uploadSection) {
+                  uploadSection.scrollIntoView({ behavior: 'smooth' });
+                  
+                  // Set the document type in the upload widget if available
+                  if (docRequest) {
+                    // Note: In a full implementation, we would also pass the document request ID
+                    // to the upload widget to link the upload to this specific request
+                    toast({
+                      title: "Upload Initiated",
+                      description: `Please upload your ${docRequest.docType} document using the upload panel below.`,
+                    });
+                  } else {
+                    toast({
+                      title: "Upload Initiated",
+                      description: "Please use the upload panel to submit your document.",
+                    });
+                  }
+                }
               }}
             />
           </motion.div>
