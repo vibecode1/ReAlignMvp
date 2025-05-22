@@ -63,7 +63,7 @@ export const messages = pgTable('messages', {
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
   sender_id: uuid('sender_id').references(() => users.id, { onDelete: 'set null' }),
   text: text('text').notNull(),
-  reply_to: uuid('reply_to').references(() => messages.id),
+  reply_to: uuid('reply_to'),
   is_seed_message: boolean('is_seed_message').notNull().default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });

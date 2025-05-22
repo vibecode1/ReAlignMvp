@@ -8,7 +8,12 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize PostgreSQL client pool
 const pool = new Pool({
-  connectionString: config.databaseUrl,
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT || '5432'),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 // Initialize Drizzle ORM
