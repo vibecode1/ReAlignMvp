@@ -1,0 +1,166 @@
+# Fix PostgreSQL SSL Connection Error in Replit
+
+## The Problem
+The error `connection is insecure (try using sslmode=require)` occurs because PostgreSQL is trying to establish a secure connection, but the SSL mode isn't properly configured.
+
+## Solution 1: Update Database Connection String
+
+### In your `.env` file or Replit Secrets:
+
+If your `DATABASE_URL` looks like this:
+```
+postgresql://username:password@host:port/database
+```
+
+Change it to include SSL mode:
+```
+postgresql://username:password@host:port/database?sslmode=require
+```
+
+Or if you're using Supabase, it might need:
+```
+postgresql://username:password@host:port/database?sslmode=require&ssl={"rejectUnauthorized":false}
+```
+
+## Solution 2: Update Drizzle Configuration
+
+### In `drizzle.config.ts`:
+
+```typescript
+import type { Config } from 'drizzle-kit';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+export default {
+  schema: './shared/schema.ts',
+  out: './drizzle',
+  driver: 'pg',
+  dbCredentials: {
+    connectionString: process.env.DATABASE_URL!,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  }
+} satisfies Config;
+```
+
+## Solution 3: Update Database Connection in Storage
+
+### In `server/storage.ts` or wherever you initialize your database:
+
+```typescript
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from '../shared/schema';
+
+// Create a connection pool with SSL configuration
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' 
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+export const db = drizzle(pool, { schema });
+```
+
+## Solution 4: For Neon Database (if using)
+
+If you're using Neon database, update your connection:
+
+```typescript
+import { neon, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+
+neonConfig.fetchConnectionCache = true;
+
+const sql = neon(process.env.DATABASE_URL!);
+export const db = drizzle(sql, { schema });
+```
+
+## Solution 5: Environment-Specific Configuration
+
+### Create a database configuration helper:
+
+```typescript
+// server/lib/database.ts
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from '../../shared/schema';
+
+function createDatabaseConnection() {
+  const connectionString = process.env.DATABASE_URL;
+  
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not defined');
+  }
+
+  // Parse the connection string to check if SSL params are already included
+  const hasSSLParam = connectionString.includes('sslmode=');
+  
+  const pool = new Pool({
+    connectionString: hasSSLParam 
+      ? connectionString 
+      : `${connectionString}?sslmode=require`,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+
+  return drizzle(pool, { schema });
+}
+
+export const db = createDatabaseConnection();
+```
+
+## Quick Fix for Replit
+
+1. **Go to Replit Secrets** (padlock icon in the sidebar)
+
+2. **Update your DATABASE_URL** to include SSL parameters:
+   ```
+   postgresql://[user]:[password]@[host]:[port]/[database]?sslmode=require
+   ```
+
+3. **If using Supabase**, your connection string should look like:
+   ```
+   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres?sslmode=require
+   ```
+
+4. **Restart your Replit** after updating the environment variable
+
+## Testing the Fix
+
+After implementing the fix, test the registration endpoint again:
+
+```bash
+curl -X POST https://your-replit-url.repl.co/api/v1/auth/register/negotiator \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123",
+    "confirmPassword": "password123"
+  }'
+```
+
+## Additional Debugging
+
+If the error persists, add this debug code to your storage initialization:
+
+```typescript
+console.log('DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@')); // Hide password
+console.log('NODE_ENV:', process.env.NODE_ENV);
+```
+
+This will help you verify that:
+1. The DATABASE_URL is being loaded correctly
+2. The SSL parameters are included
+3. The environment is set correctly
+
+## Common Replit-Specific Issues
+
+1. **Secrets not loading**: Make sure you're accessing secrets correctly in Replit
+2. **Connection timeouts**: Replit may have firewall restrictions; ensure your database allows connections from Replit IPs
+3. **SSL certificate issues**: The `rejectUnauthorized: false` setting bypasses certificate validation, which is necessary for some hosted databases
