@@ -62,8 +62,19 @@ const RegisterNegotiator: React.FC = () => {
         password: data.password
       });
 
-      // Store the authentication token in localStorage directly for immediate access
-      localStorage.setItem('sb-access-token', response.token);
+      console.log('Registration successful, response:', response);
+      
+      // Set the user session using the authContext method
+      // This properly handles the Supabase session integration
+      await setUserSession(
+        {
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name,
+          role: response.user.role
+        }, 
+        response.token
+      );
       
       // Show success toast
       toast({
@@ -71,8 +82,11 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
-      // Force immediate redirection to dashboard
-      window.location.href = '/dashboard';
+      // Add a small delay to ensure session is properly established
+      setTimeout(() => {
+        // Force immediate redirection to dashboard
+        window.location.href = '/dashboard';
+      }, 100);
     } catch (error: any) {
       console.error('Registration error:', error);
       
@@ -200,12 +214,11 @@ const RegisterNegotiator: React.FC = () => {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
               Already have an account?{' '}
-              <span 
-                className="text-brand-primary hover:underline font-medium cursor-pointer"
-                onClick={() => window.location.href = '/login'}
-              >
-                Login here
-              </span>
+              <Link to="/login">
+                <span className="text-brand-primary hover:underline font-medium cursor-pointer">
+                  Login here
+                </span>
+              </Link>
             </div>
           </CardFooter>
         </Card>
