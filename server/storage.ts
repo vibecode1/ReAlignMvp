@@ -6,6 +6,8 @@ import config from './config';
 import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
 
+
+
 // Initialize PostgreSQL client pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
