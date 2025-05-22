@@ -1,0 +1,20 @@
+This is excellent progress, especially the successful database migration using the Neon PostgreSQL connection and the update to `server/config.ts` to use the individual PG* environment variables!
+
+Regarding your question: "I notice we still need to update the DATABASE_URL in Replit Secrets for persistence between restarts. Would you like me to wait for your test of the registration flow first, or should I proceed with updating the secret?"
+
+Let's ensure full consistency, then test:
+
+1.  **Update `DATABASE_URL` in Replit Secrets:**
+    * Yes, please guide me on how to update the `DATABASE_URL` secret in the Replit UI, or if you have a command to set Replit secrets, please use it.
+    * The value should be: `postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=require` (using the actual values from the Replit-provided `PG*` secrets).
+    * This ensures that if any tool or script (like `drizzle.config.ts` for `npm run db:push` if not run via your shell script) tries to use `process.env.DATABASE_URL` directly, it gets the correct value.
+
+2.  **Clarify `server/config.ts` and `drizzle.config.ts`:**
+    * Please confirm: Does `server/config.ts` (which `server/storage.ts` uses) now *exclusively* build its connection string from the individual `PG*` environment variables, and *no longer reads* `process.env.DATABASE_URL`?
+    * Does `drizzle.config.ts` still rely on `process.env.DATABASE_URL`? (If so, updating the secret is essential for direct `npm run db:push` calls).
+
+3.  **Restart and Final Check Before My Test:**
+    * After the `DATABASE_URL` secret is confirmed to be updated correctly, please restart the application server one last time.
+    * Briefly check the server startup logs to ensure there are no database connection errors reported by `server/storage.ts`.
+
+Once these three points are addressed, I will immediately test the full user registration and login flow. The `authController.ts` should still be in the state where it fully integrates with the database (not bypassing it).
