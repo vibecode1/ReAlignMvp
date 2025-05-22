@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import NotificationPermission from '@/components/notifications/NotificationPermission';
-import { connectToWebSocket, setupWebSocketHandler, sendTestNotification } from '@/lib/notifications';
+import { connectToWebSocket, setupWebSocketHandler, sendTestNotification, getNotificationPermissionStatus } from '@/lib/notifications';
 import { AlertCircle, Bell, Info, BellRing } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -87,6 +87,7 @@ const NotificationSettings: React.FC = () => {
           <CardContent>
             <NotificationPermission 
               onPermissionChange={(status) => {
+                setPermissionStatus(status);
                 if (status === 'granted') {
                   toast({
                     title: 'Notifications enabled',
@@ -103,7 +104,7 @@ const NotificationSettings: React.FC = () => {
               </div>
             )}
           </CardContent>
-          {Notification.permission === 'granted' && (
+          {permissionStatus === 'granted' && (
             <CardFooter>
               <Button 
                 variant="outline" 
