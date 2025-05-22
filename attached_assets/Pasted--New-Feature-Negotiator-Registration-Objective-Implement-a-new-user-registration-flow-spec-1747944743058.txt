@@ -1,0 +1,111 @@
+**New Feature: Negotiator Registration**
+
+**Objective:** Implement a new user registration flow specifically for "Negotiator" roles. This will allow new negotiators to sign up for the ReAlign platform using their email and a password.
+
+**Context & Existing Components:**
+* The application currently supports negotiator login via email/password (`client/src/pages/Login.tsx`) and magic link authentication for other roles.
+* Supabase is used for authentication (`client/src/lib/supabase.ts`, `server/controllers/authController.ts`).
+* The `users` table in the database (`shared/schema.ts`) stores user information including their role.
+* Frontend forms utilize `react-hook-form` and `zod` for validation (as seen in `client/src/pages/Login.tsx`, `client/src/pages/NewTransaction.tsx`).
+* UI components are available from `client/src/components/ui/` (e.g., `Card`, `Input`, `Button`, `Form`).
+* Global authentication state is managed via `AuthContext.tsx`.
+* API requests are handled by `client/src/lib/queryClient.ts`.
+* Backend user creation is handled by `server/storage.ts` (`createUser` method) and new user authentication is handled by Supabase.
+
+**Detailed Implementation Steps:**
+
+**Phase 1: Backend Implementation (API Endpoint & Logic)**
+
+1.  **Define Zod Validation Schema for Registration:**
+    * In `shared/types.ts`, create a new Zod schema named `NegotiatorRegistrationSchema`.
+    * It should include:
+        * `name`: `z.string().min(2, "Name must be at least 2 characters")`
+        * `email`: `z.string().email("Invalid email format")`
+        * `password`: `z.string().min(8, "Password must be at least 8 characters")`
+        * `confirmPassword`: `z.string().min(8)`
+    * Add a `.refine()` method to ensure `password` and `confirmPassword` match.
+
+2.  **Create New API Endpoint for Negotiator Registration:**
+    * In `server/routes.ts`, add a new route to the `authRouter`: `POST /auth/register/negotiator`.
+    * This route should use the `authController.registerNegotiator` method (to be created).
+
+3.  **Implement `registerNegotiator` Controller Method:**
+    * In `server/controllers/authController.ts`:
+        * Create a new asynchronous method `registerNegotiator`.
+        * **Validate Request Body:** Use the `NegotiatorRegistrationSchema` to validate `req.body`. If validation fails, return a 400 error with details.
+        * **Check for Existing User (Email):** Query the database using `storage.getUserByEmail` to ensure the email is not already registered. If it exists, return a 409 (Conflict) error: `{ error: { code: 'USER_ALREADY_EXISTS', message: 'An account with this email already exists.' } }`.
+        * **Create Supabase User:**
+            * Use `supabase.auth.signUp({ email, password })` to create the user in Supabase.
+            * This will also handle sending a confirmation email by Supabase if email confirmations are enabled in Supabase project settings.
+            * If Supabase user creation fails (e.g., weak password not caught by Zod, Supabase error), return an appropriate error (e.g., 500 or a more specific Supabase error).
+        * **Create Local User Record:**
+            * If Supabase user creation is successful and returns a user object, extract the `id` and `email` from `data.user`.
+            * Call `storage.createUser` with the following data:
+                * `id`: `data.user.id` (from Supabase response)
+                * `email`: `data.user.email` (from Supabase response)
+                * `name`: `req.body.name`
+                * `role`: `'negotiator'` (hardcoded)
+            * If local user record creation fails, consider how to handle this (e.g., log the error; the Supabase user exists but the local profile doesn't. For MVP, a 500 error is acceptable).
+        * **Response:**
+            * On success, return a 201 Created status with a message: `{ message: "Negotiator registration successful. Please check your email to confirm your account." }`. Do *not* return a session token here; the user must confirm their email and then log in.
+
+**Phase 2: Frontend Implementation (Registration Page & UI)**
+
+1.  **Create Negotiator Registration Page Component:**
+    * Create a new file: `client/src/pages/RegisterNegotiator.tsx`.
+    * This page should be visually similar to `client/src/pages/Login.tsx`, using `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` from `shadcn/ui`.
+    * Include the ReAlign logo.
+    * Title: "Create Negotiator Account".
+    * Description: "Sign up to start managing your short sale transactions."
+
+2.  **Implement Registration Form:**
+    * Inside `RegisterNegotiator.tsx`, use `react-hook-form` with the `NegotiatorRegistrationSchema` (imported from `shared/types.ts`) and `zodResolver`.
+    * Create form fields for:
+        * Full Name (`name`) - `Input` component.
+        * Email (`email`) - `Input` component, `type="email"`.
+        * Password (`password`) - `Input` component, `type="password"`.
+        * Confirm Password (`confirmPassword`) - `Input` component, `type="password"`.
+    * Use `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage` for each field, similar to `Login.tsx`.
+    * Add a submit `Button` ("Register") and a link/button to navigate back to the Login page ("Already have an account? Sign In").
+
+3.  **Handle Form Submission:**
+    * The `onSubmit` function should:
+        * Call a new function (e.g., `registerNegotiator`) in `AuthContext.tsx` (to be created) or directly use `apiRequest` from `client/src/lib/queryClient.ts` to make a `POST` request to `/api/v1/auth/register/negotiator`.
+        * Display loading state on the submit button (`isLoading`).
+        * On successful registration:
+            * Clear the form.
+            * Display a success message (e.g., "Registration successful! Please check your email to confirm your account and then log in."). This can be a persistent message on the page or a toast notification.
+            * Optionally, disable the form or redirect to a "Check your email" page.
+        * On error (e.g., email already exists, validation error from backend, server error):
+            * Display the error message from the backend response (using `authError` state similar to `Login.tsx`).
+
+4.  **Add Navigation:**
+    * In `client/src/App.tsx`, add a new route `/register/negotiator` that renders the `RegisterNegotiator` page.
+    * On the `Login.tsx` page, add a link/button: "Don't have an account? Register as Negotiator" that navigates to `/register/negotiator`.
+
+**Phase 3: Testing & Refinements**
+
+1.  **Backend Testing:**
+    * Test the `POST /auth/register/negotiator` endpoint with valid data.
+    * Test with an existing email to ensure a 409 conflict is returned.
+    * Test with invalid data (e.g., mismatched passwords, short password, invalid email) to ensure Zod validation works.
+    * Verify that a new user is created in the Supabase `auth.users` table and your local `users` table with the role 'negotiator'.
+    * Verify Supabase email confirmation flow (if enabled).
+
+2.  **Frontend Testing:**
+    * Test the registration form UI and validation.
+    * Test successful registration flow and display of success message.
+    * Test error handling (e.g., displaying "Email already exists" message).
+    * Test navigation between Login and Register pages.
+
+3.  **User Experience:**
+    * Ensure clear feedback to the user during and after registration (loading states, success messages, error messages).
+    * Confirm that the new negotiator can log in successfully *after* email confirmation (if enabled in Supabase).
+
+**Key Considerations:**
+
+* **Supabase Email Confirmation:** By default, Supabase Auth's `signUp` method sends a confirmation email. The user will need to click this link before they can log in. The frontend success message should reflect this. If email confirmation is disabled in your Supabase project settings, the user can log in immediately. Clarify which behavior is desired. For MVP, relying on Supabase's default email confirmation is recommended.
+* **Error Handling:** Provide user-friendly error messages for common issues (email exists, passwords don't match, weak password if Supabase rejects it).
+* **Security:** Ensure passwords are never logged or sent back to the client after registration. HTTPS is assumed.
+
+This prompt provides a detailed plan for implementing negotiator registration, leveraging existing patterns and components within the ReAlign MVP codebase.
