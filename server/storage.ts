@@ -188,6 +188,14 @@ class DrizzleStorage implements IStorage {
       .returning();
     return result[0];
   }
+  
+  async getMessageById(id: string): Promise<schema.Message | undefined> {
+    const messages = await db
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.id, id));
+    return messages[0];
+  }
 
   async getMessagesByTransactionId(transactionId: string, page: number, limit: number): Promise<{ data: schema.Message[], total: number }> {
     const offset = (page - 1) * limit;
