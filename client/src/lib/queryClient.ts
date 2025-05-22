@@ -12,9 +12,29 @@ export async function apiRequest<T = any>(
   url: string,
   data?: unknown | undefined,
 ): Promise<T> {
+  // Get the auth token from localStorage
+  const token = localStorage.getItem('realign_token');
+  console.log('apiRequest: URL =', url, 'Method =', method);
+  console.log('apiRequest: Token retrieved from localStorage =', token ? `${token.substring(0, 10)}...` : 'No token found');
+  
+  // Prepare headers
+  const headers: Record<string, string> = {};
+  
+  // Add Content-Type for requests with body
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // Add Authorization header if token exists
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
+  console.log('apiRequest: Request headers =', headers);
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,11 +49,30 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Get the auth token from localStorage
+    const token = localStorage.getItem('realign_token');
+    const url = queryKey[0] as string;
+    console.log('getQueryFn: URL =', url);
+    console.log('getQueryFn: Token retrieved from localStorage =', token ? `${token.substring(0, 10)}...` : 'No token found');
+    
+    // Create headers object
+    const headers: Record<string, string> = {};
+    
+    // Add Authorization header if token exists
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+      console.log('getQueryFn: Adding Authorization header');
+    }
+    
+    console.log('getQueryFn: Request headers =', headers);
+    
+    const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      console.log('getQueryFn: Received 401 response, returning null per configuration');
       return null;
     }
 
