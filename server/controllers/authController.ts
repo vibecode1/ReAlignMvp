@@ -34,10 +34,14 @@ export const authController = {
 
       const { name, email, password } = validation.data;
 
-      // Check if email already exists in our database
-      const existingUser = await storage.getUserByEmail(email);
+      // Check if email already exists in Supabase directly
+      const { data: existingUserData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      if (existingUser) {
+      if (existingUserData) {
         return res.status(409).json({
           error: {
             code: 'EMAIL_EXISTS',
