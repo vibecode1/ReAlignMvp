@@ -1,0 +1,42 @@
+Build Instruction Prompt: Fix Post-Registration Redirect for New Negotiators
+
+Objective: Correct the frontend redirection logic after a new negotiator successfully registers for their 30-day trial. Currently, the user is taken back to the negotiator login page. The correct behavior is to redirect the newly registered and authenticated negotiator to their Negotiator Dashboard.
+
+Context & References:
+
+This issue relates to the "New Negotiator Registration with 30-Day Free Trial" feature recently implemented.
+The relevant frontend code is within the "Negotiator Registration Screen/Page," specifically in the section handling a successful response from the POST /api/v1/auth/register-negotiator API endpoint.
+As per the previous instructions for this feature and the User Onboarding Flow.docx (Negotiator Flow, section b. Login ), successfully authenticated negotiators should be directed to the "Dashboard view."
+Tasks for the AI:
+
+Locate Frontend Registration Logic:
+
+Identify the JavaScript/TypeScript file and function in the frontend/ directory responsible for handling the form submission on the Negotiator Registration screen.
+Specifically, find the code block that processes a successful response from the POST /api/v1/auth/register-negotiator API.
+Modify Redirection:
+
+Currently, after successfully storing the JWT and user data, the application incorrectly redirects to the login page.
+Change this behavior. Upon successful registration and session establishment (i.e., JWT and user data are stored in the global state/context):
+Use the frontend routing mechanism (e.g., useNavigate() hook from react-router-dom, or the equivalent if a different router is used) to programmatically redirect the user.
+The target route should be the Negotiator Dashboard page/component. Ensure you use the correct path for the Negotiator Dashboard as defined in your frontend routing setup.
+Ensure Session is Set Before Redirect:
+
+Double-check that the logic correctly sets the authentication token (JWT) and user information (including name, email, role: 'negotiator', id, and trial_ends_at) in the application's global state or context before the redirect to the dashboard occurs. The dashboard will likely rely on this information being present.
+Example (Conceptual - adapt to your actual router and state management):
+
+JavaScript
+
+// Inside your registration form submission handler, after successful API call:
+
+if (registrationSuccessful) {
+  // 1. Store JWT token (e.g., in localStorage or a secure cookie via Supabase client)
+  // 2. Update global auth context with user data from API response
+  //    (e.g., authContext.login(userData, token); )
+  //    userData should include id, name, email, role: 'negotiator', trial_ends_at
+
+  // 3. Redirect to Negotiator Dashboard
+  //    If using react-router-dom:
+  //    navigate('/dashboard'); // Or whatever your dashboard route is
+} else {
+  // Handle registration error
+}
