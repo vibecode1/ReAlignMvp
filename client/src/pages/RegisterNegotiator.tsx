@@ -71,8 +71,11 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
-      // Redirect to dashboard after proper session setup
-      setLocation('/dashboard');
+      // Force a small delay to ensure auth context is updated
+      setTimeout(() => {
+        // Redirect to dashboard after proper session setup
+        window.location.href = '/dashboard';
+      }, 500);
     } catch (error: any) {
       console.error('Registration error:', error);
       
