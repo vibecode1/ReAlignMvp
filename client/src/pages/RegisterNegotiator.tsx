@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/context/AuthContext';
 
 // UI Components
 import {
@@ -37,6 +38,7 @@ const RegisterNegotiator: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { setUserSession } = useAuth();
 
   // Set up form with validation
   const form = useForm<FormValues>({
@@ -60,9 +62,8 @@ const RegisterNegotiator: React.FC = () => {
         password: data.password
       });
 
-      // Store user data and token in localStorage
-      localStorage.setItem('realign_token', response.token);
-      localStorage.setItem('realign_user', JSON.stringify(response.user));
+      // Use the auth context to set the user session properly
+      await setUserSession(response.user, response.token);
       
       // Show success toast
       toast({
@@ -70,7 +71,7 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
-      // Redirect to dashboard
+      // Redirect to dashboard after proper session setup
       setLocation('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);

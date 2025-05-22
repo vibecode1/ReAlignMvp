@@ -13,6 +13,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   requestMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  setUserSession: (userData: UserInfo, token: string) => Promise<void>;
 };
 
 type UserInfo = {
@@ -189,6 +190,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Set user session (for registration and other uses)
+  const setUserSession = async (userData: UserInfo, token: string) => {
+    try {
+      // Set session with Supabase
+      await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: '',
+      });
+      
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Error setting user session:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -198,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         requestMagicLink,
         signOut,
+        setUserSession,
       }}
     >
       {children}
