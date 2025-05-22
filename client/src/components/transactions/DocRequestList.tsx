@@ -35,10 +35,12 @@ export interface DocumentRequest {
 interface DocRequestListProps {
   requests: DocumentRequest[];
   currentUserRole: string;
+  parties?: Array<{userId: string, name: string, role: string}>;
   onUpdateRequestStatus: (id: string, newStatus: string) => void;
   onRemind: (id: string) => void;
   onResetToPending: (id: string, note: string) => void;
   onUploadForRequest: (requestId: string) => void;
+  onCreateRequest?: (docType: string, assignedTo: string, dueDate?: string) => void;
 }
 
 // Document type templates for UI display
