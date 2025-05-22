@@ -308,6 +308,28 @@ export default function TransactionView({ id }: TransactionViewProps) {
             currentPhase={transactionDetails.currentPhase || 'intro'}
             showTimeline={true}
             creationDate={new Date(transactionDetails.created_at || Date.now())}
+            isEditable={isNegotiator}
+            onPhaseChange={async (newPhase) => {
+              try {
+                await apiRequest('PATCH', `/api/v1/transactions/${id}`, {
+                  currentPhase: newPhase
+                });
+                
+                toast({
+                  title: "Phase Updated",
+                  description: "Transaction phase has been successfully updated.",
+                });
+                
+                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              } catch (error) {
+                console.error('Failed to update phase:', error);
+                toast({
+                  title: "Update Failed",
+                  description: "There was an error updating the transaction phase. Please try again.",
+                  variant: "destructive",
+                });
+              }
+            }}
           />
           
           <motion.div
@@ -475,12 +497,26 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     status={party.status}
                     lastAction={party.lastAction}
                     isEditable={isNegotiator}
-                    onStatusChange={(newStatus) => {
-                      toast({
-                        title: "Status Updated",
-                        description: `${party.name}'s status has been updated to ${newStatus}.`
-                      });
-                      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                    onStatusChange={async (newStatus) => {
+                      try {
+                        await apiRequest('PATCH', `/api/v1/transactions/${id}/parties/${party.userId}`, {
+                          status: newStatus,
+                          lastAction: `Status updated to ${newStatus} on ${new Date().toLocaleDateString()}`
+                        });
+                        
+                        toast({
+                          title: "Status Updated",
+                          description: `${party.name}'s status has been updated to ${newStatus}.`
+                        });
+                        queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                      } catch (error) {
+                        console.error('Failed to update party status:', error);
+                        toast({
+                          title: "Update Failed",
+                          description: "There was an error updating the party status. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   />
                 ))}

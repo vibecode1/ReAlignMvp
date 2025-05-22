@@ -37,20 +37,40 @@ interface PhaseTrackerProps {
   currentPhase: string;
   showTimeline?: boolean;
   creationDate?: Date;
+  isEditable?: boolean;
+  onPhaseChange?: (newPhase: string) => void;
 }
 
 export const PhaseTracker: React.FC<PhaseTrackerProps> = ({
   currentPhase,
   showTimeline = false,
   creationDate,
+  isEditable = false,
+  onPhaseChange,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [isChangingPhase, setIsChangingPhase] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState(currentPhase);
   
   // Find the current phase index
   const currentPhaseIndex = PHASES.findIndex(phase => phase.id === currentPhase);
   const currentPhaseObj = PHASES[currentPhaseIndex] || PHASES[0];
   
   const toggleExpanded = () => setExpanded(!expanded);
+  
+  // Handle phase change
+  const handlePhaseChange = () => {
+    if (onPhaseChange && selectedPhase !== currentPhase) {
+      onPhaseChange(selectedPhase);
+      setIsChangingPhase(false);
+    }
+  };
+  
+  // Cancel phase change
+  const cancelPhaseChange = () => {
+    setSelectedPhase(currentPhase);
+    setIsChangingPhase(false);
+  };
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
@@ -60,9 +80,53 @@ export const PhaseTracker: React.FC<PhaseTrackerProps> = ({
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Current Phase
           </h3>
-          <p className="text-lg font-semibold text-primary">
-            {currentPhaseObj.label}
-          </p>
+          {isChangingPhase ? (
+            <div className="mt-2">
+              <select 
+                value={selectedPhase}
+                onChange={(e) => setSelectedPhase(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
+              >
+                {PHASES.map(phase => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.label}
+                  </option>
+                ))}
+              </select>
+              
+              <div className="mt-2 flex gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={handlePhaseChange}
+                >
+                  Update Phase
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={cancelPhaseChange}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-primary">
+                {currentPhaseObj.label}
+              </p>
+              {isEditable && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsChangingPhase(true)}
+                  className="text-xs"
+                >
+                  Change
+                </Button>
+              )}
+            </div>
+          )}
         </div>
         
         <Button 
