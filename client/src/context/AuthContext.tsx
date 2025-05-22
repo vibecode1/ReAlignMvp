@@ -1,8 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
 
 // Types
 type AuthContextType = {
@@ -20,11 +21,6 @@ type UserInfo = {
   name: string;
   role: string;
 };
-
-// Initialize Supabase client with config
-import config from '@/config';
-
-const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
 
 // Create auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
