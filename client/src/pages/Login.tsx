@@ -157,6 +157,13 @@ export default function Login() {
                 Sign in with Magic Link
               </Button>
             </div>
+            
+            <div className="w-full text-center mt-4">
+              <p className="text-xs text-gray-400">
+                Having trouble logging in?{" "}
+                <a href="/clear-state" className="text-primary hover:underline">Clear stored data</a>
+              </p>
+            </div>
           </CardFooter>
         </Card>
       </motion.div>

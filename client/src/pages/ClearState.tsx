@@ -25,6 +25,13 @@ export default function ClearState() {
       document.cookie.split(';').forEach(cookie => {
         const [name] = cookie.trim().split('=');
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+      });
+      
+      // Clear Supabase-specific cookies if present
+      ['sb-access-token', 'sb-refresh-token', 'sb:token'].forEach(cookieName => {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
       });
       
       setCleared(true);
@@ -34,6 +41,11 @@ export default function ClearState() {
         description: "All local storage has been cleared. You can now return to login.",
         variant: "default"
       });
+      
+      // Force-reload the page to ensure everything is reset
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
     } catch (error) {
       console.error('Error clearing state:', error);
       toast({
