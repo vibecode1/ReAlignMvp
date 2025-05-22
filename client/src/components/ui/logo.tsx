@@ -1,5 +1,6 @@
 
 import React from 'react';
+import logoImage from '../../assets/logo.png';
 
 type LogoProps = {
   className?: string;
@@ -15,7 +16,7 @@ export const Logo: React.FC<LogoProps> = ({ className, size = 'md' }) => {
   
   return (
     <img 
-      src="/images/logo.png" 
+      src={logoImage} 
       alt="ReAlign Logo" 
       className={`${sizeClasses[size]} ${className || ''}`} 
     />

@@ -58,7 +58,7 @@ export default function Login() {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <img src="/images/logo.svg" alt="ReAlign Logo" className="h-12" />
+              <Logo size="lg" />
             </div>
             <CardTitle className="text-2xl text-center">Negotiator Login</CardTitle>
             <CardDescription className="text-center">
