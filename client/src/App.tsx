@@ -10,6 +10,7 @@ import MagicLink from "@/pages/MagicLink";
 import Dashboard from "@/pages/Dashboard";
 import TransactionList from "@/pages/TransactionList";
 import TransactionView from "@/pages/TransactionView";
+import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";

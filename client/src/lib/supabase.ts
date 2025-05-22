@@ -1,10 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Import config
-import config from '@/config';
+// Create Supabase client directly with environment variables
+// This avoids issues where config values might not be properly loaded
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Create Supabase client
-export const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase credentials:', { 
+    url: supabaseUrl ? 'Set' : 'Missing', 
+    key: supabaseAnonKey ? 'Set' : 'Missing' 
+  });
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Utility function to get a URL from Supabase Storage
 export const getStorageUrl = (bucket: string, path: string) => {
