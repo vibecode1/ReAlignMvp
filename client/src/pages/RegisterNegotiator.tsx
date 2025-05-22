@@ -90,7 +90,22 @@ const RegisterNegotiator: React.FC = () => {
       });
       
       console.log('About to redirect to dashboard...');
+      
+      // Debug user authentication status before redirect
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Supabase session before redirect:', session ? 'Session exists' : 'No session');
+        
+        // Check if we can access user data
+        if (response.user) {
+          console.log('User data is available before redirect:', response.user.id);
+        }
+      } catch (sessionError) {
+        console.error('Error checking session before redirect:', sessionError);
+      }
+      
       // Redirect to dashboard
+      console.log('Executing setLocation(\'/dashboard\')');
       setLocation('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
