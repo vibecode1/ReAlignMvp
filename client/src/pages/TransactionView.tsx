@@ -188,6 +188,9 @@ export default function TransactionView({ id }: TransactionViewProps) {
     );
   }
   
+  // Define transaction details - safely access with optional chaining
+  const transactionDetails = transaction || {} as TransactionDetail;
+
   return (
     <div>
       {/* Header with back button */}
@@ -223,7 +226,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   variant="ghost"
                   disabled={isUpdating}
                   onClick={() => {
-                    setEditedTitle(transaction.title);
+                    setEditedTitle(transactionDetails.title || '');
                     setIsEditingTitle(false);
                   }}
                 >
@@ -232,7 +235,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
               </div>
             ) : (
               <h1 className="text-2xl font-bold text-brand-primary">
-                {transaction.title}
+                {transactionDetails.title || 'Transaction Title'}
                 {isNegotiator && (
                   <Button 
                     variant="ghost" 
@@ -269,7 +272,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   variant="ghost"
                   disabled={isUpdating}
                   onClick={() => {
-                    setEditedAddress(transaction.property_address);
+                    setEditedAddress(transactionDetails.property_address || '');
                     setIsEditingAddress(false);
                   }}
                 >
@@ -278,7 +281,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
               </div>
             ) : (
               <p className="text-gray-600">
-                {transaction.property_address}
+                {transactionDetails.property_address || 'Property Address'}
                 {isNegotiator && (
                   <Button 
                     variant="ghost" 
@@ -300,9 +303,9 @@ export default function TransactionView({ id }: TransactionViewProps) {
         {/* Left column - main content */}
         <div className="md:col-span-2 space-y-6">
           <PhaseTracker 
-            currentPhase={transaction.currentPhase}
+            currentPhase={transactionDetails.currentPhase || 'intro'}
             showTimeline={true}
-            creationDate={new Date(transaction.created_at)}
+            creationDate={new Date(transactionDetails.created_at || Date.now())}
           />
           
           <motion.div
@@ -311,7 +314,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
             transition={{ duration: 0.3, delay: 0.1 }}
           >
             <MessageThread 
-              messages={transaction.messages || []}
+              messages={transactionDetails.messages || []}
               currentUserRole={user?.role || 'unknown'}
               onSendMessage={(text, replyToId) => {
                 // Would handle message sending via API
@@ -329,7 +332,8 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   description: "Please use the upload panel to complete your file upload.",
                 });
               }}
-              initialMessageEditable={isNegotiator && transaction.messages?.some(m => m.isSeedMessage)}
+              initialMessageEditable={isNegotiator && 
+                transactionDetails.messages?.some((m) => m.isSeedMessage === true)}
             />
           </motion.div>
           
@@ -339,7 +343,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
             transition={{ duration: 0.3, delay: 0.2 }}
           >
             <DocRequestList 
-              requests={transaction.documentRequests || []}
+              requests={transactionDetails.documentRequests || []}
               currentUserRole={user?.role || 'unknown'}
               onUpdateRequestStatus={(requestId, newStatus) => {
                 toast({
@@ -383,12 +387,12 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 <CardTitle>Transaction Parties</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {transaction.parties && transaction.parties.map((party: any) => (
+                {transactionDetails.parties && transactionDetails.parties.map((party) => (
                   <PartyCard
                     key={party.userId}
-                    role={party.role as any}
+                    role={party.role}
                     name={party.name}
-                    status={party.status as any}
+                    status={party.status}
                     lastAction={party.lastAction}
                     isEditable={isNegotiator}
                     onStatusChange={(newStatus) => {
@@ -400,6 +404,11 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     }}
                   />
                 ))}
+                {(!transactionDetails.parties || transactionDetails.parties.length === 0) && (
+                  <div className="text-center py-4 text-gray-500">
+                    No parties assigned to this transaction yet.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
