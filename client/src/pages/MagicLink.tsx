@@ -105,7 +105,7 @@ export default function MagicLink() {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <div className="text-2xl font-bold text-brand-primary">ReAlign</div>
+              <img src="/images/logo.png" alt="ReAlign Logo" className="h-12" />
             </div>
             <CardTitle className="text-2xl text-center">Magic Link Sign In</CardTitle>
             <CardDescription className="text-center">
