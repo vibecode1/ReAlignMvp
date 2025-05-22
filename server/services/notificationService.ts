@@ -1,0 +1,382 @@
+import { createClient } from '@supabase/supabase-js';
+import config from '../config';
+import * as schema from '@shared/schema';
+
+// Initialize Supabase client
+const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+
+/**
+ * Notification service for sending various types of notifications
+ */
+export class NotificationService {
+  /**
+   * Sends a magic link for authentication
+   */
+  async sendMagicLink(email: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+        options: {
+          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('Error sending magic link:', error);
+        return false;
+      }
+
+      // In a real implementation, this might involve customizing the email template
+      // or sending through a different service
+      console.log('Magic link sent to:', email);
+      return true;
+    } catch (error) {
+      console.error('Failed to send magic link:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a transaction invitation to a party
+   */
+  async sendTransactionInvitation(
+    email: string,
+    name: string,
+    role: string,
+    transactionTitle: string,
+    propertyAddress: string,
+    negotiatorName: string
+  ): Promise<boolean> {
+    try {
+      // Generate magic link for this user
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+        options: {
+          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction=true`,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating magic link for invitation:', error);
+        return false;
+      }
+
+      // Prepare email content
+      const subject = `You've been invited to a transaction: ${transactionTitle}`;
+      const content = `
+        Hello ${name},
+        
+        ${negotiatorName} has invited you to join a real estate transaction for ${propertyAddress} as the ${role}.
+        
+        Click the link below to access the transaction:
+        ${data.properties.action_link}
+        
+        This link will expire in 24 hours.
+        
+        Thank you,
+        ReAlign Team
+      `;
+
+      // In a real implementation, this would use a proper email service
+      console.log(`Transaction invitation email to ${email}:\n${content}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to send transaction invitation:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a document request notification
+   */
+  async sendDocumentRequest(
+    userId: string,
+    documentType: string,
+    transactionTitle: string,
+    negotiatorName: string,
+    dueDate?: string
+  ): Promise<boolean> {
+    try {
+      // Get user details
+      const user = await supabase
+        .from('users')
+        .select('email, name')
+        .eq('id', userId)
+        .single();
+
+      if (!user.data) {
+        console.error('User not found for document request notification');
+        return false;
+      }
+
+      // Prepare email content
+      const subject = `Document Request: ${documentType} for ${transactionTitle}`;
+      const dueDateText = dueDate ? `Please upload this document by ${dueDate}.` : '';
+      const content = `
+        Hello ${user.data.name},
+        
+        ${negotiatorName} has requested you to upload the following document:
+        
+        Document: ${documentType}
+        Transaction: ${transactionTitle}
+        ${dueDateText}
+        
+        Please log in to the ReAlign platform to upload this document.
+        
+        Thank you,
+        ReAlign Team
+      `;
+
+      // In a real implementation, this would use a proper email service
+      console.log(`Document request email to ${user.data.email}:\n${content}`);
+      
+      // If the user has provided a phone number and opted in for SMS,
+      // also send an SMS notification (not implemented in MVP)
+      return true;
+    } catch (error) {
+      console.error('Failed to send document request notification:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a document request reminder
+   */
+  async sendDocumentRequestReminder(
+    documentRequestId: string
+  ): Promise<boolean> {
+    try {
+      // Get document request details with related information
+      const { data: request, error } = await supabase
+        .from('document_requests')
+        .select(`
+          id,
+          doc_type,
+          assigned_to_user_id,
+          due_date,
+          transactions!inner(
+            id,
+            title,
+            created_by
+          )
+        `)
+        .eq('id', documentRequestId)
+        .single();
+
+      if (error || !request) {
+        console.error('Document request not found for reminder:', error);
+        return false;
+      }
+
+      // Get assigned user details
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, email, name, phone')
+        .eq('id', request.assigned_to_user_id)
+        .single();
+
+      if (userError || !user) {
+        console.error('User not found for document request reminder:', userError);
+        return false;
+      }
+
+      // Get negotiator details
+      const { data: negotiator, error: negotiatorError } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', request.transactions.created_by)
+        .single();
+
+      if (negotiatorError || !negotiator) {
+        console.error('Negotiator not found for document request reminder:', negotiatorError);
+        return false;
+      }
+
+      // Prepare email content
+      const subject = `REMINDER: ${request.doc_type} still needed for ${request.transactions.title}`;
+      const content = `
+        Hello ${user.name},
+        
+        This is a reminder that your document "${request.doc_type}" is still needed for the transaction "${request.transactions.title}".
+        
+        ${request.due_date ? `The due date is ${request.due_date}.` : ''}
+        
+        Please log in to upload this document as soon as possible to avoid delays.
+        
+        Thank you,
+        ReAlign Team
+      `;
+
+      // In a real implementation, this would use a proper email service
+      console.log(`Document reminder email to ${user.email}:\n${content}`);
+      
+      // If the user has provided a phone number and opted in for SMS,
+      // also send an SMS reminder (not implemented in MVP)
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to send document request reminder:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a message notification
+   */
+  async sendMessageNotification(
+    messageId: string
+  ): Promise<boolean> {
+    try {
+      // Get message details with related information
+      const { data: message, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          text,
+          sender_id,
+          transaction_id,
+          reply_to,
+          transactions!inner(
+            id,
+            title
+          )
+        `)
+        .eq('id', messageId)
+        .single();
+
+      if (error || !message) {
+        console.error('Message not found for notification:', error);
+        return false;
+      }
+
+      // Get sender details
+      const { data: sender, error: senderError } = await supabase
+        .from('users')
+        .select('name, role')
+        .eq('id', message.sender_id)
+        .single();
+
+      if (senderError || !sender) {
+        console.error('Sender not found for message notification:', senderError);
+        return false;
+      }
+
+      // Get participants to notify (excluding sender)
+      const { data: participants, error: participantsError } = await supabase
+        .from('transaction_participants')
+        .select('user_id, users!inner(email, name)')
+        .eq('transaction_id', message.transaction_id)
+        .neq('user_id', message.sender_id);
+
+      if (participantsError) {
+        console.error('Error getting participants for message notification:', participantsError);
+        return false;
+      }
+
+      // Prepare email content
+      const subject = `New Message in ${message.transactions.title}`;
+      const textPreview = message.text.length > 100 
+        ? `${message.text.substring(0, 97)}...` 
+        : message.text;
+      
+      for (const participant of participants) {
+        const content = `
+          Hello ${participant.users.name},
+          
+          ${sender.name} (${sender.role}) has posted a new message in the transaction "${message.transactions.title}":
+          
+          "${textPreview}"
+          
+          Log in to view the full message and reply.
+          
+          Thank you,
+          ReAlign Team
+        `;
+
+        // In a real implementation, this would use a proper email service
+        console.log(`Message notification email to ${participant.users.email}:\n${content}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to send message notification:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a phase update notification
+   */
+  async sendPhaseUpdateNotification(
+    transactionId: string,
+    newPhase: string,
+    updatedByUserId: string
+  ): Promise<boolean> {
+    try {
+      // Get transaction details
+      const { data: transaction, error } = await supabase
+        .from('transactions')
+        .select('id, title, property_address')
+        .eq('id', transactionId)
+        .single();
+
+      if (error || !transaction) {
+        console.error('Transaction not found for phase update notification:', error);
+        return false;
+      }
+
+      // Get updater details
+      const { data: updater, error: updaterError } = await supabase
+        .from('users')
+        .select('name, role')
+        .eq('id', updatedByUserId)
+        .single();
+
+      if (updaterError || !updater) {
+        console.error('Updater not found for phase update notification:', updaterError);
+        return false;
+      }
+
+      // Get participants to notify
+      const { data: participants, error: participantsError } = await supabase
+        .from('transaction_participants')
+        .select('user_id, users!inner(email, name)')
+        .eq('transaction_id', transactionId);
+
+      if (participantsError) {
+        console.error('Error getting participants for phase update notification:', participantsError);
+        return false;
+      }
+
+      // Prepare email content
+      const subject = `Transaction Phase Updated: ${transaction.title}`;
+      
+      for (const participant of participants) {
+        const content = `
+          Hello ${participant.users.name},
+          
+          ${updater.name} has updated the transaction phase for "${transaction.title}" (${transaction.property_address}):
+          
+          New Phase: ${newPhase}
+          
+          Log in to view the transaction details and any new requirements for this phase.
+          
+          Thank you,
+          ReAlign Team
+        `;
+
+        // In a real implementation, this would use a proper email service
+        console.log(`Phase update notification email to ${participant.users.email}:\n${content}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to send phase update notification:', error);
+      return false;
+    }
+  }
+}
+
+export const notificationService = new NotificationService();
