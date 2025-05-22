@@ -7,36 +7,22 @@ import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize PostgreSQL client pool
-// Parse database URL to avoid issues with special characters
 let dbConfig = {};
-if (config.databaseUrl && config.databaseUrl.includes('@')) {
-  try {
-    // Extract parts from the database URL format: postgresql://user:password@host:port/database
-    const dbUrlParts = config.databaseUrl.split('@');
-    const hostPart = dbUrlParts[1];
-    const userPart = dbUrlParts[0].split('://')[1];
-    
-    const [host, database] = hostPart.split('/');
-    const [hostName, port] = host.split(':');
-    const [user, password] = userPart.split(':');
-    
-    dbConfig = {
-      user,
-      password,
-      host: hostName,
-      port: Number(port) || 5432,
-      database
-    };
-    
-    console.log(`Connected to database: ${hostName}:${port}/${database}`);
-  } catch (error) {
-    console.error("Error parsing database URL:", error);
-    throw new Error("Invalid database URL format");
-  }
-} else {
+
+// For Neon PostgreSQL database, we need to enable SSL
+if (config.databaseUrl) {
+  // Use connection string directly but add SSL settings
   dbConfig = {
-    connectionString: config.databaseUrl
+    connectionString: config.databaseUrl,
+    ssl: {
+      rejectUnauthorized: false // Allow self-signed certificates for development
+    }
   };
+  
+  console.log(`Connecting to database using connection string with SSL enabled`);
+} else {
+  console.error("No DATABASE_URL provided. Database connection will fail.");
+  throw new Error("Missing DATABASE_URL environment variable");
 }
 
 const pool = new Pool(dbConfig);
