@@ -144,11 +144,14 @@ const RegisterNegotiator: React.FC = () => {
       // Use direct window location change after short delay
       console.log('Registration successful, redirecting to dashboard in 1 second...');
       
-      // Try forceful navigation approach
+      // Try forceful navigation approach with absolute URL to ensure it works
       setTimeout(() => {
         console.log('Executing redirect now...');
-        // Use the most forceful redirect approach
-        window.location.replace('/dashboard');
+        // Get the base URL of the current page
+        const baseUrl = window.location.origin;
+        // Use the most forceful redirect approach with absolute URL
+        console.log('Redirecting to:', `${baseUrl}/dashboard`);
+        window.location.href = `${baseUrl}/dashboard`;
       }, 1000);
     } catch (error: any) {
       console.error('Registration error:', error);
