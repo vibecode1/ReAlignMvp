@@ -77,8 +77,29 @@ export interface IStorage {
 class DrizzleStorage implements IStorage {
   // User methods
   async getUserById(id: string): Promise<schema.User | undefined> {
-    const users = await db.select().from(schema.users).where(eq(schema.users.id, id));
-    return users[0];
+    console.log('storage.getUserById: Looking up user with ID:', id);
+    
+    // Construct query
+    const query = db.select().from(schema.users).where(eq(schema.users.id, id));
+    const querySQL = query.toSQL();
+    console.log('storage.getUserById: SQL query:', querySQL.sql);
+    console.log('storage.getUserById: Query parameters:', querySQL.params);
+    
+    try {
+      const users = await query;
+      console.log('storage.getUserById: Query result:', users.length ? 'User found' : 'No user found');
+      if (users.length > 0) {
+        console.log('storage.getUserById: User data:', {
+          id: users[0].id,
+          email: users[0].email,
+          role: users[0].role
+        });
+      }
+      return users[0];
+    } catch (error) {
+      console.error('storage.getUserById: Database error:', error);
+      throw error;
+    }
   }
 
   async getUserByEmail(email: string): Promise<schema.User | undefined> {

@@ -330,8 +330,10 @@ export const authController = {
    * Get current authenticated user's details
    */
   async getCurrentUser(req: AuthenticatedRequest, res: Response) {
+    console.log('authController.getCurrentUser: Function entered');
     try {
       if (!req.user) {
+        console.log('authController.getCurrentUser: No user in request, returning 401');
         return res.status(401).json({
           error: {
             code: 'UNAUTHENTICATED',
@@ -340,10 +342,26 @@ export const authController = {
         });
       }
 
+      console.log('authController.getCurrentUser: Authenticated request with user:', {
+        id: req.user.id,
+        email: req.user.email,
+        role: req.user.role
+      });
+
       // Fetch detailed user information from database
-      const user = await storage.getUserById(req.user.id);
+      const userId = req.user.id;
+      console.log('authController.getCurrentUser: Fetching user from database with ID:', userId);
+      const user = await storage.getUserById(userId);
+      
+      console.log('authController.getCurrentUser: Database query result:', user ? {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        exists: !!user
+      } : 'No user found');
 
       if (!user) {
+        console.error('authController.getCurrentUser: User not found in database with ID:', req.user.id);
         return res.status(404).json({
           error: {
             code: 'USER_NOT_FOUND',
