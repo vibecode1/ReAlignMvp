@@ -16,6 +16,42 @@ const supabase = createClient(config.supabaseUrl, config.supabaseKey);
  */
 export const authController = {
   /**
+   * Reset users - DEV ONLY - removes all users from the database
+   * WARNING: This is a dangerous operation and should only be used in development
+   */
+  async resetUsers(req: Request, res: Response) {
+    try {
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'This operation is only allowed in development mode'
+          }
+        });
+      }
+      
+      console.log('Starting database user reset operation...');
+      
+      // Use the storage interface to reset users
+      const result = await storage.resetAllUsers();
+      
+      console.log('All users have been deleted from the database.');
+      
+      return res.status(200).json({
+        message: 'All users have been deleted from the database',
+        success: true
+      });
+    } catch (error) {
+      console.error('Failed to reset users:', error);
+      return res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to reset users'
+        }
+      });
+    }
+  },
+  /**
    * Register a new negotiator with a 30-day trial
    */
   async registerNegotiator(req: Request, res: Response) {

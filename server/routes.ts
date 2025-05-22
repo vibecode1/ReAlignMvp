@@ -38,6 +38,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   authRouter.post('/magic-link/resend', magicLinkLimiter, authController.resendMagicLink);
   authRouter.get('/me', authenticateJWT, authController.getCurrentUser);
   
+  // Development-only routes
+  if (process.env.NODE_ENV === 'development') {
+    authRouter.post('/reset-users', authController.resetUsers);
+  }
+  
   // -- Transaction Routes --
   const transactionRouter = express.Router();
   

@@ -38,6 +38,7 @@ export interface IStorage {
   getUserById(id: string): Promise<schema.User | undefined>;
   getUserByEmail(email: string): Promise<schema.User | undefined>;
   createUser(user: schema.InsertUser): Promise<schema.User>;
+  resetAllUsers(): Promise<void>; // Method to clear all users from the database
 
   // Transaction methods
   createTransaction(transaction: schema.InsertTransaction, userId: string): Promise<schema.Transaction>;
