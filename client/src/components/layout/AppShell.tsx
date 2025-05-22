@@ -1,12 +1,11 @@
 
 import React from "react";
-import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/context/AuthContext";
 import NotificationPermission from "@/components/notifications/NotificationPermission";
 
-export default function AppShell() {
+export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
   return (
@@ -14,7 +13,7 @@ export default function AppShell() {
       {user && <Sidebar />}
       
       <main className={`flex-1 overflow-auto ${user ? 'ml-64' : ''}`}>
-        <Outlet />
+        {children}
         <Toaster />
         {user && <NotificationPermission />}
       </main>
