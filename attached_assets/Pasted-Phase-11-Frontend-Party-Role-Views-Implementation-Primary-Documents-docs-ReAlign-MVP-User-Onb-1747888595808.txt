@@ -1,0 +1,13 @@
+Phase 11: Frontend - Party Role Views Implementation
+
+Primary Documents: docs/ReAlign MVP – User Onboarding Flow.docx (Homeowner & Party Flows), docs/ReAlign MVP - Figma Wireframe Spec.docx (Party Role View). Tasks: Transaction View Screen (Party Perspective): (This view is reached directly after magic link authentication ). Fetch transaction details relevant to the party (connect to GET /api/v1/transactions/:id ). Header: Display transaction title, property address, current phase (read-only ), list of parties (names and roles only, no contact details of others ). This data comes from the parties array within the response of GET /api/v1/transactions/:id.
+
+Phase Tracker UI (PhaseTracker ): Collapsed by default (“You’re currently in Phase X: [Name]” ), expandable to show 9 standard phases with current phase highlighted.
+
+"What’s Still Needed" Section (DocRequestList ): Display document requests relevant to the transaction, potentially grouped by party, highlighting those assigned to the current user.
+
+If a request assigned to the user is 'pending' due to a negotiator revision, and a revisionNote was added, display the note clearly below the request item (e.g., 'Missing signature on page 2').
+
+Allow users to fulfill their assigned requests by triggering the UploadWidget. Messages (MessageThread ): Allow users to view the transaction message thread and reply to existing messages (cannot start new top-level threads). Uploads (UploadWidget ): Allow users to upload documents relevant to their role or a specific request. Uploads default to 'private' visibility; user can toggle to 'shared' at time of upload. Ensure the UploadWidget component's UI allows this selection and passes the chosen visibility to the handleFileUpload function, which then sends it to the POST /api/v1/uploads/:transactionId API.
+
+Ensure client-side image compression  and error/retry handling ('Upload failed. Please try again.', 'Retry' button ) are implemented as per UploadWidget spec and Figma. Display info subtext 'Uploads are private to you and the negotiator by default.'  near the upload area.
