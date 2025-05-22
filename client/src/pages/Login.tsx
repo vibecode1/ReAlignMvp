@@ -46,6 +46,10 @@ export default function Login() {
     navigate("/magic-link");
   };
 
+  const handleRegisterClick = () => {
+    navigate("/register-negotiator");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <motion.div
@@ -125,7 +129,21 @@ export default function Login() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="w-full text-center">
+              <p className="text-sm text-gray-500 mb-2">
+                New negotiator?
+              </p>
+              <Button 
+                variant="secondary" 
+                className="w-full"
+                onClick={handleRegisterClick}
+                disabled={isLoading}
+              >
+                Start 30-day free trial
+              </Button>
+            </div>
+            
             <div className="w-full text-center">
               <p className="text-sm text-gray-500 mb-2">
                 Not a negotiator?

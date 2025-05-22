@@ -54,16 +54,7 @@ const RegisterNegotiator: React.FC = () => {
       setIsLoading(true);
       
       // Call the API to register a new negotiator
-      const response = await apiRequest<{
-        user: {
-          id: string;
-          email: string;
-          role: string;
-          name: string;
-          trial_ends_at: string;
-        };
-        token: string;
-      }>('POST', '/api/v1/auth/register-negotiator', {
+      const response = await apiRequest('POST', '/api/v1/auth/register-negotiator', {
         name: data.name,
         email: data.email,
         password: data.password
