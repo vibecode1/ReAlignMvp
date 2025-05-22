@@ -318,21 +318,41 @@ export default function TransactionView({ id }: TransactionViewProps) {
             <MessageThread 
               messages={transactionDetails.messages || []}
               currentUserRole={user?.role || 'unknown'}
-              onSendMessage={(text, replyToId) => {
-                // Would handle message sending via API
-                toast({
-                  title: "Message Sent",
-                  description: "Your message has been sent successfully.",
-                });
-                
-                // Refresh data
-                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              onSendMessage={async (text, replyToId) => {
+                try {
+                  const messageData = {
+                    text,
+                    reply_to: replyToId || null
+                  };
+                  
+                  await apiRequest('POST', `/api/v1/transactions/${id}/messages`, messageData);
+                  
+                  toast({
+                    title: "Message Sent",
+                    description: "Your message has been sent successfully.",
+                  });
+                  
+                  // Refresh data
+                  queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                } catch (error) {
+                  console.error('Failed to send message:', error);
+                  toast({
+                    title: "Message Failed",
+                    description: "There was an error sending your message. Please try again.",
+                    variant: "destructive",
+                  });
+                }
               }}
               onUpload={(file) => {
-                toast({
-                  title: "File Selected",
-                  description: "Please use the upload panel to complete your file upload.",
-                });
+                // Redirect to the upload panel with focus
+                const uploadSection = document.getElementById('upload-section');
+                if (uploadSection) {
+                  uploadSection.scrollIntoView({ behavior: 'smooth' });
+                  toast({
+                    title: "File Selected",
+                    description: "Please complete your upload using the upload panel.",
+                  });
+                }
               }}
               initialMessageEditable={isNegotiator && 
                 transactionDetails.messages?.some((m) => m.isSeedMessage === true)}
@@ -416,6 +436,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
           </motion.div>
           
           <motion.div
+            id="upload-section"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}

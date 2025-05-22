@@ -55,6 +55,9 @@ function Router() {
       <Route path="/transactions">
         <ProtectedRoute component={TransactionList} />
       </Route>
+      <Route path="/transactions/new">
+        <ProtectedRoute component={NewTransaction} />
+      </Route>
       <Route path="/transactions/:id">
         {params => <ProtectedRoute component={() => <TransactionView id={params.id} />} />}
       </Route>

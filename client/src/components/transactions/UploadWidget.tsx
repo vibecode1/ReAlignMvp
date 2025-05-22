@@ -51,26 +51,38 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
     try {
       setUploadError(null);
       
-      // In a real implementation, this would send the file to the backend
-      // For demo purposes, we're simulating a successful upload
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('doc_type', selectedDocType);
+      formData.append('visibility', visibility);
       
-      // Simulate upload process (this would be replaced with actual API call)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the API to upload the file
+      const response = await fetch(`/api/v1/uploads/${transactionId}`, {
+        method: 'POST',
+        body: formData,
+        // No Content-Type header - browser will set it automatically with boundary
+        credentials: 'same-origin',
+      });
       
-      // Generate a fake URL (in real app, this would come from the backend)
-      const uploadUrl = `https://storage.example.com/${transactionId}/${Date.now()}-${file.name}`;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Upload failed');
+      }
+      
+      const uploadData = await response.json();
       
       // Call the completion handler with upload details
       onUploadComplete({
         name: file.name,
-        url: uploadUrl,
+        url: uploadData.fileUrl,
         docType: selectedDocType,
         visibility
       });
       
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadError('Failed to upload file. Please try again.');
+      setUploadError(error instanceof Error ? error.message : 'Failed to upload file. Please try again.');
       throw error; // Re-throw to show error in the upload component
     }
   };
