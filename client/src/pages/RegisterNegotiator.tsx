@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 // UI Components
 import {
@@ -38,6 +39,15 @@ const RegisterNegotiator: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated, user } = useAuth();
+  
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User is authenticated, redirecting to dashboard');
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, setLocation]);
 
   // Set up form with validation
   const form = useForm<FormValues>({
@@ -91,22 +101,19 @@ const RegisterNegotiator: React.FC = () => {
       
       console.log('About to redirect to dashboard...');
       
-      // Debug user authentication status before redirect
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Supabase session before redirect:', session ? 'Session exists' : 'No session');
-        
-        // Check if we can access user data
-        if (response.user) {
-          console.log('User data is available before redirect:', response.user.id);
-        }
-      } catch (sessionError) {
-        console.error('Error checking session before redirect:', sessionError);
-      }
+          // Manually trigger a reload to ensure the auth context is updated
+      // This approach guarantees we'll go through the full auth flow
+      console.log('Registration successful, redirecting to dashboard');
       
-      // Redirect to dashboard
-      console.log('Executing setLocation(\'/dashboard\')');
-      setLocation('/dashboard');
+      // First, set a flag in localStorage to indicate where to redirect after reload
+      localStorage.setItem('realign_post_auth_redirect', '/dashboard');
+      
+      // Then either reload the page or directly redirect
+      // Option 1: Force a complete page reload to ensure auth context is refreshed
+      window.location.href = '/dashboard';
+      
+      // Option 2 (commented out): Use the router, but may not refresh auth context
+      // setLocation('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
       
