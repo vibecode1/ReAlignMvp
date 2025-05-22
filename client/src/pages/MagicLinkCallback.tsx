@@ -45,9 +45,25 @@ export default function MagicLinkCallback() {
             
             setStatus('success');
             
-            // After a short delay, redirect to dashboard
+            // Check if the user has a non-negotiator role and transaction ID in the URL
+            // Format would be like #access_token=...&transaction_id=123&...
+            let transactionId = null;
+            try {
+              const params = new URLSearchParams(hash.substring(1));
+              transactionId = params.get('transaction_id');
+            } catch (e) {
+              console.error('Failed to extract transaction_id from hash:', e);
+            }
+            
+            // After a short delay, redirect based on role
             setTimeout(() => {
-              navigate('/dashboard');
+              // If user is not a negotiator and has a transaction ID, go directly to that transaction
+              if (userInfo.role !== 'negotiator' && transactionId) {
+                navigate(`/transactions/${transactionId}`);
+              } else {
+                // Otherwise go to dashboard
+                navigate('/dashboard');
+              }
             }, 1500);
           } catch (apiError) {
             console.error('Failed to get user info:', apiError);

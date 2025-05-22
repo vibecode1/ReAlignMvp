@@ -46,15 +46,16 @@ export class NotificationService {
     role: string,
     transactionTitle: string,
     propertyAddress: string,
-    negotiatorName: string
+    negotiatorName: string,
+    transactionId: string
   ): Promise<boolean> {
     try {
-      // Generate magic link for this user
+      // Generate magic link for this user with transaction ID
       const { data, error } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
         email,
         options: {
-          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction=true`,
+          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction_id=${transactionId}`,
         },
       });
 
@@ -95,6 +96,7 @@ export class NotificationService {
     userId: string,
     documentType: string,
     transactionTitle: string,
+    transactionId: string,
     negotiatorName: string,
     dueDate?: string
   ): Promise<boolean> {
@@ -102,12 +104,26 @@ export class NotificationService {
       // Get user details
       const user = await supabase
         .from('users')
-        .select('email, name')
+        .select('email, name, role')
         .eq('id', userId)
         .single();
 
       if (!user.data) {
         console.error('User not found for document request notification');
+        return false;
+      }
+
+      // Generate magic link for this user with transaction ID
+      const { data: magicLink, error: magicLinkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: user.data.email,
+        options: {
+          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction_id=${transactionId}`,
+        },
+      });
+
+      if (magicLinkError) {
+        console.error('Error generating magic link for document request:', magicLinkError);
         return false;
       }
 
@@ -123,7 +139,10 @@ export class NotificationService {
         Transaction: ${transactionTitle}
         ${dueDateText}
         
-        Please log in to the ReAlign platform to upload this document.
+        Click the link below to access the transaction and upload this document:
+        ${magicLink.properties.action_link}
+        
+        This link will expire in 24 hours.
         
         Thank you,
         ReAlign Team
@@ -194,6 +213,20 @@ export class NotificationService {
         return false;
       }
 
+      // Generate magic link for this user with transaction ID
+      const { data: magicLink, error: magicLinkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: user.email,
+        options: {
+          redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction_id=${request.transactions.id}`,
+        },
+      });
+
+      if (magicLinkError) {
+        console.error('Error generating magic link for document request reminder:', magicLinkError);
+        return false;
+      }
+      
       // Prepare email content
       const subject = `REMINDER: ${request.doc_type} still needed for ${request.transactions.title}`;
       const content = `
@@ -203,7 +236,10 @@ export class NotificationService {
         
         ${request.due_date ? `The due date is ${request.due_date}.` : ''}
         
-        Please log in to upload this document as soon as possible to avoid delays.
+        Click the link below to access the transaction and upload this document:
+        ${magicLink.properties.action_link}
+        
+        This link will expire in 24 hours.
         
         Thank you,
         ReAlign Team
@@ -282,6 +318,20 @@ export class NotificationService {
         : message.text;
       
       for (const participant of participants) {
+        // Generate magic link for each participant with transaction ID
+        const { data: magicLink, error: magicLinkError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: participant.users.email,
+          options: {
+            redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction_id=${message.transaction_id}`,
+          },
+        });
+
+        if (magicLinkError) {
+          console.error('Error generating magic link for message notification:', magicLinkError);
+          continue; // Skip this participant but continue with others
+        }
+        
         const content = `
           Hello ${participant.users.name},
           
@@ -289,7 +339,10 @@ export class NotificationService {
           
           "${textPreview}"
           
-          Log in to view the full message and reply.
+          Click the link below to view the full message and reply:
+          ${magicLink.properties.action_link}
+          
+          This link will expire in 24 hours.
           
           Thank you,
           ReAlign Team
@@ -354,6 +407,20 @@ export class NotificationService {
       const subject = `Transaction Phase Updated: ${transaction.title}`;
       
       for (const participant of participants) {
+        // Generate magic link for each participant with transaction ID
+        const { data: magicLink, error: magicLinkError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: participant.users.email,
+          options: {
+            redirectTo: `${process.env.APP_URL || 'http://localhost:5000'}/auth/callback?transaction_id=${transactionId}`,
+          },
+        });
+
+        if (magicLinkError) {
+          console.error('Error generating magic link for phase update notification:', magicLinkError);
+          continue; // Skip this participant but continue with others
+        }
+        
         const content = `
           Hello ${participant.users.name},
           
@@ -361,7 +428,10 @@ export class NotificationService {
           
           New Phase: ${newPhase}
           
-          Log in to view the transaction details and any new requirements for this phase.
+          Click the link below to view the transaction details and any new requirements for this phase:
+          ${magicLink.properties.action_link}
+          
+          This link will expire in 24 hours.
           
           Thank you,
           ReAlign Team
