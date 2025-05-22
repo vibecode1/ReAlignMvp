@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { UploadFileSchema } from '@shared/types';
 import { storage } from '../storage';
+import { eq } from 'drizzle-orm';
+import * as schema from '@shared/schema';
 import { AuthenticatedRequest } from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';
@@ -176,6 +178,87 @@ export const uploadController = {
       }
     }
   ],
+
+  /**
+   * Update file visibility (negotiator only)
+   */
+  async updateVisibility(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          }
+        });
+      }
+
+      // Only negotiators can change file visibility
+      if (req.user.role !== 'negotiator') {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Only negotiators can change file visibility',
+          }
+        });
+      }
+
+      const { uploadId } = req.params;
+      const { visibility } = req.body;
+
+      // Validate visibility value
+      if (!visibility || !['private', 'shared'].includes(visibility)) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Visibility must be either "private" or "shared"',
+          }
+        });
+      }
+
+      // Get the upload to verify it exists
+      const upload = await storage.getUploadById(uploadId);
+      if (!upload) {
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Upload not found',
+          }
+        });
+      }
+
+      // Update the visibility in the database using direct DB update
+      const [updatedUpload] = await storage.db.update(storage.schema.uploads)
+        .set({ visibility: visibility as 'private' | 'shared' })
+        .where(storage.eq(storage.schema.uploads.id, uploadId))
+        .returning();
+      
+      if (!updatedUpload) {
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Upload not found or could not be updated',
+          }
+        });
+      }
+
+      return res.status(200).json({
+        message: 'File visibility updated successfully',
+        data: {
+          id: updatedUpload.id,
+          visibility: updatedUpload.visibility
+        }
+      });
+    } catch (error) {
+      console.error('Error updating file visibility:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'An error occurred while updating file visibility',
+        }
+      });
+    }
+  },
 
   /**
    * Get uploads for a transaction
