@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -33,11 +34,31 @@ const ProtectedRoute = ({
   allowedRoles?: Role[],
   path?: string 
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { hasAccess } = useRoleAccess(allowedRoles);
+  const [checkingManualAuth, setCheckingManualAuth] = useState(true);
+  const [manuallyAuthenticated, setManuallyAuthenticated] = useState(false);
   
-  // Loading state
-  if (isLoading) {
+  // Check for manual auth on route entry
+  useEffect(() => {
+    const checkManualAuth = () => {
+      const storedToken = localStorage.getItem('auth_token');
+      const storedUserData = localStorage.getItem('auth_user');
+      
+      if (storedToken && storedUserData) {
+        // We have manual auth from registration
+        console.log('Protected route using manual auth from registration');
+        setManuallyAuthenticated(true);
+      }
+      
+      setCheckingManualAuth(false);
+    };
+    
+    checkManualAuth();
+  }, []);
+  
+  // Combined loading state - waiting for either auth method
+  if (isLoading || checkingManualAuth) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-primary" />
@@ -45,13 +66,21 @@ const ProtectedRoute = ({
     );
   }
   
-  // Not authenticated
-  if (!isAuthenticated) {
+  // Check if authenticated through either method
+  const effectivelyAuthenticated = isAuthenticated || manuallyAuthenticated;
+  
+  // Not authenticated through any method
+  if (!effectivelyAuthenticated) {
     return <Redirect to="/login" />;
   }
   
   // Authenticated but not authorized (wrong role)
-  if (allowedRoles.length > 0 && !hasAccess) {
+  // Skip role check for manual auth from registration - we know they're a negotiator
+  const userRole = user?.role || 'negotiator'; // Default for manual auth
+  const shouldCheckRole = !manuallyAuthenticated && allowedRoles.length > 0;
+  const effectivelyHasAccess = manuallyAuthenticated || hasAccess;
+  
+  if (shouldCheckRole && !effectivelyHasAccess) {
     return (
       <div className="h-screen w-full flex items-center justify-center flex-col p-4">
         <div className="text-red-500 mb-4 text-xl">Access Denied</div>

@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 // UI Components
 import {
@@ -64,17 +65,25 @@ const RegisterNegotiator: React.FC = () => {
 
       console.log('Registration successful, response:', response);
       
-      // Set the user session using the authContext method
-      // This properly handles the Supabase session integration
-      await setUserSession(
-        {
+      // Manual approach - store both credentials and simulate logged in state directly
+      if (response && response.token && response.user) {
+        // Store credentials for use after redirect
+        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('auth_user', JSON.stringify({
           id: response.user.id,
           email: response.user.email,
           name: response.user.name,
           role: response.user.role
-        }, 
-        response.token
-      );
+        }));
+        
+        // Update auth context immediately to reflect logged in state
+        await setUserSession({
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name,
+          role: response.user.role
+        }, response.token);
+      }
       
       // Show success toast
       toast({
@@ -82,11 +91,12 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
-      // Add a small delay to ensure session is properly established
+      // Add a brief delay to allow state updates to propagate
       setTimeout(() => {
-        // Force immediate redirection to dashboard
-        window.location.href = '/dashboard';
-      }, 100);
+        // Force navigation to dashboard
+        window.location.replace('/dashboard');
+      }, 500);
+      
     } catch (error: any) {
       console.error('Registration error:', error);
       

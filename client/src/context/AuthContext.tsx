@@ -39,7 +39,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setIsLoading(true);
         
-        // Get current session
+        // First check for our manual auth data from registration
+        const storedToken = localStorage.getItem('auth_token');
+        const storedUserData = localStorage.getItem('auth_user');
+        
+        // If we have manual auth data from registration, use it
+        if (storedToken && storedUserData) {
+          console.log('Found stored auth data from registration');
+          const userData = JSON.parse(storedUserData);
+          
+          // Set user info directly from local storage
+          setUser(userData);
+          setIsAuthenticated(true);
+          
+          // Update Supabase session
+          try {
+            // We'll attempt to set the Supabase session, but if it fails
+            // we'll still consider the user logged in based on our manual auth
+            await supabase.auth.setSession({
+              access_token: storedToken,
+              refresh_token: '',
+            });
+          } catch (supabaseError) {
+            console.log('Failed to set Supabase session, but continuing with manual auth');
+          }
+          
+          return; // Skip the rest of the check since we found manual auth data
+        }
+        
+        // Otherwise check for Supabase session as normal
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
