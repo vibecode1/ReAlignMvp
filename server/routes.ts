@@ -65,6 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // -- Upload Routes --
   apiRouter.post('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.uploadFile);
   apiRouter.get('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.getUploads);
+  apiRouter.patch('/uploads/:uploadId/visibility', authenticateJWT, requireNegotiatorRole, uploadController.updateVisibility);
   
   // -- Notification Device Token Routes --
   const notificationRouter = express.Router();
