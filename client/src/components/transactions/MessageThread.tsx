@@ -22,18 +22,22 @@ export interface Message {
 
 interface MessageThreadProps {
   messages: Message[];
-  currentUserRole: string;
+  currentUserRole?: string;
+  currentUserId?: string; // Added for party role views
   onSendMessage: (text: string, replyToId?: string) => void;
   onUpload?: (file: File) => void;
   initialMessageEditable?: boolean;
+  isNegotiator?: boolean; // Added for party role views
 }
 
 export const MessageThread: React.FC<MessageThreadProps> = ({
   messages,
   currentUserRole,
+  currentUserId,
   onSendMessage,
   onUpload,
-  initialMessageEditable = false
+  initialMessageEditable = false,
+  isNegotiator
 }) => {
   const [messageText, setMessageText] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -87,7 +91,9 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   };
   
   // Check if user can send new messages (only negotiators)
-  const canSendNewMessage = currentUserRole === 'negotiator';
+  const canSendNewMessage = isNegotiator !== undefined 
+    ? isNegotiator 
+    : currentUserRole === 'negotiator';
   
   // Check if user can reply to messages (all users)
   const canReplyToMessages = true;

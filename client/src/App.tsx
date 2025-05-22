@@ -11,12 +11,14 @@ import MagicLinkCallback from "@/pages/MagicLinkCallback";
 import Dashboard from "@/pages/Dashboard";
 import TransactionList from "@/pages/TransactionList";
 import TransactionView from "@/pages/TransactionView";
+import PartyTransactionView from "@/pages/PartyTransactionView";
 import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRoleAccess } from "@/hooks/use-role-access";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -95,7 +97,30 @@ function Router() {
         />
       </Route>
       <Route path="/transactions/:id">
-        {params => <ProtectedRoute component={() => <TransactionView id={params.id} />} />}
+        {params => {
+          // Check if the user is a negotiator or other party role to show the appropriate view
+          const PartyViewWrapper = () => {
+            const { user } = useAuth();
+            const isMobile = useIsMobile();
+            
+            if (user?.role === 'negotiator') {
+              return <TransactionView id={params.id} />;
+            } else {
+              // For party roles, show the specialized party view
+              return <PartyTransactionView id={params.id} />;
+            }
+          };
+          
+          return <ProtectedRoute component={PartyViewWrapper} />;
+        }}
+      </Route>
+      <Route path="/party-view/:id">
+        {params => (
+          <ProtectedRoute 
+            component={() => <PartyTransactionView id={params.id} />}
+            allowedRoles={['seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']} 
+          />
+        )}
       </Route>
       <Route path="/notifications">
         <ProtectedRoute component={NotificationSettings} />
