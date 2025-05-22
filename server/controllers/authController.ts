@@ -73,6 +73,9 @@ export const authController = {
       // Create a simplified version without checking for existing users
       // The signUp function will return an error if the email already exists
 
+      // Log the registration attempt
+      console.log('authController.registerNegotiator: Attempting to register user:', email);
+      
       // Create a new Supabase Auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -83,6 +86,11 @@ export const authController = {
           }
         }
       });
+      
+      // Log the full error if present for debugging
+      if (authError) {
+        console.error('authController.registerNegotiator: Supabase signUp error:', authError);
+      }
       
       // Log the full authData to inspect its structure
       console.log('authController.registerNegotiator: Full authData from Supabase signUp:', 
