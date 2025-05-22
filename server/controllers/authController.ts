@@ -63,6 +63,23 @@ export const authController = {
         }, null, 2)
       );
 
+      // If signup was successful but no session was created, explicitly sign in the user
+      let sessionData = authData.session;
+      if (authData.user && !sessionData) {
+        console.log('authController.registerNegotiator: No session from signUp, attempting explicit sign-in');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) {
+          console.error('Failed to sign in after registration:', signInError);
+        } else {
+          console.log('authController.registerNegotiator: Successfully signed in after registration');
+          sessionData = signInData.session;
+        }
+      }
+
       if (authError || !authData.user) {
         return res.status(500).json({
           error: {
@@ -89,8 +106,8 @@ export const authController = {
         const newUser = await storage.createUser(insertData);
         console.log('User successfully saved to database:', newUser.email);
         
-        // Log the token being returned to the client
-        const token = authData.session?.access_token;
+        // Get token from either the original session or the sign-in session
+        const token = sessionData?.access_token;
         console.log('authController.registerNegotiator: Generated token =', token ? `${token.substring(0, 20)}...` : 'No token available');
         
         // Return user info and token
@@ -103,6 +120,7 @@ export const authController = {
             trial_ends_at: newUser.trial_ends_at,
           },
           token: token,
+          refresh_token: sessionData?.refresh_token || null,
         });
       } catch (dbError) {
         console.error('Failed to save user to application database:', dbError);
