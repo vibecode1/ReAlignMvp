@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import MagicLink from "@/pages/MagicLink";
+import MagicLinkCallback from "@/pages/MagicLinkCallback";
 import Dashboard from "@/pages/Dashboard";
 import TransactionList from "@/pages/TransactionList";
 import TransactionView from "@/pages/TransactionView";
@@ -44,6 +45,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login}/>
       <Route path="/magic-link" component={MagicLink}/>
+      <Route path="/auth/callback" component={MagicLinkCallback}/>
       
       {/* Protected routes */}
       <Route path="/">
