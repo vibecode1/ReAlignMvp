@@ -36,30 +36,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkSession = async () => {
       try {
+        console.log('AuthContext: Starting session check');
         setIsLoading(true);
+        
+        // Check for post-auth redirect flag in localStorage
+        const postAuthRedirect = localStorage.getItem('realign_post_auth_redirect');
+        if (postAuthRedirect) {
+          console.log('AuthContext: Found post-auth redirect flag:', postAuthRedirect);
+          localStorage.removeItem('realign_post_auth_redirect');
+        }
         
         // Get current session
         const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('AuthContext: Session check result:', session ? 'Session exists' : 'No session found');
         
         if (error) {
+          console.error('AuthContext: Session check error:', error);
           throw error;
         }
         
-        if (session) {
+        // Check for auth token in localStorage as fallback
+        const storedToken = localStorage.getItem('realign_token');
+        if (!session && storedToken) {
+          console.log('AuthContext: No Supabase session but found token in localStorage');
+          try {
+            // Try to set the session with the stored token
+            await supabase.auth.setSession({
+              access_token: storedToken,
+              refresh_token: '',
+            });
+            console.log('AuthContext: Manually set Supabase session from localStorage token');
+          } catch (tokenError) {
+            console.error('AuthContext: Failed to set session from localStorage token:', tokenError);
+          }
+        }
+        
+        // Check again after potential manual session setting
+        const { data: { session: updatedSession } } = await supabase.auth.getSession();
+        
+        if (updatedSession || storedToken) {
+          console.log('AuthContext: Valid session or token found, fetching user info');
           // Session exists, fetch user info from our API
           try {
+            console.log('AuthContext: Calling /api/v1/auth/me endpoint');
             const userData = await apiRequest('GET', '/api/v1/auth/me');
             const userInfo = await userData.json();
+            console.log('AuthContext: User info fetched successfully:', userInfo.email);
             
             setUser(userInfo);
             setIsAuthenticated(true);
           } catch (apiError) {
-            console.error('Failed to get user info:', apiError);
+            console.error('AuthContext: Failed to get user info:', apiError);
             await supabase.auth.signOut();
           }
+        } else {
+          console.log('AuthContext: No valid session or token found');
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error('AuthContext: Session check error:', error);
         toast({
           title: "Authentication Error",
           description: "There was a problem with your authentication. Please try again.",
@@ -67,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } finally {
         setIsLoading(false);
+        console.log('AuthContext: Session check completed, isAuthenticated =', isAuthenticated);
       }
     };
 
@@ -74,15 +109,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthContext: Auth state change event:', event, 'Session:', session ? 'exists' : 'null');
+      
       if (event === 'SIGNED_IN' && session) {
         try {
+          console.log('AuthContext: Processing SIGNED_IN event');
           const userData = await apiRequest('GET', '/api/v1/auth/me');
           const userInfo = await userData.json();
+          console.log('AuthContext: User info fetched after sign in:', userInfo.email);
           
           setUser(userInfo);
           setIsAuthenticated(true);
+          console.log('AuthContext: Authentication state updated to authenticated');
         } catch (error) {
-          console.error('Failed to get user info after sign in:', error);
+          console.error('AuthContext: Failed to get user info after sign in:', error);
           await supabase.auth.signOut();
           toast({
             title: "Authentication Error",
@@ -91,10 +131,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('AuthContext: Processing SIGNED_OUT event');
         setUser(null);
         setIsAuthenticated(false);
         // Clear query cache on logout
         queryClient.clear();
+        console.log('AuthContext: User signed out, authentication state cleared');
+      } else {
+        console.log('AuthContext: Unhandled auth event:', event);
       }
     });
 

@@ -45,8 +45,9 @@ const ProtectedRoute = ({
     );
   }
   
-  // Not authenticated
-  if (!isAuthenticated) {
+  // Not authenticated - but only redirect if we're done loading
+  if (!isAuthenticated && !isLoading) {
+    console.log('ProtectedRoute: Not authenticated, redirecting to login');
     return <Redirect to="/login" />;
   }
   
