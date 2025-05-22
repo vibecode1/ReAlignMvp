@@ -1,0 +1,38 @@
+Hello Replit AI,
+
+We're continuing to work on fixing the post-registration redirect issue for new negotiators. The goal is to ensure that after a new negotiator successfully registers, they are reliably redirected to the /dashboard and remain authenticated.
+
+We've refined the authentication logic. Please implement the following changes:
+
+Update client/src/context/AuthContext.tsx:
+
+Replace the entire content of client/src/context/AuthContext.tsx with the latest version I provided (Document ID: auth_context_update_v3). This version includes a more robust checkAuthStatus function, performFullSignOut utility, improved onAuthStateChange handling, and specific logic for clearing sessionStorage registration flags only after successful authentication.
+Verify/Update client/src/pages/RegisterNegotiator.tsx:
+
+In the onSubmit function, after a successful API response for registration:
+Ensure localStorage is set with realign_token (and realign_refresh_token if your registration API endpoint /api/v1/auth/register-negotiator returns one).
+Ensure sessionStorage is set correctly:
+sessionStorage.setItem('realign_registration_success', 'true');
+sessionStorage.setItem('realign_new_user_email', data.email); (where data.email is the email from the form).
+Ensure await supabase.auth.setSession(...) is called with the access_token (and refresh_token if available) received from your registration API.
+Crucially, the redirect window.location.href = '/dashboard'; must happen after all the above token/flag storage and Supabase session setting operations are complete.
+Verify client/src/App.tsx (ProtectedRoute component):
+
+Ensure the ProtectedRoute component includes the logic to check for sessionStorage.getItem('realign_registration_success').
+If this flag is present, ProtectedRoute should display a loading indicator (e.g., "Setting up your account...") and not immediately redirect to /login even if isLoading from AuthContext is initially false or isAuthenticated is initially false. This gives AuthContext time to process the new session after the page reloads.
+The sessionStorage flags should be cleared by AuthContext once authentication is confirmed (as per the new AuthContext.tsx logic).
+Focus on Asynchronous Flow and Timing:
+
+The core challenge is the timing between RegisterNegotiator.tsx setting state/redirecting, and AuthContext.tsx initializing on the new page load to correctly recognize the authenticated state. The sessionStorage flags in ProtectedRoute are designed to bridge this.
+Add/Enhance Console Logging for Debugging:
+
+Please ensure extensive console logging is present in:
+client/src/context/AuthContext.tsx: Particularly within checkAuthStatus (at each step: getting session, checking local token, setting session, calling /me, setting auth state, clearing flags, setting loading states) and onAuthStateChange (for each event type and step).
+client/src/pages/RegisterNegotiator.tsx: Before and after setting each localStorage/sessionStorage item, before and after supabase.auth.setSession, and immediately before window.location.href.
+client/src/App.tsx (ProtectedRoute): When checking sessionStorage flags, isLoading, and isAuthenticated.
+Testing:
+
+After implementing these changes, please test the negotiator registration flow with a brand new email address.
+Observe the browser's developer console closely for the logs.
+Report back on whether the user is correctly redirected to the /dashboard and remains authenticated. If it still fails, please provide the sequence of console logs from the registration attempt.
+Thank you!"

@@ -141,24 +141,46 @@ const RegisterNegotiator: React.FC = () => {
         }
       }
       
-      // Use a simpler, more direct approach with multiple safeguards
-      console.log('Registration successful, redirecting to dashboard now...');
+      // Use the comprehensive approach with proper session storage flags
+      console.log('Registration successful, now setting up tokens and flags before redirecting...');
       
-      // Store success flag in sessionStorage (preserved across redirects but not tabs)
+      // 1. First store the token in localStorage
+      console.log('Storing token in localStorage, token length:', response.token.length);
+      localStorage.setItem('realign_token', response.token);
+      localStorage.setItem('realign_user', JSON.stringify(response.user));
+      
+      if (response.refresh_token) {
+        console.log('Storing refresh token in localStorage');
+        localStorage.setItem('realign_refresh_token', response.refresh_token);
+      }
+      
+      // 2. Set registration success flags in sessionStorage
+      console.log('Setting registration success flags in sessionStorage');
       sessionStorage.setItem('realign_registration_success', 'true');
       sessionStorage.setItem('realign_new_user_email', data.email);
-
-      // The most reliable way to navigate is to directly set window.location
-      console.log('Setting window.location.href to /dashboard');
       
-      // Redirect to dashboard using absolute path
+      // 3. Explicitly set Supabase session with the token
+      console.log('Setting Supabase session with token before redirect');
+      try {
+        const sessionResult = await supabase.auth.setSession({
+          access_token: response.token,
+          refresh_token: response.refresh_token || '',
+        });
+        
+        if (sessionResult.error) {
+          console.error('Error setting Supabase session before redirect:', sessionResult.error);
+        } else if (sessionResult.data.session) {
+          console.log('Successfully set Supabase session, session exists for:', sessionResult.data.session.user.email);
+        } else {
+          console.warn('setSession completed but no session returned');
+        }
+      } catch (sessionError) {
+        console.error('Exception setting Supabase session:', sessionError);
+      }
+      
+      // 4. Redirect to dashboard using absolute URL (most reliable)
+      console.log('All pre-redirect setup complete, now redirecting to dashboard...');
       window.location.href = '/dashboard';
-      
-      // Just in case the above doesn't work:
-      setTimeout(() => {
-        console.log('Final fallback redirect executing');
-        document.location.href = '/dashboard';
-      }, 1000);
     } catch (error: any) {
       console.error('Registration error:', error);
       
