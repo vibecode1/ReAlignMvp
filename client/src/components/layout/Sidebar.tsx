@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {
