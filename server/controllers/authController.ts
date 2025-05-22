@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { LoginSchema, MagicLinkRequestSchema } from '@shared/types';
+import { LoginSchema, MagicLinkRequestSchema, NegotiatorRegistrationSchema } from '@shared/types';
 import config from '../config';
 import { storage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
+import { addDays } from 'date-fns';
 
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);

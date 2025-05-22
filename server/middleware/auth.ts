@@ -98,6 +98,58 @@ export const requireNegotiatorRole = (req: AuthenticatedRequest, res: Response, 
 };
 
 /**
+ * Middleware to check if the negotiator's trial has expired
+ * This should be used after requireNegotiatorRole
+ */
+export const checkNegotiatorTrial = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: 'Authentication required',
+      }
+    });
+  }
+  
+  try {
+    // Check if user is a negotiator with an active trial
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('trial_ends_at')
+      .eq('id', req.user.id)
+      .single();
+    
+    if (error || !user) {
+      return res.status(404).json({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found',
+        }
+      });
+    }
+    
+    // If trial_ends_at exists and is in the past, trial has expired
+    if (user.trial_ends_at && new Date(user.trial_ends_at) < new Date()) {
+      return res.status(403).json({
+        error: {
+          code: 'TRIAL_EXPIRED',
+          message: 'Your 30-day trial has expired. Please contact support to continue service.',
+        }
+      });
+    }
+    
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'Failed to verify trial status',
+      }
+    });
+  }
+};
+
+/**
  * Middleware to check if user has access to a specific transaction
  */
 export const requireTransactionAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

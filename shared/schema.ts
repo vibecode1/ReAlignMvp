@@ -27,6 +27,7 @@ export const users = pgTable('users', {
   phone: text('phone'),
   name: text('name').notNull(),
   role: userRoleEnum('role').notNull(),
+  trial_ends_at: timestamp('trial_ends_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
