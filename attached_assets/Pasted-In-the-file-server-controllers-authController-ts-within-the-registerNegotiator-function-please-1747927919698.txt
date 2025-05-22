@@ -1,0 +1,48 @@
+In the file `server/controllers/authController.ts`, within the `registerNegotiator` function, please ensure that after a new user is successfully created with Supabase Auth (i.e., after the `supabase.auth.signUp` call is successful and `authData.user` exists), the user's details are also saved to our application's database using the `storage.createUser` method (or an equivalent method available in the `storage` object).
+
+The data to save should include at least the Supabase user ID (`authData.user.id`), name, email, role ('negotiator'), and `trial_ends_at`.
+
+Specifically, locate this section:
+
+      // Create user in our database with the Supabase user ID
+      const insertData = {
+        name,
+        email,
+        role: 'negotiator',
+        trial_ends_at: trialEndsAt,
+        // IMPORTANT: Make sure to add the Supabase user ID here
+        // For example: id: authData.user.id (or however your storage layer expects it)
+      };
+      
+      // Create a simplified user record - bypassing database issues for now
+      // const newUser = { ... }; // This simplified record might still be useful for the response, but the database save is crucial.
+
+      // ---> ADD THE DATABASE SAVE OPERATION HERE <---
+      // For example:
+      // try {
+      //   const appUser = await storage.createUser({
+      //     id: authData.user.id, // Or authData.user.id if your DB schema expects it directly as 'id'
+      //     name,
+      //     email,
+      //     role: 'negotiator',
+      //     trial_ends_at: trialEndsAt,
+      //     // Ensure all required fields for your 'users' table are included
+      //   });
+      //   // You can then use `appUser` details in the JSON response if needed,
+      //   // or stick to returning details from authData.user and the input.
+      // } catch (dbError) {
+      //   console.error('Failed to save user to application database:', dbError);
+      //   // IMPORTANT: If saving to your DB fails, you might need to roll back the Supabase user creation
+      //   // or handle this as a critical error. For now, at least log it.
+      //   // Consider returning an error to the client.
+      //   return res.status(500).json({
+      //     error: {
+      //       code: 'DATABASE_ERROR',
+      //       message: 'Failed to create user profile in application database.',
+      //     }
+      //   });
+      // }
+
+Then, the response can be formulated. Ensure the `id` returned in the `user` object of the JSON response is the one from `authData.user.id` (which is the Supabase ID).
+
+The goal is that when `getCurrentUser` is called later (for `/api/v1/auth/me`), `storage.getUserById(authData.user.id)` will find the user in the application database.
