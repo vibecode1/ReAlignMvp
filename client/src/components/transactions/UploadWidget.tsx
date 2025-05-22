@@ -22,6 +22,7 @@ interface UploadWidgetProps {
     url: string;
     docType: string;
     visibility: 'private' | 'shared';
+    documentRequestId?: string;
   }) => void;
   defaultVisibility?: 'shared' | 'private';
   docType?: string;
@@ -42,11 +43,17 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
   defaultVisibility = 'private',
   docType,
   role,
-  maxFileSizeMB = 10
+  maxFileSizeMB = 10,
+  documentRequestId,
+  documentRequests = []
 }) => {
   const [visibility, setVisibility] = useState<'private' | 'shared'>(defaultVisibility);
   const [selectedDocType, setSelectedDocType] = useState<string>(docType || '');
+  const [selectedRequestId, setSelectedRequestId] = useState<string>(documentRequestId || '');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  // Filter document requests to show only pending ones
+  const pendingRequests = documentRequests.filter(req => req.status === 'pending');
   
   // Handle upload
   const handleUpload = async (file: File) => {
@@ -64,6 +71,11 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
       formData.append('doc_type', selectedDocType);
       formData.append('visibility', visibility);
       
+      // Link to document request if selected
+      if (selectedRequestId) {
+        formData.append('document_request_id', selectedRequestId);
+      }
+      
       // Call the API to upload the file
       const response = await fetch(`/api/v1/uploads/${transactionId}`, {
         method: 'POST',
@@ -79,12 +91,13 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
       
       const uploadData = await response.json();
       
-      // Call the completion handler with upload details
+      // Call the completion handler with upload details and linked request info
       onUploadComplete({
         name: file.name,
         url: uploadData.fileUrl,
         docType: selectedDocType,
-        visibility
+        visibility,
+        documentRequestId: selectedRequestId
       });
       
     } catch (error) {
@@ -104,6 +117,49 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
       </CardHeader>
       
       <CardContent>
+        {/* Document Request Selection - Only show if there are pending requests */}
+        {pendingRequests.length > 0 && (
+          <div className="mb-4">
+            <Label htmlFor="doc-request" className="block mb-2">
+              Upload For Document Request
+            </Label>
+            <Select 
+              value={selectedRequestId} 
+              onValueChange={(value) => {
+                setSelectedRequestId(value);
+                // Set the document type based on the selected request
+                if (value) {
+                  const request = pendingRequests.find(req => req.id === value);
+                  if (request) {
+                    setSelectedDocType(request.docType);
+                  }
+                }
+              }}
+            >
+              <SelectTrigger id="doc-request" className="w-full">
+                <SelectValue placeholder="Select a document request (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None - Upload without linking</SelectItem>
+                {pendingRequests.map((request) => {
+                  const docTypeLabel = REQUEST_TEMPLATES.find(
+                    tpl => tpl.value === request.docType
+                  )?.label || request.docType;
+                  
+                  return (
+                    <SelectItem key={request.id} value={request.id}>
+                      {docTypeLabel} (for {request.assignedTo})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Linking your upload to a request will automatically mark it as complete
+            </p>
+          </div>
+        )}
+        
         {/* Document Type Selection */}
         <div className="mb-4">
           <Label htmlFor="doc-type" className="block mb-2">
@@ -112,6 +168,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
           <Select 
             value={selectedDocType} 
             onValueChange={setSelectedDocType}
+            disabled={!!selectedRequestId} // Disable if a request is selected
           >
             <SelectTrigger id="doc-type" className="w-full">
               <SelectValue placeholder="Select document type" />
@@ -124,6 +181,11 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
               ))}
             </SelectContent>
           </Select>
+          {selectedRequestId && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Document type is set based on the selected request
+            </p>
+          )}
         </div>
         
         {/* Visibility Selection */}
