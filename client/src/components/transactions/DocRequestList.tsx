@@ -20,6 +20,11 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -61,14 +66,20 @@ export const REQUEST_TEMPLATES = [
 export const DocRequestList: React.FC<DocRequestListProps> = ({
   requests,
   currentUserRole,
+  parties = [],
   onUpdateRequestStatus,
   onRemind,
   onResetToPending,
-  onUploadForRequest
+  onUploadForRequest,
+  onCreateRequest
 }) => {
   const [selectedRequest, setSelectedRequest] = useState<DocumentRequest | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newDocType, setNewDocType] = useState(REQUEST_TEMPLATES[0].value);
+  const [assignedToUserId, setAssignedToUserId] = useState('');
+  const [dueDate, setDueDate] = useState('');
   
   // Format document type label
   const getDocTypeLabel = (docType: string): string => {
@@ -227,13 +238,41 @@ export const DocRequestList: React.FC<DocRequestListProps> = ({
     );
   };
 
+  // Handle creation of new document request
+  const handleCreateRequest = () => {
+    if (onCreateRequest && assignedToUserId && newDocType) {
+      onCreateRequest(newDocType, assignedToUserId, dueDate);
+      
+      // Reset the form
+      setNewDocType(REQUEST_TEMPLATES[0].value);
+      setAssignedToUserId('');
+      setDueDate('');
+      setCreateDialogOpen(false);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center">
-          <FileText className="h-5 w-5 mr-2" />
-          Document Requests
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="flex items-center">
+            <FileText className="h-5 w-5 mr-2" />
+            Document Requests
+          </CardTitle>
+          
+          {/* Only show "New Request" button for negotiators */}
+          {isNegotiator && onCreateRequest && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setCreateDialogOpen(true)}
+              className="flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              New Request
+            </Button>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent>
@@ -310,6 +349,90 @@ export const DocRequestList: React.FC<DocRequestListProps> = ({
               disabled={!revisionNote.trim()}
             >
               Submit Revision Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Document Request Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Document Request</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="docType">Document Type</Label>
+              <Select value={newDocType} onValueChange={setNewDocType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REQUEST_TEMPLATES.map(template => (
+                    <SelectItem key={template.value} value={template.value}>
+                      {template.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignedTo">Assigned To</Label>
+              <Select 
+                value={assignedToUserId} 
+                onValueChange={setAssignedToUserId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select party" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parties.map(party => (
+                    <SelectItem key={party.userId} value={party.userId}>
+                      {party.name} ({party.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(new Date(dueDate), 'PPP') : <span>Select a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate ? new Date(dueDate) : undefined}
+                    onSelect={(date) => setDueDate(date ? date.toISOString() : '')}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setCreateDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateRequest}
+              disabled={!newDocType || !assignedToUserId}
+            >
+              Create Request
             </Button>
           </DialogFooter>
         </DialogContent>

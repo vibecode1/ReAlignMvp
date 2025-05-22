@@ -27,6 +27,13 @@ interface UploadWidgetProps {
   docType?: string;
   role?: string;
   maxFileSizeMB?: number;
+  documentRequestId?: string;
+  documentRequests?: Array<{
+    id: string;
+    docType: string;
+    assignedTo: string;
+    status: string;
+  }>;
 }
 
 export const UploadWidget: React.FC<UploadWidgetProps> = ({

@@ -389,6 +389,29 @@ export default function TransactionView({ id }: TransactionViewProps) {
             <DocRequestList 
               requests={transactionDetails.documentRequests || []}
               currentUserRole={user?.role || 'unknown'}
+              parties={transactionDetails.parties}
+              onCreateRequest={async (docType, assignedTo, dueDate) => {
+                try {
+                  await apiRequest('POST', `/api/v1/transactions/${id}/doc-requests`, {
+                    docType,
+                    assignedToUserId: assignedTo,
+                    dueDate: dueDate || undefined
+                  });
+                  
+                  toast({
+                    title: "Request Created",
+                    description: "Document request has been created successfully.",
+                  });
+                  queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                } catch (error) {
+                  console.error('Failed to create document request:', error);
+                  toast({
+                    title: "Creation Failed",
+                    description: "There was an error creating the document request. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
               onUpdateRequestStatus={async (requestId, newStatus) => {
                 try {
                   await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
