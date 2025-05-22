@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import NotificationPermission from '@/components/notifications/NotificationPermission';
-import { connectToWebSocket, setupWebSocketHandler, sendTestNotification, getNotificationPermissionStatus } from '@/lib/notifications';
+import { connectToWebSocket, setupWebSocketHandler, sendTestNotification, getNotificationPermissionStatus, setupFCMHandler } from '@/lib/notifications';
 import { AlertCircle, Bell, Info, BellRing } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -34,6 +34,9 @@ const NotificationSettings: React.FC = () => {
         setIsWebSocketConnected(true);
       }
     });
+
+    // Set up Firebase Cloud Messaging handler
+    setupFCMHandler();
 
     // Check notification permission status
     const checkPermission = async () => {

@@ -20,6 +20,8 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRoleAccess } from "@/hooks/use-role-access";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { setupFCMHandler } from "@/lib/notifications";
+import { useEffect } from "react";
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -135,6 +137,11 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize Firebase Cloud Messaging handler when app starts
+    setupFCMHandler();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
