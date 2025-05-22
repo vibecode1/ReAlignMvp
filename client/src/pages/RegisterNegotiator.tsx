@@ -108,19 +108,48 @@ const RegisterNegotiator: React.FC = () => {
       
       console.log('About to redirect to dashboard...');
       
-          // Manually trigger a reload to ensure the auth context is updated
-      // This approach guarantees we'll go through the full auth flow
-      console.log('Registration successful, redirecting to dashboard');
+      // Print full response for debugging
+      console.log('Full registration response:', JSON.stringify(response));
+      
+      // Store user data and token in localStorage again to be sure
+      if (response.token) {
+        console.log('Setting token in localStorage, token length:', response.token.length);
+        localStorage.setItem('realign_token', response.token);
+        localStorage.setItem('realign_user', JSON.stringify(response.user));
+        
+        // Verify localStorage after setting
+        const verifyToken = localStorage.getItem('realign_token');
+        console.log('Verified token in localStorage:', verifyToken ? `present, length: ${verifyToken.length}` : 'missing');
+      } else {
+        console.error('No token received in registration response');
+      }
       
       // First, set a flag in localStorage to indicate where to redirect after reload
       localStorage.setItem('realign_post_auth_redirect', '/dashboard');
       
-      // Then either reload the page or directly redirect
-      // Option 1: Force a complete page reload to ensure auth context is refreshed
-      window.location.href = '/dashboard';
+      // Try setting the Supabase session explicitly before redirect
+      if (response.token) {
+        try {
+          console.log('Setting Supabase session before redirect');
+          await supabase.auth.setSession({
+            access_token: response.token,
+            refresh_token: response.refresh_token || '',
+          });
+          console.log('Supabase session set successfully');
+        } catch (sessionError) {
+          console.error('Error setting Supabase session:', sessionError);
+        }
+      }
       
-      // Option 2 (commented out): Use the router, but may not refresh auth context
-      // setLocation('/dashboard');
+      // Use direct window location change after short delay
+      console.log('Registration successful, redirecting to dashboard in 1 second...');
+      
+      // Try forceful navigation approach
+      setTimeout(() => {
+        console.log('Executing redirect now...');
+        // Use the most forceful redirect approach
+        window.location.replace('/dashboard');
+      }, 1000);
     } catch (error: any) {
       console.error('Registration error:', error);
       
