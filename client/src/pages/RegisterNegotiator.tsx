@@ -62,8 +62,8 @@ const RegisterNegotiator: React.FC = () => {
         password: data.password
       });
 
-      // Use the auth context to set the user session properly
-      await setUserSession(response.user, response.token);
+      // Store the authentication token in localStorage directly for immediate access
+      localStorage.setItem('sb-access-token', response.token);
       
       // Show success toast
       toast({
@@ -71,11 +71,8 @@ const RegisterNegotiator: React.FC = () => {
         description: 'Welcome to ReAlign! Your 30-day trial has started.',
       });
       
-      // Force a small delay to ensure auth context is updated
-      setTimeout(() => {
-        // Redirect to dashboard after proper session setup
-        window.location.href = '/dashboard';
-      }, 500);
+      // Force immediate redirection to dashboard
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Registration error:', error);
       
@@ -203,11 +200,12 @@ const RegisterNegotiator: React.FC = () => {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm">
               Already have an account?{' '}
-              <Link href="/login">
-                <a className="text-brand-primary hover:underline font-medium">
-                  Login here
-                </a>
-              </Link>
+              <span 
+                className="text-brand-primary hover:underline font-medium cursor-pointer"
+                onClick={() => window.location.href = '/login'}
+              >
+                Login here
+              </span>
             </div>
           </CardFooter>
         </Card>
