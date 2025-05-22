@@ -21,11 +21,10 @@ type UserInfo = {
   role: string;
 };
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Initialize Supabase client with config
+import config from '@/config';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
 
 // Create auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

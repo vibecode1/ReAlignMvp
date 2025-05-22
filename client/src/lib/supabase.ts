@@ -1,11 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Get environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Import config
+import config from '@/config';
 
 // Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
 
 // Utility function to get a URL from Supabase Storage
 export const getStorageUrl = (bucket: string, path: string) => {
@@ -16,9 +15,8 @@ export const getStorageUrl = (bucket: string, path: string) => {
 // Handle authentication with magic link
 export const handleMagicLinkAuth = async (hash: string) => {
   try {
-    const { data, error } = await supabase.auth.getSessionFromUrl({
-      staleTime: Infinity,
-    });
+    // Using the updated method in Supabase client v2
+    const { data, error } = await supabase.auth.getSession();
     
     if (error) {
       throw error;

@@ -1,13 +1,13 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#f9f9f9]">
