@@ -36,6 +36,7 @@ export interface IStorage {
 
   // Message methods
   createMessage(message: schema.InsertMessage, transactionId: string, senderId: string): Promise<schema.Message>;
+  getMessageById(id: string): Promise<schema.Message | undefined>;
   getMessagesByTransactionId(transactionId: string, page: number, limit: number): Promise<{ data: schema.Message[], total: number }>;
 
   // Document request methods

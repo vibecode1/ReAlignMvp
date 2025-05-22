@@ -122,7 +122,25 @@ export const messageController = {
 
       // If this is a reply, validate that the parent message exists and belongs to this transaction
       if (replyTo) {
-        // TODO: Validate parent message exists and belongs to this transaction
+        const parentMessage = await storage.getMessageById(replyTo);
+        if (!parentMessage) {
+          return res.status(404).json({
+            error: {
+              code: 'PARENT_NOT_FOUND',
+              message: 'The message you are replying to does not exist',
+            }
+          });
+        }
+        
+        // Check if parent message belongs to this transaction
+        if (parentMessage.transaction_id !== transactionId) {
+          return res.status(400).json({
+            error: {
+              code: 'INVALID_PARENT',
+              message: 'The message you are replying to does not belong to this transaction',
+            }
+          });
+        }
       }
 
       // Create the message
