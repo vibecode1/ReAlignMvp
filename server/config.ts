@@ -11,9 +11,10 @@ const config = {
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
   
   // Database
-  // Ensure the URL is properly decoded for special characters
-  databaseUrl: process.env.DATABASE_URL ? 
-    decodeURIComponent(process.env.DATABASE_URL) : '',
+  // Special handling for Neon PostgreSQL database
+  databaseUrl: process.env.PGHOST ? 
+    `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}?sslmode=require` :
+    (process.env.DATABASE_URL || ''),
   
   // Auth
   jwtSecret: process.env.JWT_SECRET || 'your-jwt-secret',
