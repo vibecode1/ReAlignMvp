@@ -1,0 +1,70 @@
+In the file `client/src/pages/RegisterNegotiator.tsx`, please make the following changes:
+
+1.  At the top of the file, add an import for the Supabase client:
+    ```typescript
+    import { supabase } from '@/lib/supabase';
+    ```
+
+2.  Inside the `onSubmit` function, locate the `try` block. After the lines where `localStorage.setItem` is called for `realign_token` and `realign_user`, and before the `toast` notification for "Registration Successful", add the following code to explicitly set the Supabase session:
+
+    ```typescript
+    if (response.token) {
+      await supabase.auth.setSession({
+        access_token: response.token,
+        refresh_token: response.refresh_token || '' // Use response.refresh_token if your API provides it, otherwise default to an empty string
+      });
+      console.log('Supabase session explicitly set after registration');
+    }
+    ```
+
+Ensure this new code block is placed *before* the line: `setLocation('/dashboard');`
+
+Here's how the relevant part of the `onSubmit` function in `client/src/pages/RegisterNegotiator.tsx` should look after the changes:
+
+```typescript
+// ... other imports
+import { supabase } from '@/lib/supabase'; // Added import
+
+// ... component code
+
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await apiRequest('POST', '/api/v1/auth/register-negotiator', {
+        name: data.name,
+        email: data.email,
+        password: data.password
+      });
+      console.log('Registration API response:', response); // Existing or new console log
+
+      localStorage.setItem('realign_token', response.token);
+      localStorage.setItem('realign_user', JSON.stringify(response.user));
+      console.log('Token and user set in localStorage'); // Existing or new console log
+
+      // START NEWLY ADDED CODE
+      if (response.token) {
+        await supabase.auth.setSession({
+          access_token: response.token,
+          refresh_token: response.refresh_token || ''
+        });
+        console.log('Supabase session explicitly set after registration');
+      }
+      // END NEWLY ADDED CODE
+      
+      toast({
+        title: 'Registration Successful',
+        description: 'Welcome to ReAlign! Your 30-day trial has started.',
+      });
+      
+      console.log('Attempting to redirect to /dashboard'); // Existing or new console log
+      setLocation('/dashboard');
+    } catch (error: any) {
+      console.error('Registration error in catch block:', error);
+      // ... rest of the catch block
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+// ... rest of the component
