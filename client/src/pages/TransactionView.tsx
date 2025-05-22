@@ -113,10 +113,10 @@ export default function TransactionView({ id }: TransactionViewProps) {
   // Reset edited fields when transaction data changes
   useEffect(() => {
     if (transaction) {
-      setEditedTitle(transaction.title);
-      setEditedAddress(transaction.property_address);
+      setEditedTitle(transactionDetails.title || '');
+      setEditedAddress(transactionDetails.property_address || '');
     }
-  }, [transaction]);
+  }, [transaction, transactionDetails]);
   
   // Handle updating transaction details
   const handleUpdateField = async (field: 'title' | 'property_address', value: string) => {
@@ -447,15 +447,15 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Created by</p>
-                    <p>{transaction.created_by.name}</p>
+                    <p>{transactionDetails.created_by?.name || 'Unknown'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Created on</p>
-                    <p>{new Date(transaction.created_at).toLocaleDateString()}</p>
+                    <p>{new Date(transactionDetails.created_at || Date.now()).toLocaleDateString()}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Current Phase</p>
-                    <p>{transaction.currentPhase}</p>
+                    <p className="capitalize">{transactionDetails.currentPhase || 'Not set'}</p>
                   </div>
                 </div>
               </CardContent>
