@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import NotificationPermission from '@/components/notifications/NotificationPermission';
-import { connectToWebSocket, setupWebSocketHandler } from '@/lib/notifications';
-import { AlertCircle, Bell, Info } from 'lucide-react';
+import { connectToWebSocket, setupWebSocketHandler, sendTestNotification } from '@/lib/notifications';
+import { AlertCircle, Bell, Info, BellRing } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +14,7 @@ const NotificationSettings: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
   
   // Settings for different notification types
   const [settings, setSettings] = useState({
@@ -32,6 +34,14 @@ const NotificationSettings: React.FC = () => {
         setIsWebSocketConnected(true);
       }
     });
+
+    // Check notification permission status
+    const checkPermission = async () => {
+      const status = await getNotificationPermissionStatus();
+      setPermissionStatus(status);
+    };
+    
+    checkPermission();
 
     // Clean up WebSocket connection on unmount
     return () => {
@@ -93,6 +103,28 @@ const NotificationSettings: React.FC = () => {
               </div>
             )}
           </CardContent>
+          {Notification.permission === 'granted' && (
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex gap-2"
+                onClick={() => {
+                  sendTestNotification(
+                    'Test Notification', 
+                    'This is a test notification from ReAlign. Click to return to the app.'
+                  );
+                  toast({
+                    title: 'Test notification sent',
+                    description: 'Check your browser notifications.',
+                  });
+                }}
+              >
+                <BellRing size={16} />
+                Send Test Notification
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Notification Preferences */}

@@ -1,41 +1,10 @@
-import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { apiRequest } from './queryClient';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-
-// Initialize Firebase
-let messaging: any = null;
-let firebaseInitialized = false;
-
-try {
-  const app = initializeApp(firebaseConfig);
-  if (typeof window !== 'undefined' && 'Notification' in window) {
-    messaging = getMessaging(app);
-    firebaseInitialized = true;
-  }
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-}
 
 /**
  * Requests permission for notifications and registers the device token
  * @returns Promise<boolean> - Whether permission was granted
  */
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  if (!firebaseInitialized) {
-    console.warn('Firebase not initialized. Cannot request notification permission.');
-    return false;
-  }
-  
   try {
     // Check if notifications are supported
     if (!('Notification' in window)) {
@@ -47,7 +16,16 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      await registerDeviceToken();
+      // Use a browser fingerprint as token for web notifications
+      const token = generateBrowserToken();
+      
+      // Send the token to the backend
+      await apiRequest('/api/v1/notifications/device-tokens', 'POST', {
+        token,
+        type: 'web'
+      });
+      
+      console.log('Web notification permission granted');
       return true;
     }
     
@@ -59,51 +37,15 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 };
 
 /**
- * Gets the FCM token and registers it with the backend
+ * Generate a simple token based on browser info
+ * In a production app, you would use a service like Firebase for proper device tokens
  */
-export const registerDeviceToken = async (): Promise<void> => {
-  if (!firebaseInitialized || !messaging) {
-    console.warn('Firebase messaging not initialized');
-    return;
-  }
+const generateBrowserToken = (): string => {
+  const browser = navigator.userAgent;
+  const random = Math.floor(Math.random() * 1000000).toString();
+  const now = new Date().getTime().toString();
   
-  try {
-    // Get token from Firebase
-    const currentToken = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
-    });
-    
-    if (currentToken) {
-      // Send the token to the backend
-      await apiRequest('/api/v1/notifications/device-tokens', 'POST', {
-        token: currentToken,
-        type: 'fcm'
-      });
-      
-      console.log('Device token registered successfully');
-    } else {
-      console.warn('No registration token available');
-    }
-  } catch (error) {
-    console.error('Error registering device token:', error);
-  }
-};
-
-/**
- * Sets up a listener for incoming push messages
- * @param callback Function to call when a message is received
- */
-export const setupMessageListener = (callback: (payload: any) => void): void => {
-  if (!firebaseInitialized || !messaging) {
-    console.warn('Firebase messaging not initialized');
-    return;
-  }
-  
-  // Set up the message listener
-  onMessage(messaging, (payload) => {
-    console.log('Message received:', payload);
-    callback(payload);
-  });
+  return btoa(`${browser}-${now}-${random}`).replace(/=/g, '').substring(0, 64);
 };
 
 /**
@@ -116,6 +58,25 @@ export const getNotificationPermissionStatus = async (): Promise<NotificationPer
   }
   
   return Notification.permission;
+};
+
+/**
+ * Send a test notification to the user
+ * @param title - The notification title
+ * @param body - The notification body
+ */
+export const sendTestNotification = (title: string, body: string): void => {
+  if (Notification.permission === 'granted') {
+    const notification = new Notification(title, {
+      body,
+      icon: '/icon.png'
+    });
+    
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }
 };
 
 /**
@@ -161,6 +122,26 @@ export const setupWebSocketHandler = (
     try {
       const data = JSON.parse(event.data);
       handleMessage(data);
+      
+      // If it's a notification message, show a browser notification
+      if (data.type === 'notification' && Notification.permission === 'granted') {
+        const notification = new Notification(data.title || 'ReAlign Notification', {
+          body: data.message,
+          icon: '/icon.png',
+          data: data.data
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          
+          // Navigate to specific page based on notification data
+          if (data.data?.transactionId) {
+            window.location.href = `/transactions/${data.data.transactionId}`;
+          }
+          
+          notification.close();
+        };
+      }
     } catch (error) {
       console.error('Error parsing WebSocket message:', error);
     }
