@@ -7,8 +7,8 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
 import config from '../config';
 
-// Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+// Import Supabase admin client for database operations
+import { supabaseAdmin } from '../lib/supabase';
 
 /**
  * Controller for transaction routes

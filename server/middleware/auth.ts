@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../lib/supabase';
 import config from '../config';
 
 // Custom request interface to add user property
@@ -10,9 +10,6 @@ export interface AuthenticatedRequest extends Request {
     role: string;
   };
 }
-
-// Initialize Supabase client with service role key for authentication middleware
-const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
 /**
  * Middleware to verify JWT token from Supabase Auth
@@ -42,11 +39,20 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
   }
   
   try {
-    // Verify the JWT with Supabase
-    const { data, error } = await supabase.auth.getUser(token);
+    // Add detailed console logging before token validation
+    console.log('Token validation attempt:');
+    console.log('  Token (first 10 chars):', token.substring(0, 10) + '...');
+    console.log('  Token (last 10 chars):', '...' + token.substring(token.length - 10));
+    console.log('  Supabase URL:', config.supabaseUrl);
+    
+    // Verify the JWT with Supabase Admin client
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
     
     if (error) {
-      console.error('Supabase auth error:', error);
+      console.error('Supabase auth error details:');
+      console.error('  Error message:', error.message);
+      console.error('  Error status:', error.status || 'No status');
+      console.error('  Full error:', error);
       return res.status(401).json({
         error: {
           code: 'UNAUTHENTICATED',
@@ -145,7 +151,7 @@ export const requireTransactionAccess = async (req: AuthenticatedRequest, res: R
   try {
     // If user is a negotiator, they have access to all transactions they created - fixed for Tracker MVP
     if (req.user.role === 'negotiator') {
-      const { data: transaction, error } = await supabase
+      const { data: transaction, error } = await supabaseAdmin
         .from('transactions')
         .select('id')
         .eq('id', transactionId)
@@ -162,7 +168,7 @@ export const requireTransactionAccess = async (req: AuthenticatedRequest, res: R
       }
     } else {
       // For other roles, check if they are a participant in the transaction
-      const { data: participant, error } = await supabase
+      const { data: participant, error } = await supabaseAdmin
         .from('transaction_participants')
         .select('id')
         .eq('transaction_id', transactionId)

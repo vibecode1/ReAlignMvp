@@ -49,4 +49,11 @@ if (!config.supabaseServiceRoleKey) {
   console.error('FATAL ERROR: SUPABASE_SERVICE_ROLE_KEY is required for backend authentication');
 }
 
+// Add console logs to verify loaded values (with masking for security)
+console.log('Config loaded:');
+console.log('  SUPABASE_URL:', config.supabaseUrl ? config.supabaseUrl.substring(0, 30) + '...' : 'MISSING!');
+console.log('  SUPABASE_ANON_KEY:', config.supabaseAnonKey ? config.supabaseAnonKey.substring(0, 10) + '...' : 'MISSING!');
+console.log('  SUPABASE_SERVICE_ROLE_KEY:', config.supabaseServiceRoleKey ? config.supabaseServiceRoleKey.substring(0, 10) + '...' : 'MISSING!');
+console.log('  DATABASE_URL:', config.databaseUrl ? 'Connected' : 'MISSING!');
+
 export default config;
