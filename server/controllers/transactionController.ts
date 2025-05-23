@@ -40,14 +40,14 @@ export const transactionController = {
         });
       }
 
-      const { title, property_address, parties, initialPhase, initialMessage } = validation.data;
+      const { title, property_address, parties, welcome_email_body } = validation.data;
 
-      // Create the transaction
+      // Create the transaction with email subscriptions for Tracker MVP
       const transaction = await storage.createTransaction(
         {
           title,
           property_address,
-          current_phase: initialPhase,
+          current_phase: 'Transaction Initiated', // Always start with first phase
         },
         req.user.id
       );

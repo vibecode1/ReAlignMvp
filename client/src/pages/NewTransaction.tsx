@@ -1,229 +1,113 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
-  CardFooter
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
+import { Plus, X } from 'lucide-react';
+import { DEFAULT_WELCOME_EMAIL_TEMPLATE } from '@/lib/trackerNoteOptions';
+import { useToast } from '@/hooks/use-toast';
 
-// Define schema for form validation
-const formSchema = z.object({
-  title: z.string().min(3, {
-    message: "Title must be at least 3 characters",
-  }),
-  property_address: z.string().min(5, {
-    message: "Property address must be at least 5 characters",
-  }),
-  initialPhase: z.string({
-    required_error: "Please select an initial phase",
-  }),
-  initialMessage: z.string().min(10, {
-    message: "Initial message must be at least 10 characters",
-  }),
-  seller: z.object({
-    name: z.string().min(2, { message: "Name is required" }),
-    email: z.string().email({ message: "Valid email is required" }),
-  }),
-  buyer: z.object({
-    name: z.string().min(2, { message: "Name is required" }),
-    email: z.string().email({ message: "Valid email is required" }),
-  }).optional(),
-  listing_agent: z.object({
-    name: z.string().min(2, { message: "Name is required" }),
-    email: z.string().email({ message: "Valid email is required" }),
-  }).optional(),
-  buyers_agent: z.object({
-    name: z.string().min(2, { message: "Name is required" }),
-    email: z.string().email({ message: "Valid email is required" }),
-  }).optional(),
-  escrow: z.object({
-    name: z.string().min(2, { message: "Name is required" }),
-    email: z.string().email({ message: "Valid email is required" }),
-  }).optional(),
+// Transaction creation schema for Tracker MVP
+const CreateTransactionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  property_address: z.string().min(1, "Property address is required"),
+  parties: z.array(z.object({
+    email: z.string().email("Valid email is required"),
+    role: z.string().min(1, "Role is required"),
+  })).optional(),
+  welcome_email_body: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type CreateTransactionForm = z.infer<typeof CreateTransactionSchema>;
 
 export default function NewTransaction() {
-  const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [addBuyer, setAddBuyer] = useState(false);
-  const [addListingAgent, setAddListingAgent] = useState(false);
-  const [addBuyersAgent, setAddBuyersAgent] = useState(false);
-  const [addEscrow, setAddEscrow] = useState(false);
+  const queryClient = useQueryClient();
   
-  // Form setup
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<CreateTransactionForm>({
+    resolver: zodResolver(CreateTransactionSchema),
     defaultValues: {
-      title: "",
-      property_address: "",
-      initialPhase: "Transaction Initiated",
-      initialMessage: "Welcome to this transaction! I'll be your negotiator throughout this process.",
-      seller: {
-        name: "",
-        email: "",
-      },
+      title: '',
+      property_address: '',
+      parties: [{ email: '', role: '' }],
+      welcome_email_body: DEFAULT_WELCOME_EMAIL_TEMPLATE,
     },
   });
 
-  // Available transaction phases
-  const PHASES = [
-    "Transaction Initiated",
-    "Property Listed",
-    "Initial Document Collection",
-    "Offer Received",
-    "Offer Submitted",
-    "Lender Review",
-    "BPO Ordered",
-    "Approval Received",
-    "In Closing"
-  ];
-  
-  // Create transaction mutation
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: FormValues) => {
-      // Format the request payload
-      const parties = [
-        {
-          role: "seller",
-          name: data.seller.name,
-          email: data.seller.email,
+  const createTransactionMutation = useMutation({
+    mutationFn: async (data: CreateTransactionForm) => {
+      const response = await fetch('/api/v1/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ];
-      
-      // Add optional parties
-      if (data.buyer && addBuyer) {
-        parties.push({
-          role: "buyer",
-          name: data.buyer.name,
-          email: data.buyer.email,
-        });
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to create transaction');
       }
-      
-      if (data.listing_agent && addListingAgent) {
-        parties.push({
-          role: "listing_agent",
-          name: data.listing_agent.name,
-          email: data.listing_agent.email,
-        });
-      }
-      
-      if (data.buyers_agent && addBuyersAgent) {
-        parties.push({
-          role: "buyers_agent",
-          name: data.buyers_agent.name,
-          email: data.buyers_agent.email,
-        });
-      }
-      
-      if (data.escrow && addEscrow) {
-        parties.push({
-          role: "escrow",
-          name: data.escrow.name,
-          email: data.escrow.email,
-        });
-      }
-      
-      const payload = {
-        title: data.title,
-        property_address: data.property_address,
-        currentPhase: data.initialPhase,
-        parties,
-        initialMessage: data.initialMessage,
-      };
-      
-      const response = await apiRequest('POST', '/api/v1/transactions', payload);
+
       return response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Transaction Created",
-        description: "Your new transaction has been created successfully.",
+        description: "Your transaction has been successfully created and parties have been notified.",
       });
-      
-      // Navigate to the new transaction
-      navigate(`/transactions/${data.id}`);
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
+      setLocation(`/transactions/${data.id}`);
     },
-    onError: (error) => {
-      console.error('Failed to create transaction:', error);
+    onError: (error: Error) => {
       toast({
-        title: "Creation Failed",
-        description: "There was an error creating the transaction. Please try again.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
-  
-  const onSubmit = (data: FormValues) => {
-    // Only negotiators can create transactions
-    if (user?.role !== 'negotiator') {
-      toast({
-        title: "Permission Denied",
-        description: "Only negotiators can create new transactions.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Submit the form data
-    mutate(data);
+
+  const onSubmit = (data: CreateTransactionForm) => {
+    createTransactionMutation.mutate(data);
   };
-  
+
+  const addParty = () => {
+    const currentParties = form.getValues('parties') || [];
+    form.setValue('parties', [...currentParties, { email: '', role: '' }]);
+  };
+
+  const removeParty = (index: number) => {
+    const currentParties = form.getValues('parties') || [];
+    form.setValue('parties', currentParties.filter((_, i) => i !== index));
+  };
+
   return (
-    <div>
-      <div className="mb-6 flex items-center">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="mr-4"
-          onClick={() => navigate('/transactions')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-brand-primary">Create New Transaction</h1>
-          <p className="text-gray-600 mt-1">Enter the details to set up a new transaction</p>
-        </div>
+    <div className="container mx-auto py-6 max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create New Transaction</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          Set up a new short sale transaction with automated tracking and email notifications.
+        </p>
       </div>
-      
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Basic Transaction Information */}
           <Card>
             <CardHeader>
               <CardTitle>Transaction Details</CardTitle>
               <CardDescription>
-                Basic information about the transaction
+                Basic information about the short sale transaction.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -234,13 +118,16 @@ export default function NewTransaction() {
                   <FormItem>
                     <FormLabel>Transaction Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="E.g., 123 Main St Short Sale" {...field} />
+                      <Input 
+                        placeholder="e.g., Smith Property Short Sale" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="property_address"
@@ -248,313 +135,139 @@ export default function NewTransaction() {
                   <FormItem>
                     <FormLabel>Property Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="123 Main St, Anytown, CA 90210" {...field} />
+                      <Input 
+                        placeholder="e.g., 123 Main St, City, State 12345" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="initialPhase"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Initial Phase</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
+            </CardContent>
+          </Card>
+
+          {/* Email Subscription Parties */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Subscribers</CardTitle>
+              <CardDescription>
+                Add parties who will receive weekly tracker updates and have view-only access to the transaction status.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {form.watch('parties')?.map((party, index) => (
+                <div key={index} className="flex gap-4 items-end">
+                  <div className="flex-1">
+                    <FormField
+                      control={form.control}
+                      name={`parties.${index}.email`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="email@example.com" 
+                              type="email"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <FormField
+                      control={form.control}
+                      name={`parties.${index}.role`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g., Agent, Homeowner, Attorney" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  {form.watch('parties')?.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeParty(index)}
+                      className="mb-2"
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a phase" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PHASES.map((phase) => (
-                          <SelectItem key={phase} value={phase}>{phase}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
               
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addParty}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Party
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Welcome Email Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Welcome Email Configuration</CardTitle>
+              <CardDescription>
+                Customize the welcome message that will be sent to all subscribed parties.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <FormField
                 control={form.control}
-                name="initialMessage"
+                name="welcome_email_body"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Welcome Message</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Welcome message for all participants" 
+                        placeholder="Enter custom welcome message..."
+                        className="min-h-[200px]"
                         {...field} 
-                        rows={4}
                       />
                     </FormControl>
+                    <FormDescription>
+                      This message will be included in the welcome email sent to all subscribed parties with their secure access link.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction Parties</CardTitle>
-              <CardDescription>
-                Add people involved in this transaction
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Seller - Required */}
-              <div className="border p-4 rounded-md">
-                <h3 className="text-md font-medium mb-4">Seller (Required)</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="seller.name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Seller Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Full Name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="seller.email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Seller Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="email@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-              {/* Buyer - Optional */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <Button
-                    type="button"
-                    variant={addBuyer ? "secondary" : "outline"}
-                    onClick={() => setAddBuyer(!addBuyer)}
-                  >
-                    {addBuyer ? "Remove Buyer" : "Add Buyer"}
-                  </Button>
-                </div>
-                
-                {addBuyer && (
-                  <div className="border p-4 rounded-md">
-                    <h3 className="text-md font-medium mb-4">Buyer</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="buyer.name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Buyer Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="buyer.email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Buyer Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Listing Agent - Optional */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <Button
-                    type="button"
-                    variant={addListingAgent ? "secondary" : "outline"}
-                    onClick={() => setAddListingAgent(!addListingAgent)}
-                  >
-                    {addListingAgent ? "Remove Listing Agent" : "Add Listing Agent"}
-                  </Button>
-                </div>
-                
-                {addListingAgent && (
-                  <div className="border p-4 rounded-md">
-                    <h3 className="text-md font-medium mb-4">Listing Agent</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="listing_agent.name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agent Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="listing_agent.email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agent Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Buyer's Agent - Optional */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <Button
-                    type="button"
-                    variant={addBuyersAgent ? "secondary" : "outline"}
-                    onClick={() => setAddBuyersAgent(!addBuyersAgent)}
-                  >
-                    {addBuyersAgent ? "Remove Buyer's Agent" : "Add Buyer's Agent"}
-                  </Button>
-                </div>
-                
-                {addBuyersAgent && (
-                  <div className="border p-4 rounded-md">
-                    <h3 className="text-md font-medium mb-4">Buyer's Agent</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="buyers_agent.name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agent Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="buyers_agent.email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agent Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Escrow - Optional */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <Button
-                    type="button"
-                    variant={addEscrow ? "secondary" : "outline"}
-                    onClick={() => setAddEscrow(!addEscrow)}
-                  >
-                    {addEscrow ? "Remove Escrow Officer" : "Add Escrow Officer"}
-                  </Button>
-                </div>
-                
-                {addEscrow && (
-                  <div className="border p-4 rounded-md">
-                    <h3 className="text-md font-medium mb-4">Escrow Officer</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="escrow.name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Officer Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="escrow.email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Officer Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => navigate('/transactions')}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Transaction"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation('/dashboard')}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={createTransactionMutation.isPending}
+            >
+              {createTransactionMutation.isPending ? 'Creating...' : 'Create Transaction'}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
