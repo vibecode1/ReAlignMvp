@@ -121,14 +121,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // Use our API for login
-      const response = await apiRequest('POST', '/api/v1/auth/login', { email, password });
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
       const data = await response.json();
       
-      // Set session with Supabase
-      await supabase.auth.setSession({
-        access_token: data.token,
-        refresh_token: '',
-      });
+      // Store the token immediately for future API requests
+      localStorage.setItem('auth_token', data.token);
       
       setUser(data.user);
       setIsAuthenticated(true);
