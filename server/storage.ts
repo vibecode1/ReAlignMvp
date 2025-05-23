@@ -55,7 +55,7 @@ export interface IStorage {
   getUploadById(id: string): Promise<schema.Upload | undefined>;
 
   // Storage methods
-  generateUploadSignedUrl(path: string, contentType: string): Promise<string>;
+  generateUploadSignedUrl(path: string, action?: string): Promise<string>;
   updateUploadVisibility(uploadId: string, visibility: string): Promise<schema.Upload>;
   
   // Push notification device token methods

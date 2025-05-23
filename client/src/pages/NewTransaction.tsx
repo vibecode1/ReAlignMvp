@@ -104,6 +104,8 @@ export default function NewTransaction() {
       seller: {
         name: "",
         email: "",
+        phone: "",
+        sms_opt_in: false,
       },
     },
   });
@@ -347,6 +349,39 @@ export default function NewTransaction() {
                         <FormControl>
                           <Input placeholder="email@example.com" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="seller.phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+1 (555) 123-4567" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="seller.sms_opt_in"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2 mt-6">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel>Send SMS notifications</FormLabel>
                         <FormMessage />
                       </FormItem>
                     )}

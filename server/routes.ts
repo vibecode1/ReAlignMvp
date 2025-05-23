@@ -87,17 +87,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create and return the HTTP server
   const httpServer = createServer(app);
   
-  // Set up WebSocket server for real-time updates
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  // Setup WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer });
+  const clients = new Map<string, Set<any>>(); // Map transaction IDs to connected clients
   
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
-    
-    // Send a welcome message
-    ws.send(JSON.stringify({
-      type: 'connection',
-      message: 'Connected to ReAlign WebSocket server'
-    }));
+    let userTransactions: string[] = [];
     
     // Handle messages from clients
     ws.on('message', (message) => {
@@ -105,12 +101,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const data = JSON.parse(message.toString());
         console.log('Received WebSocket message:', data);
         
-        // Handle different message types here
-        // For now, just echo back the message
-        ws.send(JSON.stringify({
-          type: 'echo',
-          data
-        }));
+        // Handle subscription to transaction updates
+        if (data.type === 'subscribe' && data.transactionId) {
+          userTransactions.push(data.transactionId);
+          
+          // Add client to transaction group
+          if (!clients.has(data.transactionId)) {
+            clients.set(data.transactionId, new Set());
+          }
+          clients.get(data.transactionId)!.add(ws);
+          
+          ws.send(JSON.stringify({
+            type: 'subscribed',
+            transactionId: data.transactionId
+          }));
+        }
+        
+        // Handle unsubscription
+        if (data.type === 'unsubscribe' && data.transactionId) {
+          userTransactions = userTransactions.filter(id => id !== data.transactionId);
+          
+          if (clients.has(data.transactionId)) {
+            clients.get(data.transactionId)!.delete(ws);
+          }
+        }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
       }
@@ -119,8 +133,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle client disconnection
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
+      
+      // Remove client from all transaction groups
+      userTransactions.forEach(transactionId => {
+        if (clients.has(transactionId)) {
+          clients.get(transactionId)!.delete(ws);
+        }
+      });
     });
   });
+  
+  // Export broadcast function for use in controllers
+  global.broadcastToTransaction = (transactionId: string, event: any) => {
+    if (clients.has(transactionId)) {
+      const message = JSON.stringify(event);
+      clients.get(transactionId)!.forEach(client => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+          client.send(message);
+        }
+      });
+    }
+  };
   
   return httpServer;
 }
