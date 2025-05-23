@@ -286,14 +286,14 @@ class DrizzleStorage implements IStorage {
     return { data, total };
   }
 
-  async updateDocumentRequestStatus(requestId: string, status: string, revisionNote?: string): Promise<schema.DocumentRequest> {
+  async updateDocumentRequestStatus(requestId: string, status: string): Promise<schema.DocumentRequest> {
     const updateData: any = {
       status: status as any,
-      updated_at: new Date(),
     };
     
-    if (revisionNote !== undefined) {
-      updateData.revision_note = revisionNote;
+    // Set completed_at timestamp if status is complete
+    if (status === 'complete') {
+      updateData.completed_at = new Date();
     }
     
     const result = await db

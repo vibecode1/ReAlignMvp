@@ -54,14 +54,14 @@ export const documentController = {
       // Get negotiator details
       const negotiator = await storage.getUserById(req.user.id);
 
-      // Send notification to the assigned user
-      if (transaction && negotiator) {
+      // Send notification to the assigned user (if we have a specific user ID)
+      if (transaction && negotiator && assignedToUserId) {
         await notificationService.sendDocumentRequest(
           assignedToUserId,
           docType,
           transaction.title,
           negotiator.name,
-          dueDate
+          dueDate || new Date()
         );
       }
 
