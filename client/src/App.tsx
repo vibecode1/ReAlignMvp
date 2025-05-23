@@ -85,6 +85,9 @@ function Router() {
       <Route path="/magic-link" component={MagicLink}/>
       <Route path="/auth/callback" component={MagicLinkCallback}/>
       
+      {/* Public Tracker Route (New for Tracker MVP) */}
+      <Route path="/tracker/:transactionId" component={PublicTrackerView}/>
+      
       {/* Protected routes */}
       <Route path="/">
         <Redirect to="/dashboard" />

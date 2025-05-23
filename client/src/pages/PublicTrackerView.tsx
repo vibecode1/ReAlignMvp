@@ -140,7 +140,7 @@ export default function PublicTrackerView() {
     return null;
   }
 
-  const currentPhase = PHASES.find(p => p.key === data.transaction.current_phase);
+  const currentPhase = TRANSACTION_PHASES.find((p: any) => p.key === data.transaction.current_phase);
 
   return (
     <div className="min-h-screen bg-gray-50">
