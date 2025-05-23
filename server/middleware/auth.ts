@@ -71,22 +71,20 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
       });
     }
     
-    // Extract role from app_metadata with detailed logging
-    console.log('Full app_metadata:', JSON.stringify(data.user.app_metadata, null, 2));
-    const userRole = (data.user.app_metadata?.role as string) || 'unknown';
-    console.log('User authenticated:', {
-      id: data.user.id,
-      email: data.user.email,
-      role: userRole,
-      hasAppMetadata: !!data.user.app_metadata,
-      appMetadataKeys: Object.keys(data.user.app_metadata || {})
-    });
+    console.log(`authenticateJWT: User authenticated: ${data.user.email}, ID: ${data.user.id}`);
+    console.log('authenticateJWT: User app_metadata from Supabase:', data.user.app_metadata);
+
+    const role = (data.user.app_metadata?.role as string) || 'unknown';
+    const name = (data.user.app_metadata?.name as string) || data.user.email;
+
+    console.log(`authenticateJWT: Resolved role: '${role}', Resolved name: '${name}'`);
     
     // Set user information on the request
     req.user = {
       id: data.user.id,
       email: data.user.email || '',
-      role: userRole,
+      role: role,
+      name: name
     };
     
     next();

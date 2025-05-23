@@ -300,6 +300,7 @@ export const authController = {
       // Check for existing user
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
+        console.warn(`Attempt to register existing email: ${email}`);
         return res.status(409).json({
           error: {
             code: 'USER_ALREADY_EXISTS',
@@ -309,69 +310,70 @@ export const authController = {
       }
 
       // Create Supabase user using auth client
-      console.log('Creating new negotiator account for:', email);
-      const { data, error } = await supabaseAuthClient.auth.signUp({
+      console.log(`Attempting Supabase signUp for ${email}`);
+      const { data: authData, error: authError } = await supabaseAuthClient.auth.signUp({
         email,
         password,
       });
 
-      if (error) {
-        console.error('Supabase signup error:', error);
+      if (authError || !authData.user) {
+        console.error(`Supabase signUp error for ${email}:`, authError?.message);
         return res.status(400).json({
           error: {
-            code: 'SIGNUP_FAILED',
-            message: error.message || 'Failed to create account'
+            code: 'SIGNUP_FAILED_SUPABASE',
+            message: authError?.message || 'Failed to create Supabase auth user.'
           }
         });
       }
+      console.log(`Supabase user created for ${email} with ID: ${authData.user.id}`);
 
-      if (!data.user) {
+      // CRITICAL STEP: Update app_metadata with role and name using ADMIN client
+      console.log(`Attempting to set app_metadata for user ${authData.user.id}`);
+      const { error: adminUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
+        authData.user.id,
+        { 
+          app_metadata: { 
+            role: 'negotiator', 
+            name: name, 
+            internal_user_id: authData.user.id 
+          } 
+        }
+      );
+
+      if (adminUpdateError) {
+        console.error(`Failed to update Supabase user app_metadata for ${authData.user.id}:`, adminUpdateError.message);
+        // Rollback: Attempt to delete the Supabase auth user if app_metadata update fails
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+          console.log(`Rolled back Supabase user creation for ${authData.user.id} due to app_metadata failure.`);
+        } catch (deleteError: any) {
+          console.error(`Failed to rollback Supabase user ${authData.user.id}:`, deleteError.message);
+        }
         return res.status(500).json({
           error: {
-            code: 'SIGNUP_FAILED',
-            message: 'Failed to create account'
+            code: 'USER_SETUP_ERROR',
+            message: 'Failed to set user role during registration. Registration has been rolled back. Please try again or contact support.'
           }
         });
       }
+      console.log(`Successfully set app_metadata for user ${authData.user.id}: role=negotiator, name=${name}`);
 
-      // Create local user record
+      // Create local user record in your application's database
+      console.log(`Creating local user record for ${email}`);
       try {
         await storage.createUser({
-          id: data.user.id,
-          email: data.user.email!,
+          id: authData.user.id,
+          email: authData.user.email!,
           name,
           role: 'negotiator'
         });
+        console.log(`Local user record created for ${email}`);
       } catch (storageError) {
         console.error('Failed to create local user record:', storageError);
         return res.status(500).json({
           error: {
             code: 'USER_CREATION_FAILED',
             message: 'Failed to create user profile'
-          }
-        });
-      }
-
-      // CRITICAL: Update Supabase user's app_metadata to include role using admin client
-      try {
-        console.log('Setting app_metadata for user:', data.user.id);
-        await supabaseAdmin.auth.admin.updateUserById(
-          data.user.id,
-          { 
-            app_metadata: { 
-              role: 'negotiator', 
-              name: name 
-            } 
-          }
-        );
-        console.log('Successfully set app_metadata for negotiator');
-      } catch (adminUpdateError) {
-        console.error('Failed to update Supabase user app_metadata:', adminUpdateError);
-        // This is critical for authorization, so we should return an error
-        return res.status(500).json({
-          error: {
-            code: 'METADATA_UPDATE_FAILED',
-            message: 'Failed to set user permissions'
           }
         });
       }
