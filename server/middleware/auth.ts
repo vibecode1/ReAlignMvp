@@ -122,13 +122,13 @@ export const requireTransactionAccess = async (req: AuthenticatedRequest, res: R
   }
   
   try {
-    // If user is a negotiator, they have access to all transactions they created
+    // If user is a negotiator, they have access to all transactions they created - fixed for Tracker MVP
     if (req.user.role === 'negotiator') {
       const { data: transaction, error } = await supabase
         .from('transactions')
         .select('id')
         .eq('id', transactionId)
-        .eq('created_by', req.user.id)
+        .eq('negotiator_id', req.user.id)
         .single();
       
       if (error || !transaction) {

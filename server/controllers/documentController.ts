@@ -39,15 +39,13 @@ export const documentController = {
 
       const { docType, assignedToUserId, dueDate } = validation.data;
 
-      // Create the document request
-      const documentRequest = await storage.createDocumentRequest(
-        {
-          doc_type: docType,
-          assigned_to_user_id: assignedToUserId,
-          due_date: dueDate ? new Date(dueDate) : undefined,
-        },
-        transactionId
-      );
+      // Create the document request - updated for Tracker MVP (role-based assignment)
+      const documentRequest = await storage.createDocumentRequest({
+        transaction_id: transactionId,
+        document_name: docType,
+        assigned_party_role: assignedToUserId, // Now using role instead of user ID
+        due_date: dueDate ? new Date(dueDate) : undefined,
+      });
 
       // Get transaction details for notification
       const transaction = await storage.getTransactionById(transactionId);

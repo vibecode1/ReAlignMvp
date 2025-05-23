@@ -10,6 +10,8 @@ import { messageController } from "./controllers/messageController";
 import { documentController } from "./controllers/documentController";
 import { uploadController } from "./controllers/uploadController";
 import { notificationController } from "./controllers/notificationController";
+import { trackerNoteController } from "./controllers/trackerNoteController";
+import { phaseController } from "./controllers/phaseController";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {

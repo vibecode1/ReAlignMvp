@@ -371,10 +371,7 @@ class DrizzleStorage implements IStorage {
     // Generate a signed URL for uploading a file to Supabase Storage
     const { data, error } = await supabase.storage
       .from('uploads')
-      .createSignedUploadUrl(path, {
-        contentType,
-        expiresIn: 300, // 5 minutes
-      });
+      .createSignedUploadUrl(path);
     
     if (error) {
       throw new Error(`Failed to generate upload URL: ${error.message}`);
