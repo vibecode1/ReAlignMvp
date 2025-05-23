@@ -180,52 +180,6 @@ export const uploadController = {
   ],
 
   /**
-   * Generate download URL for a file
-   */
-  async generateDownloadUrl(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { uploadId } = req.params;
-      
-      // Get upload details and verify access
-      const upload = await storage.getUploadById(uploadId);
-      if (!upload) {
-        return res.status(404).json({
-          error: {
-            code: 'UPLOAD_NOT_FOUND',
-            message: 'Upload not found'
-          }
-        });
-      }
-
-      // Check if user has access to this file
-      const userRole = req.user?.role;
-      if (userRole !== 'negotiator' && 
-          upload.visibility === 'private' && 
-          upload.uploaded_by_user_id !== req.user?.id) {
-        return res.status(403).json({
-          error: {
-            code: 'ACCESS_DENIED',
-            message: 'Access denied'
-          }
-        });
-      }
-
-      // Generate signed URL for download
-      const signedUrl = await storage.generateUploadSignedUrl(upload.file_url, 'download');
-      
-      res.json({ signedUrl });
-    } catch (error) {
-      console.error('Generate download URL error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to generate download URL'
-        }
-      });
-    }
-  },
-
-  /**
    * Update file visibility (negotiator only)
    */
   async updateVisibility(req: AuthenticatedRequest, res: Response) {

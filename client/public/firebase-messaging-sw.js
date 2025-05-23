@@ -4,40 +4,16 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
-// Default Firebase configuration (will be updated with real values)
-let firebaseConfig = {
+// Firebase configuration with placeholder values
+// In production, these would be replaced with actual values
+firebase.initializeApp({
   apiKey: 'placeholder-api-key',
   authDomain: 'realign-placeholder.firebaseapp.com',
   projectId: 'realign-placeholder',
   storageBucket: 'realign-placeholder.appspot.com',
   messagingSenderId: '123456789',
   appId: '1:123456789:web:placeholder'
-};
-
-// Listen for config updates from main thread
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'FIREBASE_CONFIG') {
-    firebaseConfig = {
-      apiKey: event.data.config.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
-      authDomain: event.data.config.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
-      projectId: event.data.config.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-      storageBucket: event.data.config.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
-      messagingSenderId: event.data.config.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
-      appId: event.data.config.VITE_FIREBASE_APP_ID || firebaseConfig.appId
-    };
-    
-    // Reinitialize Firebase with updated config
-    try {
-      firebase.initializeApp(firebaseConfig);
-      console.log('Firebase initialized in service worker with real config');
-    } catch (error) {
-      console.warn('Firebase already initialized, config updated');
-    }
-  }
 });
-
-// Initialize Firebase with default config (will be updated)
-firebase.initializeApp(firebaseConfig);
 
 // Initialize Firebase Cloud Messaging
 const messaging = firebase.messaging();

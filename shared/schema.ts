@@ -27,7 +27,6 @@ export const users = pgTable('users', {
   phone: text('phone'),
   name: text('name').notNull(),
   role: userRoleEnum('role').notNull(),
-  sms_opt_in: boolean('sms_opt_in').default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -242,12 +242,8 @@ export class NotificationService {
         }
       );
       
-      // Check SMS opt-in and send SMS if enabled
-      const userForSms = await storage.getUserById(userId);
-      if (userForSms && userForSms.phone && userForSms.sms_opt_in) {
-        // SMS notification would be implemented here with a service like Twilio
-        console.log(`SMS notification would be sent to ${userForSms.phone}: Document request for ${documentType}`);
-      }
+      // If the user has provided a phone number and opted in for SMS,
+      // also send an SMS notification (not implemented in MVP)
       return true;
     } catch (error) {
       console.error('Failed to send document request notification:', error);

@@ -76,7 +76,6 @@ export const transactionController = {
             name: party.name,
             role: party.role,
             phone: party.phone,
-            sms_opt_in: party.sms_opt_in || false,
           });
         }
 

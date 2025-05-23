@@ -55,7 +55,7 @@ export interface IStorage {
   getUploadById(id: string): Promise<schema.Upload | undefined>;
 
   // Storage methods
-  generateUploadSignedUrl(path: string, action?: string): Promise<string>;
+  generateUploadSignedUrl(path: string, contentType: string): Promise<string>;
   updateUploadVisibility(uploadId: string, visibility: string): Promise<schema.Upload>;
   
   // Push notification device token methods
@@ -98,37 +98,13 @@ class DrizzleStorage implements IStorage {
   async getTransactionsByUserId(userId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }> {
     const offset = (page - 1) * limit;
     
-    // Get transactions with comprehensive last activity calculation
+    // Get transactions created by this user (if negotiator) or where user is a participant
     const query = db
-      .select({
-        id: schema.transactions.id,
-        title: schema.transactions.title,
-        property_address: schema.transactions.property_address,
-        current_phase: schema.transactions.current_phase,
-        created_by: schema.transactions.created_by,
-        created_at: schema.transactions.created_at,
-        updated_at: schema.transactions.updated_at,
-        last_message_at: sql<Date>`MAX(${schema.messages.created_at})`,
-        last_upload_at: sql<Date>`MAX(${schema.uploads.uploaded_at})`,
-        last_doc_request_at: sql<Date>`MAX(${schema.document_requests.updated_at})`,
-        last_participant_update: sql<Date>`MAX(${schema.transaction_participants.updated_at})`,
-      })
+      .selectDistinct()
       .from(schema.transactions)
       .leftJoin(
         schema.transaction_participants,
         eq(schema.transactions.id, schema.transaction_participants.transaction_id)
-      )
-      .leftJoin(
-        schema.messages,
-        eq(schema.transactions.id, schema.messages.transaction_id)
-      )
-      .leftJoin(
-        schema.uploads,
-        eq(schema.transactions.id, schema.uploads.transaction_id)
-      )
-      .leftJoin(
-        schema.document_requests,
-        eq(schema.transactions.id, schema.document_requests.transaction_id)
       )
       .where(
         or(
@@ -136,22 +112,7 @@ class DrizzleStorage implements IStorage {
           eq(schema.transaction_participants.user_id, userId)
         )
       )
-      .groupBy(
-        schema.transactions.id,
-        schema.transactions.title,
-        schema.transactions.property_address,
-        schema.transactions.current_phase,
-        schema.transactions.created_by,
-        schema.transactions.created_at,
-        schema.transactions.updated_at
-      )
-      .orderBy(desc(sql`GREATEST(
-        ${schema.transactions.updated_at},
-        COALESCE(MAX(${schema.messages.created_at}), '1970-01-01'::timestamp),
-        COALESCE(MAX(${schema.uploads.uploaded_at}), '1970-01-01'::timestamp),
-        COALESCE(MAX(${schema.document_requests.updated_at}), '1970-01-01'::timestamp),
-        COALESCE(MAX(${schema.transaction_participants.updated_at}), '1970-01-01'::timestamp)
-      )`))
+      .orderBy(desc(schema.transactions.created_at))
       .limit(limit)
       .offset(offset);
     
@@ -174,24 +135,8 @@ class DrizzleStorage implements IStorage {
     
     const total = countResult[0]?.count || 0;
     
-    // Format the result with calculated last activity
-    const transactions = data.map(row => ({
-      id: row.id,
-      title: row.title,
-      property_address: row.property_address,
-      current_phase: row.current_phase,
-      created_by: row.created_by,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      // Calculate the most recent activity timestamp
-      last_activity_at: new Date(Math.max(
-        row.updated_at?.getTime() || 0,
-        row.last_message_at?.getTime() || 0,
-        row.last_upload_at?.getTime() || 0,
-        row.last_doc_request_at?.getTime() || 0,
-        row.last_participant_update?.getTime() || 0
-      ))
-    }));
+    // Format the result to only include transaction data
+    const transactions = data.map(row => row.transactions);
     
     return { data: transactions, total };
   }
@@ -230,7 +175,7 @@ class DrizzleStorage implements IStorage {
       .set({
         status: status as any,
         last_action: lastAction,
-        updated_at: new Date(),
+        last_updated: new Date(),
       })
       .where(
         and(
@@ -404,26 +349,20 @@ class DrizzleStorage implements IStorage {
   }
 
   // Storage methods
-  async generateUploadSignedUrl(path: string, action?: string): Promise<string> {
+  async generateUploadSignedUrl(path: string, contentType: string): Promise<string> {
     // Generate a signed URL for uploading a file to Supabase Storage
     const { data, error } = await supabase.storage
       .from('uploads')
-      .createSignedUploadUrl(path);
+      .createSignedUploadUrl(path, {
+        contentType,
+        expiresIn: 300, // 5 minutes
+      });
     
     if (error) {
       throw new Error(`Failed to generate upload URL: ${error.message}`);
     }
     
     return data.signedUrl;
-  }
-
-  async updateUploadVisibility(uploadId: string, visibility: string): Promise<schema.Upload> {
-    const result = await db
-      .update(schema.uploads)
-      .set({ visibility: visibility as 'private' | 'shared' })
-      .where(eq(schema.uploads.id, uploadId))
-      .returning();
-    return result[0];
   }
 
   // Push notification device token methods

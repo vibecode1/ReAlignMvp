@@ -31,7 +31,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -53,32 +52,22 @@ const formSchema = z.object({
   seller: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
-    phone: z.string().optional(),
-    sms_opt_in: z.boolean().optional(),
   }),
   buyer: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
-    phone: z.string().optional(),
-    sms_opt_in: z.boolean().optional(),
   }).optional(),
   listing_agent: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
-    phone: z.string().optional(),
-    sms_opt_in: z.boolean().optional(),
   }).optional(),
   buyers_agent: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
-    phone: z.string().optional(),
-    sms_opt_in: z.boolean().optional(),
   }).optional(),
   escrow: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
-    phone: z.string().optional(),
-    sms_opt_in: z.boolean().optional(),
   }).optional(),
 });
 
@@ -104,8 +93,6 @@ export default function NewTransaction() {
       seller: {
         name: "",
         email: "",
-        phone: "",
-        sms_opt_in: false,
       },
     },
   });
@@ -349,39 +336,6 @@ export default function NewTransaction() {
                         <FormControl>
                           <Input placeholder="email@example.com" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="seller.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+1 (555) 123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="seller.sms_opt_in"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 mt-6">
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel>Send SMS notifications</FormLabel>
                         <FormMessage />
                       </FormItem>
                     )}
