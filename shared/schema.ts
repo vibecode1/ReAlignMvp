@@ -4,15 +4,18 @@ import { z } from "zod";
 
 // Enums for database constraints
 export const userRoleEnum = pgEnum('user_role', ['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']);
+// Updated transaction phases for Tracker MVP
 export const transactionPhaseEnum = pgEnum('transaction_phase', [
   'Transaction Initiated',
-  'Property Listed',
-  'Initial Document Collection',
+  'Property Listing',
+  'Documentation Collection',
+  'Hardship Package Submitted',
   'Offer Received',
-  'Offer Submitted',
-  'Lender Review',
-  'BPO Ordered',
-  'Approval Received',
+  'Offer Submitted to Lender',
+  'Initial Lender Review',
+  'Property Valuation Ordered',
+  'Lender Negotiations',
+  'Final Approval Received',
   'In Closing',
 ]);
 export const partyStatusEnum = pgEnum('party_status', ['pending', 'complete', 'overdue']);
@@ -31,15 +34,25 @@ export const users = pgTable('users', {
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Transactions table
+// Transactions table - updated for Tracker MVP
 export const transactions = pgTable('transactions', {
   id: uuid('id').defaultRandom().primaryKey(),
   title: text('title').notNull(),
   property_address: text('property_address').notNull(),
-  current_phase: transactionPhaseEnum('current_phase').notNull(),
-  created_by: uuid('created_by').notNull().references(() => users.id),
+  current_phase: transactionPhaseEnum('current_phase').notNull().default('Transaction Initiated'),
+  negotiator_id: uuid('negotiator_id').notNull().references(() => users.id),
+  welcome_email_body: text('welcome_email_body'), // Custom welcome message for email subscriptions
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Transaction phase history table - new for Tracker MVP
+export const transaction_phase_history = pgTable('transaction_phase_history', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  phase_key: transactionPhaseEnum('phase_key').notNull(),
+  set_by_negotiator_id: uuid('set_by_negotiator_id').notNull().references(() => users.id),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
 });
 
 // Transaction participants table
@@ -68,18 +81,37 @@ export const messages = pgTable('messages', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Document requests table
+// Document requests table - updated for Tracker MVP (role-based assignment)
 export const document_requests = pgTable('document_requests', {
   id: uuid('id').defaultRandom().primaryKey(),
   transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
-  doc_type: text('doc_type').notNull(),
-  assigned_to_user_id: uuid('assigned_to_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  requested_by_user_id: uuid('requested_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  document_name: text('document_name').notNull(), // Changed from doc_type to document_name for flexibility
+  assigned_party_role: text('assigned_party_role').notNull(), // Role-based assignment (e.g., 'Seller', 'Buyer Agent')
   status: documentStatusEnum('status').notNull().default('pending'),
+  requested_at: timestamp('requested_at').defaultNow().notNull(),
+  completed_at: timestamp('completed_at'),
   due_date: timestamp('due_date'),
-  revision_note: text('revision_note'),
+});
+
+// Tracker notes table - new for Tracker MVP
+export const tracker_notes = pgTable('tracker_notes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  note_text: text('note_text').notNull(), // Can store predefined or custom notes
+  negotiator_id: uuid('negotiator_id').notNull().references(() => users.id),
   created_at: timestamp('created_at').defaultNow().notNull(),
-  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Email subscriptions table - new for Tracker MVP
+export const email_subscriptions = pgTable('email_subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  party_email: text('party_email').notNull(),
+  party_role: text('party_role').notNull(), // e.g., 'Agent', 'Homeowner'
+  is_subscribed: boolean('is_subscribed').notNull().default(true),
+  magic_link_token: text('magic_link_token').notNull().unique(), // For view-only access
+  token_expires_at: timestamp('token_expires_at').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Uploads table
@@ -114,13 +146,15 @@ export const insertUserSchema = createInsertSchema(users, {
 export const insertTransactionSchema = createInsertSchema(transactions, {
   current_phase: z.enum([
     'Transaction Initiated',
-    'Property Listed',
-    'Initial Document Collection',
+    'Property Listing',
+    'Documentation Collection',
+    'Hardship Package Submitted',
     'Offer Received',
-    'Offer Submitted',
-    'Lender Review',
-    'BPO Ordered',
-    'Approval Received',
+    'Offer Submitted to Lender',
+    'Initial Lender Review',
+    'Property Valuation Ordered',
+    'Lender Negotiations',
+    'Final Approval Received',
     'In Closing',
   ]),
 }).omit({ id: true, created_at: true, updated_at: true });
@@ -134,7 +168,27 @@ export const insertMessageSchema = createInsertSchema(messages, {}).omit({ id: t
 
 export const insertDocumentRequestSchema = createInsertSchema(document_requests, {
   status: z.enum(['pending', 'complete', 'overdue']),
-}).omit({ id: true, created_at: true, updated_at: true });
+}).omit({ id: true, requested_at: true });
+
+export const insertTransactionPhaseHistorySchema = createInsertSchema(transaction_phase_history, {
+  phase_key: z.enum([
+    'Transaction Initiated',
+    'Property Listing',
+    'Documentation Collection',
+    'Hardship Package Submitted',
+    'Offer Received',
+    'Offer Submitted to Lender',
+    'Initial Lender Review',
+    'Property Valuation Ordered',
+    'Lender Negotiations',
+    'Final Approval Received',
+    'In Closing',
+  ]),
+}).omit({ id: true, timestamp: true });
+
+export const insertTrackerNoteSchema = createInsertSchema(tracker_notes, {}).omit({ id: true, created_at: true });
+
+export const insertEmailSubscriptionSchema = createInsertSchema(email_subscriptions, {}).omit({ id: true, created_at: true });
 
 export const insertUploadSchema = createInsertSchema(uploads, {
   visibility: z.enum(['private', 'shared']),
@@ -165,3 +219,13 @@ export type InsertUpload = z.infer<typeof insertUploadSchema>;
 
 export type UserDeviceToken = typeof user_device_tokens.$inferSelect;
 export type InsertUserDeviceToken = z.infer<typeof insertUserDeviceTokenSchema>;
+
+// New types for Tracker MVP
+export type TransactionPhaseHistory = typeof transaction_phase_history.$inferSelect;
+export type InsertTransactionPhaseHistory = z.infer<typeof insertTransactionPhaseHistorySchema>;
+
+export type TrackerNote = typeof tracker_notes.$inferSelect;
+export type InsertTrackerNote = z.infer<typeof insertTrackerNoteSchema>;
+
+export type EmailSubscription = typeof email_subscriptions.$inferSelect;
+export type InsertEmailSubscription = z.infer<typeof insertEmailSubscriptionSchema>;
