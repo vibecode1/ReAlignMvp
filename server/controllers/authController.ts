@@ -1,14 +1,11 @@
 import { Request, Response } from 'express';
-import { createClient } from '@supabase/supabase-js';
 import { LoginSchema, MagicLinkRequestSchema, NegotiatorRegistrationSchema } from '@shared/types';
 import config from '../config';
 import { storage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
-
-// Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
+import { supabaseAuthClient, supabaseAdmin } from '../lib/supabase';
 
 /**
  * Controller for authentication routes
@@ -33,13 +30,15 @@ export const authController = {
 
       const { email, password } = validation.data;
 
-      // Authenticate with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Authenticate with Supabase using auth client
+      console.log('Login attempt for:', email);
+      const { data, error } = await supabaseAuthClient.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Login error:', error.message);
         return res.status(401).json({
           error: {
             code: 'INVALID_CREDENTIALS',
@@ -70,7 +69,10 @@ export const authController = {
         });
       }
 
-      // Return user info and session data
+      // Return user info and session data with proper token
+      console.log('Login successful for:', email, 'with role:', user.role);
+      console.log('Access token generated (first 10 chars):', data.session?.access_token?.substring(0, 10) + '...');
+      
       return res.status(200).json({
         user: {
           id: user.id,
@@ -78,7 +80,8 @@ export const authController = {
           role: user.role,
           name: user.name,
         },
-        token: data.session.access_token,
+        token: data.session?.access_token,
+        refresh_token: data.session?.refresh_token,
         session: {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
@@ -305,8 +308,9 @@ export const authController = {
         });
       }
 
-      // Create Supabase user
-      const { data, error } = await supabase.auth.signUp({
+      // Create Supabase user using auth client
+      console.log('Creating new negotiator account for:', email);
+      const { data, error } = await supabaseAuthClient.auth.signUp({
         email,
         password,
       });
@@ -348,17 +352,19 @@ export const authController = {
         });
       }
 
-      // CRITICAL: Update Supabase user's app_metadata to include role
+      // CRITICAL: Update Supabase user's app_metadata to include role using admin client
       try {
-        await supabase.auth.admin.updateUserById(
+        console.log('Setting app_metadata for user:', data.user.id);
+        await supabaseAdmin.auth.admin.updateUserById(
           data.user.id,
           { 
             app_metadata: { 
               role: 'negotiator', 
-              user_name: name 
+              name: name 
             } 
           }
         );
+        console.log('Successfully set app_metadata for negotiator');
       } catch (adminUpdateError) {
         console.error('Failed to update Supabase user app_metadata:', adminUpdateError);
         // This is critical for authorization, so we should return an error

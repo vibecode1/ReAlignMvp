@@ -4,7 +4,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import config from './config';
 import * as schema from '@shared/schema';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './lib/supabase';
 import crypto from 'crypto';
 import { NotificationService } from './services/notificationService';
 
@@ -22,7 +22,7 @@ const pool = new Pool({
 const db = drizzle(pool, { schema });
 
 // Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
+// Supabase client is imported from lib/supabase.ts
 
 // Initialize notification service
 const notificationService = new NotificationService();
@@ -395,7 +395,7 @@ class DrizzleStorage implements IStorage {
   // Storage methods
   async generateUploadSignedUrl(path: string, contentType: string): Promise<string> {
     // Generate a signed URL for uploading a file to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseAdmin.storage
       .from('uploads')
       .createSignedUploadUrl(path);
     
