@@ -12,6 +12,7 @@ import { uploadController } from "./controllers/uploadController";
 import { notificationController } from "./controllers/notificationController";
 import { trackerNoteController } from "./controllers/trackerNoteController";
 import { phaseController } from "./controllers/phaseController";
+import { publicTrackerController } from "./controllers/publicTrackerController";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -64,6 +65,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document request update route (not under transaction namespace)
   apiRouter.patch('/doc-requests/:requestId', authenticateJWT, requireNegotiatorRole, documentController.updateDocumentRequest);
   
+  // -- Tracker Note Routes (New for Tracker MVP) --
+  transactionRouter.post('/:id/tracker-notes', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, trackerNoteController.createTrackerNote);
+  transactionRouter.get('/:id/tracker-notes', authenticateJWT, requireTransactionAccess, trackerNoteController.getTrackerNotes);
+  
+  // -- Phase Management Routes (New for Tracker MVP) --
+  transactionRouter.put('/:id/phase', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, phaseController.updatePhase);
+  transactionRouter.get('/:id/phase-history', authenticateJWT, requireTransactionAccess, phaseController.getPhaseHistory);
+  
   // -- Upload Routes --
   apiRouter.post('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.uploadFile);
   apiRouter.get('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.getUploads);
@@ -77,6 +86,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   notificationRouter.get('/device-tokens', authenticateJWT, notificationController.getUserDeviceTokens);
   notificationRouter.delete('/device-tokens/:token', authenticateJWT, notificationController.unregisterDeviceToken);
   
+  // -- Public Tracker Routes (New for Tracker MVP) --
+  apiRouter.get('/tracker/:transactionId', publicTrackerController.getTrackerByToken);
+  apiRouter.post('/tracker/unsubscribe', publicTrackerController.updateSubscription);
+
   // Register routers
   apiRouter.use('/auth', authRouter);
   apiRouter.use('/transactions', transactionRouter);

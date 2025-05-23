@@ -44,6 +44,7 @@ export const documentController = {
         transaction_id: transactionId,
         document_name: docType,
         assigned_party_role: assignedToUserId, // Now using role instead of user ID
+        status: 'pending',
         due_date: dueDate ? new Date(dueDate) : undefined,
       });
 
@@ -64,17 +65,14 @@ export const documentController = {
         );
       }
 
-      // Get assigned user details for response
-      const assignedUser = await storage.getUserById(assignedToUserId);
-
-      // Format response
+      // Format response - updated for Tracker MVP schema (role-based assignment)
       const response = {
         id: documentRequest.id,
-        docType: documentRequest.doc_type,
-        assignedTo: assignedUser?.name || 'Unknown',
+        docType: documentRequest.document_name,
+        assignedTo: documentRequest.assigned_party_role,
         status: documentRequest.status,
         dueDate: documentRequest.due_date?.toISOString(),
-        created_at: documentRequest.created_at.toISOString(),
+        requested_at: documentRequest.requested_at.toISOString(),
       };
 
       return res.status(201).json(response);
