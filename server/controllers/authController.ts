@@ -78,7 +78,7 @@ export const authController = {
           role: user.role,
           name: user.name,
         },
-        token: data.session?.access_token,
+        token: data.session.access_token,
       });
     } catch (error) {
       console.error('Login error:', error);
