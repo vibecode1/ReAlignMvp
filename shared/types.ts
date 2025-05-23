@@ -75,7 +75,7 @@ export const NewMessageSchema = z.object({
 
 export const DocumentRequestSchema = z.object({
   docType: z.string().min(1, "Document type is required"),
-  assignedToUserId: z.string().uuid("Invalid user ID"),
+  assignedToUserId: z.string().min(1, "Assigned party role is required"), // Now a role string, not user ID
   dueDate: z.string().optional(),
 });
 

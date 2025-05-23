@@ -114,20 +114,17 @@ export const documentController = {
         limit
       );
       
-      // Format document requests with user details
-      const formattedRequests = await Promise.all(documentRequests.map(async (request) => {
-        const assignedTo = await storage.getUserById(request.assigned_to_user_id);
+      // Format document requests - updated for Tracker MVP schema
+      const formattedRequests = documentRequests.map((request) => {
         return {
           id: request.id,
-          docType: request.doc_type,
-          assignedTo: assignedTo?.name || 'Unknown',
-          assignedToUserId: request.assigned_to_user_id,
+          docType: request.document_name,
+          assignedTo: request.assigned_party_role,
           status: request.status,
           dueDate: request.due_date?.toISOString(),
-          revisionNote: request.revision_note,
-          created_at: request.created_at.toISOString(),
+          requested_at: request.requested_at.toISOString(),
         };
-      }));
+      });
 
       // Calculate pagination metadata
       const totalPages = Math.ceil(total / limit);
@@ -194,19 +191,15 @@ export const documentController = {
         await notificationService.sendDocumentRequestReminder(requestId);
       }
 
-      // Get assigned user details for response
-      const assignedTo = await storage.getUserById(updatedRequest.assigned_to_user_id);
-
-      // Format response
+      // Format response - updated for Tracker MVP schema
       const response = {
         id: updatedRequest.id,
-        docType: updatedRequest.doc_type,
-        assignedTo: assignedTo?.name || 'Unknown',
-        assignedToUserId: updatedRequest.assigned_to_user_id,
+        docType: updatedRequest.document_name,
+        assignedTo: updatedRequest.assigned_party_role,
         status: updatedRequest.status,
         dueDate: updatedRequest.due_date?.toISOString(),
-        revisionNote: updatedRequest.revision_note,
-        updated_at: updatedRequest.updated_at.toISOString(),
+        completed_at: updatedRequest.completed_at?.toISOString(),
+        requested_at: updatedRequest.requested_at.toISOString(),
       };
 
       return res.status(200).json(response);
