@@ -27,6 +27,8 @@ import MessageThread, { Message } from "@/components/transactions/MessageThread"
 import DocRequestList, { DocumentRequest } from "@/components/transactions/DocRequestList";
 import UploadWidget from "@/components/transactions/UploadWidget";
 import FileList from "@/components/transactions/FileList";
+import TrackerNotesWidget from "@/components/transactions/TrackerNotesWidget";
+import PhaseManager from "@/components/transactions/PhaseManager";
 import { motion } from "framer-motion";
 
 // Define transaction interface to help with TypeScript errors
@@ -97,6 +99,9 @@ export default function TransactionView({ id }: TransactionViewProps) {
       setEditedAddress(transaction.property_address || '');
     }
   }, [transaction]);
+
+  // Provide safe access to transaction data
+  const transactionDetails = transaction || {} as TransactionDetail;
   
   // Handle updating transaction details
   const handleUpdateField = async (field: 'title' | 'property_address', value: string) => {
