@@ -40,7 +40,7 @@ export const transactionController = {
         });
       }
 
-      const { title, property_address, parties, welcome_email_body } = validation.data;
+      const { title, property_address, parties, initialMessage } = validation.data;
 
       // Create the transaction with email subscriptions for Tracker MVP
       const transaction = await storage.createTransaction(
@@ -48,8 +48,11 @@ export const transactionController = {
           title,
           property_address,
           current_phase: 'Transaction Initiated', // Always start with first phase
+          negotiator_id: req.user.id,
         },
-        req.user.id
+        req.user.id,
+        parties.map(p => ({ email: p.email, role: p.role })),
+        initialMessage
       );
 
       // Create negotiator as a participant
@@ -99,10 +102,12 @@ export const transactionController = {
       }
 
       // Add initial welcome message if provided
-      if (welcome_email_body) {
+      if (initialMessage) {
         await storage.createMessage(
           {
-            text: welcome_email_body,
+            transaction_id: transaction.id,
+            text: initialMessage,
+            sender_id: req.user.id,
             is_seed_message: true,
           },
           transaction.id,
@@ -134,9 +139,9 @@ export const transactionController = {
             lastAction: participant.last_action,
           };
         })),
-        messages: welcome_email_body ? [{
+        messages: initialMessage ? [{
           id: 'seed', // Replace with actual ID once available
-          text: welcome_email_body,
+          text: initialMessage,
           sender: {
             id: req.user.id,
             name: negotiator?.name || 'Negotiator',
