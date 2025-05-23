@@ -61,7 +61,7 @@ export const documentController = {
           docType,
           transaction.title,
           negotiator.name,
-          dueDate || new Date()
+          dueDate || ""
         );
       }
 
@@ -182,8 +182,7 @@ export const documentController = {
       // Update the document request
       const updatedRequest = await storage.updateDocumentRequestStatus(
         requestId,
-        status,
-        revisionNote
+        status
       );
 
       // If status is updated to pending with a revision note, send a reminder
