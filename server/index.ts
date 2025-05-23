@@ -51,7 +51,13 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // Check if we're in Replit environment and disable WebSocket HMR to prevent crashes
+    if (process.env.REPL_ID) {
+      log("Replit environment detected - serving without WebSocket HMR");
+      serveStatic(app);
+    } else {
+      await setupVite(app, server);
+    }
   } else {
     serveStatic(app);
   }
