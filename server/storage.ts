@@ -112,6 +112,10 @@ class DrizzleStorage implements IStorage {
     
     // Create email subscriptions for parties if provided
     if (parties && parties.length > 0) {
+      // Get negotiator details for email
+      const negotiator = await this.getUserById(negotiatorId);
+      const negotiatorName = negotiator?.name || 'Your negotiator';
+      
       const subscriptions = parties.map(party => ({
         transaction_id: result[0].id,
         party_email: party.email,
@@ -121,6 +125,24 @@ class DrizzleStorage implements IStorage {
       }));
       
       await db.insert(schema.email_subscriptions).values(subscriptions);
+      
+      // Send tracker magic link emails to all parties
+      for (let i = 0; i < parties.length; i++) {
+        const party = parties[i];
+        const subscription = subscriptions[i];
+        
+        // Send tracker magic link email
+        await notificationService.sendTrackerMagicLink(
+          party.email,
+          party.email.split('@')[0], // Use email prefix as name fallback
+          party.role,
+          transaction.title,
+          transaction.property_address,
+          negotiatorName,
+          subscription.magic_link_token,
+          result[0].id
+        );
+      }
     }
     
     return result[0];

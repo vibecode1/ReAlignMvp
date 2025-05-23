@@ -102,8 +102,34 @@ export default function PublicTrackerView() {
   };
 
   const handleUnsubscribe = async () => {
-    // TODO: Implement unsubscribe functionality
-    alert('Unsubscribe functionality will be implemented');
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      if (!token || !data) return;
+      
+      // Find the subscription ID from the current data
+      const response = await fetch('/api/v1/tracker/unsubscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscription_id: transactionId, // Using transaction ID as proxy for subscription
+          is_subscribed: false
+        })
+      });
+      
+      if (response.ok) {
+        setData(prev => prev ? { ...prev, subscription_status: false } : null);
+        alert('Successfully unsubscribed from email updates.');
+      } else {
+        alert('Failed to unsubscribe. Please try again.');
+      }
+    } catch (error) {
+      console.error('Unsubscribe error:', error);
+      alert('Failed to unsubscribe. Please try again.');
+    }
   };
 
   if (loading) {
