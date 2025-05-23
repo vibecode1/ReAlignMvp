@@ -451,6 +451,75 @@ class DrizzleStorage implements IStorage {
       throw error;
     }
   }
+
+  // Tracker notes methods - new for Tracker MVP
+  async createTrackerNote(note: schema.InsertTrackerNote): Promise<schema.TrackerNote> {
+    const result = await db.insert(schema.tracker_notes).values(note).returning();
+    return result[0];
+  }
+
+  async getTrackerNotesByTransactionId(transactionId: string): Promise<schema.TrackerNote[]> {
+    return await db
+      .select()
+      .from(schema.tracker_notes)
+      .where(eq(schema.tracker_notes.transaction_id, transactionId))
+      .orderBy(desc(schema.tracker_notes.created_at));
+  }
+
+  // Email subscription methods - new for Tracker MVP
+  async createEmailSubscription(subscription: schema.InsertEmailSubscription): Promise<schema.EmailSubscription> {
+    const result = await db.insert(schema.email_subscriptions).values(subscription).returning();
+    return result[0];
+  }
+
+  async getEmailSubscriptionsByTransactionId(transactionId: string): Promise<schema.EmailSubscription[]> {
+    return await db
+      .select()
+      .from(schema.email_subscriptions)
+      .where(eq(schema.email_subscriptions.transaction_id, transactionId));
+  }
+
+  async validateMagicLinkToken(token: string): Promise<{ subscription: schema.EmailSubscription; transaction: schema.Transaction } | null> {
+    const result = await db
+      .select({
+        subscription: schema.email_subscriptions,
+        transaction: schema.transactions,
+      })
+      .from(schema.email_subscriptions)
+      .innerJoin(schema.transactions, eq(schema.email_subscriptions.transaction_id, schema.transactions.id))
+      .where(
+        and(
+          eq(schema.email_subscriptions.magic_link_token, token),
+          sql`${schema.email_subscriptions.token_expires_at} > NOW()`
+        )
+      )
+      .limit(1);
+
+    return result[0] || null;
+  }
+
+  async updateSubscriptionStatus(subscriptionId: string, isSubscribed: boolean): Promise<schema.EmailSubscription> {
+    const result = await db
+      .update(schema.email_subscriptions)
+      .set({ is_subscribed: isSubscribed })
+      .where(eq(schema.email_subscriptions.id, subscriptionId))
+      .returning();
+    return result[0];
+  }
+
+  // Transaction phase history methods - new for Tracker MVP
+  async createPhaseHistoryEntry(entry: schema.InsertTransactionPhaseHistory): Promise<schema.TransactionPhaseHistory> {
+    const result = await db.insert(schema.transaction_phase_history).values(entry).returning();
+    return result[0];
+  }
+
+  async getPhaseHistoryByTransactionId(transactionId: string): Promise<schema.TransactionPhaseHistory[]> {
+    return await db
+      .select()
+      .from(schema.transaction_phase_history)
+      .where(eq(schema.transaction_phase_history.transaction_id, transactionId))
+      .orderBy(desc(schema.transaction_phase_history.timestamp));
+  }
 }
 
 export const storage = new DrizzleStorage();
