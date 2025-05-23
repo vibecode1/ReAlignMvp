@@ -48,7 +48,7 @@ export interface IStorage {
 
   // Document request methods - updated for Tracker MVP
   createDocumentRequest(request: schema.InsertDocumentRequest): Promise<schema.DocumentRequest>;
-  getDocumentRequestsByTransactionId(transactionId: string): Promise<schema.DocumentRequest[]>;
+  getDocumentRequestsByTransactionId(transactionId: string, page: number, limit: number): Promise<{ data: schema.DocumentRequest[], total: number }>;
   updateDocumentRequestStatus(requestId: string, status: string): Promise<schema.DocumentRequest>;
   deleteDocumentRequest(requestId: string): Promise<void>;
 
@@ -206,7 +206,6 @@ class DrizzleStorage implements IStorage {
       .set({
         status: status as any,
         last_action: lastAction,
-        last_updated: new Date(),
       })
       .where(
         and(
@@ -260,15 +259,9 @@ class DrizzleStorage implements IStorage {
     return { data, total };
   }
 
-  // Document request methods
-  async createDocumentRequest(request: schema.InsertDocumentRequest, transactionId: string): Promise<schema.DocumentRequest> {
-    const result = await db
-      .insert(schema.document_requests)
-      .values({
-        ...request,
-        transaction_id: transactionId,
-      })
-      .returning();
+  // Document request methods - updated for Tracker MVP
+  async createDocumentRequest(request: schema.InsertDocumentRequest): Promise<schema.DocumentRequest> {
+    const result = await db.insert(schema.document_requests).values(request).returning();
     return result[0];
   }
 
@@ -279,7 +272,7 @@ class DrizzleStorage implements IStorage {
       .select()
       .from(schema.document_requests)
       .where(eq(schema.document_requests.transaction_id, transactionId))
-      .orderBy(desc(schema.document_requests.created_at))
+      .orderBy(desc(schema.document_requests.requested_at))
       .limit(limit)
       .offset(offset);
     
@@ -317,8 +310,7 @@ class DrizzleStorage implements IStorage {
       .insert(schema.uploads)
       .values({
         ...upload,
-        transaction_id: transactionId,
-        uploaded_by: userId,
+        uploaded_by_user_id: userId,
         document_request_id: documentRequestId,
       })
       .returning();
@@ -339,7 +331,7 @@ class DrizzleStorage implements IStorage {
     if (userRole !== 'negotiator') {
       query = query.where(
         or(
-          eq(schema.uploads.uploaded_by, userId),
+          eq(schema.uploads.uploaded_by_user_id, userId),
           eq(schema.uploads.visibility, 'shared')
         )
       );
