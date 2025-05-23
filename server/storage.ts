@@ -324,39 +324,15 @@ class DrizzleStorage implements IStorage {
   async getUploadsByTransactionId(transactionId: string, userId: string, userRole: string, page: number, limit: number): Promise<{ data: schema.Upload[], total: number }> {
     const offset = (page - 1) * limit;
     
-    let query = db
-      .select()
-      .from(schema.uploads)
-      .where(eq(schema.uploads.transaction_id, transactionId));
-    
-    // Filter by visibility permissions
-    // Negotiators can see all uploads
-    // Other roles can see their own private uploads and all shared uploads
-    if (userRole !== 'negotiator') {
-      query = query.where(
-        and(
-          eq(schema.uploads.transaction_id, transactionId),
-          or(
-            eq(schema.uploads.uploaded_by_user_id, userId),
-            eq(schema.uploads.visibility, 'shared')
-          )
-        )
-      );
-    }
-    
-    const data = await query
-      .orderBy(desc(schema.uploads.uploaded_at))
-      .limit(limit)
-      .offset(offset);
-    
-    // Count total uploads with same filters
-    let countQuery = db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.uploads)
-      .where(eq(schema.uploads.transaction_id, transactionId));
-    
-    if (userRole !== 'negotiator') {
-      countQuery = countQuery.where(
+    // Build where conditions based on user role
+    let whereConditions;
+    if (userRole === 'negotiator') {
+      // Negotiators can see all uploads for the transaction
+      whereConditions = eq(schema.uploads.transaction_id, transactionId);
+    } else {
+      // Other roles can see their own private uploads and all shared uploads
+      whereConditions = and(
+        eq(schema.uploads.transaction_id, transactionId),
         or(
           eq(schema.uploads.uploaded_by_user_id, userId),
           eq(schema.uploads.visibility, 'shared')
@@ -364,7 +340,19 @@ class DrizzleStorage implements IStorage {
       );
     }
     
-    const countResult = await countQuery;
+    const data = await db
+      .select()
+      .from(schema.uploads)
+      .where(whereConditions)
+      .orderBy(desc(schema.uploads.uploaded_at))
+      .limit(limit)
+      .offset(offset);
+    
+    // Count total uploads with same filters
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.uploads)
+      .where(whereConditions);
     const total = countResult[0]?.count || 0;
     
     return { data, total };
