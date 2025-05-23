@@ -28,11 +28,12 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<schema.User | undefined>;
   createUser(user: schema.InsertUser): Promise<schema.User>;
 
-  // Transaction methods
-  createTransaction(transaction: schema.InsertTransaction, userId: string): Promise<schema.Transaction>;
+  // Transaction methods - updated for Tracker MVP
+  createTransaction(transaction: schema.InsertTransaction, negotiatorId: string, parties?: { email: string, role: string }[], welcomeEmailBody?: string): Promise<schema.Transaction>;
   getTransactionById(id: string): Promise<schema.Transaction | undefined>;
-  getTransactionsByUserId(userId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }>;
+  getTransactionsByNegotiatorId(negotiatorId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }>;
   updateTransaction(id: string, data: Partial<schema.InsertTransaction>): Promise<schema.Transaction>;
+  updateTransactionPhase(transactionId: string, newPhase: string, negotiatorId: string): Promise<schema.Transaction>;
 
   // Transaction participant methods
   addParticipant(participant: schema.InsertTransactionParticipant): Promise<schema.TransactionParticipant>;
@@ -44,10 +45,25 @@ export interface IStorage {
   getMessageById(id: string): Promise<schema.Message | undefined>;
   getMessagesByTransactionId(transactionId: string, page: number, limit: number): Promise<{ data: schema.Message[], total: number }>;
 
-  // Document request methods
-  createDocumentRequest(request: schema.InsertDocumentRequest, transactionId: string): Promise<schema.DocumentRequest>;
-  getDocumentRequestsByTransactionId(transactionId: string, page: number, limit: number): Promise<{ data: schema.DocumentRequest[], total: number }>;
-  updateDocumentRequestStatus(requestId: string, status: string, revisionNote?: string): Promise<schema.DocumentRequest>;
+  // Document request methods - updated for Tracker MVP
+  createDocumentRequest(request: schema.InsertDocumentRequest): Promise<schema.DocumentRequest>;
+  getDocumentRequestsByTransactionId(transactionId: string): Promise<schema.DocumentRequest[]>;
+  updateDocumentRequestStatus(requestId: string, status: string): Promise<schema.DocumentRequest>;
+  deleteDocumentRequest(requestId: string): Promise<void>;
+
+  // Tracker notes methods - new for Tracker MVP  
+  createTrackerNote(note: schema.InsertTrackerNote): Promise<schema.TrackerNote>;
+  getTrackerNotesByTransactionId(transactionId: string): Promise<schema.TrackerNote[]>;
+
+  // Email subscription methods - new for Tracker MVP
+  createEmailSubscription(subscription: schema.InsertEmailSubscription): Promise<schema.EmailSubscription>;
+  getEmailSubscriptionsByTransactionId(transactionId: string): Promise<schema.EmailSubscription[]>;
+  validateMagicLinkToken(token: string): Promise<{ subscription: schema.EmailSubscription; transaction: schema.Transaction } | null>;
+  updateSubscriptionStatus(subscriptionId: string, isSubscribed: boolean): Promise<schema.EmailSubscription>;
+
+  // Transaction phase history methods - new for Tracker MVP
+  createPhaseHistoryEntry(entry: schema.InsertTransactionPhaseHistory): Promise<schema.TransactionPhaseHistory>;
+  getPhaseHistoryByTransactionId(transactionId: string): Promise<schema.TransactionPhaseHistory[]>;
 
   // Upload methods
   createUpload(upload: schema.InsertUpload, transactionId: string, userId: string, documentRequestId?: string): Promise<schema.Upload>;
