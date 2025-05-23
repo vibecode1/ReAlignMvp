@@ -71,13 +71,15 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
       });
     }
     
-    // Extract role from app_metadata
+    // Extract role from app_metadata with detailed logging
+    console.log('Full app_metadata:', JSON.stringify(data.user.app_metadata, null, 2));
     const userRole = (data.user.app_metadata?.role as string) || 'unknown';
     console.log('User authenticated:', {
       id: data.user.id,
       email: data.user.email,
       role: userRole,
-      hasAppMetadata: !!data.user.app_metadata
+      hasAppMetadata: !!data.user.app_metadata,
+      appMetadataKeys: Object.keys(data.user.app_metadata || {})
     });
     
     // Set user information on the request
