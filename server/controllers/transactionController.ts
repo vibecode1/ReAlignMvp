@@ -99,10 +99,10 @@ export const transactionController = {
       }
 
       // Add initial welcome message if provided
-      if (initialMessage) {
+      if (welcome_email_body) {
         await storage.createMessage(
           {
-            text: initialMessage,
+            text: welcome_email_body,
             is_seed_message: true,
           },
           transaction.id,
@@ -134,9 +134,9 @@ export const transactionController = {
             lastAction: participant.last_action,
           };
         })),
-        messages: initialMessage ? [{
+        messages: welcome_email_body ? [{
           id: 'seed', // Replace with actual ID once available
-          text: initialMessage,
+          text: welcome_email_body,
           sender: {
             id: req.user.id,
             name: negotiator?.name || 'Negotiator',

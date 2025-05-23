@@ -304,6 +304,10 @@ class DrizzleStorage implements IStorage {
     return result[0];
   }
 
+  async deleteDocumentRequest(requestId: string): Promise<void> {
+    await db.delete(schema.document_requests).where(eq(schema.document_requests.id, requestId));
+  }
+
   // Upload methods
   async createUpload(upload: schema.InsertUpload, transactionId: string, userId: string, documentRequestId?: string): Promise<schema.Upload> {
     const result = await db
@@ -330,9 +334,12 @@ class DrizzleStorage implements IStorage {
     // Other roles can see their own private uploads and all shared uploads
     if (userRole !== 'negotiator') {
       query = query.where(
-        or(
-          eq(schema.uploads.uploaded_by_user_id, userId),
-          eq(schema.uploads.visibility, 'shared')
+        and(
+          eq(schema.uploads.transaction_id, transactionId),
+          or(
+            eq(schema.uploads.uploaded_by_user_id, userId),
+            eq(schema.uploads.visibility, 'shared')
+          )
         )
       );
     }
@@ -351,7 +358,7 @@ class DrizzleStorage implements IStorage {
     if (userRole !== 'negotiator') {
       countQuery = countQuery.where(
         or(
-          eq(schema.uploads.uploaded_by, userId),
+          eq(schema.uploads.uploaded_by_user_id, userId),
           eq(schema.uploads.visibility, 'shared')
         )
       );
@@ -386,6 +393,15 @@ class DrizzleStorage implements IStorage {
     }
     
     return data.signedUrl;
+  }
+
+  async updateUploadVisibility(uploadId: string, visibility: string): Promise<schema.Upload> {
+    const result = await db
+      .update(schema.uploads)
+      .set({ visibility: visibility as any })
+      .where(eq(schema.uploads.id, uploadId))
+      .returning();
+    return result[0];
   }
 
   // Push notification device token methods
