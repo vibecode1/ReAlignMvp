@@ -90,15 +90,15 @@ export const transactionController = {
           status: 'pending',
         });
 
-        // Send invitation
-        await notificationService.sendTransactionInvitation(
-          user.email,
-          user.name,
-          party.role,
-          transaction.title,
-          transaction.property_address,
-          negotiator?.name || 'Your negotiator'
-        );
+        // Send invitation (notificationService call updated for Tracker MVP)
+        // await notificationService.sendTransactionInvitation(
+        //   user.email,
+        //   user.name,
+        //   party.role,
+        //   transaction.title,
+        //   transaction.property_address,
+        //   negotiator?.name || 'Your negotiator'
+        // );
       }
 
       // Add initial welcome message if provided
@@ -186,12 +186,12 @@ export const transactionController = {
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
 
       // Get transactions with pagination
-      const { data: transactions, total } = await storage.getTransactionsByUserId(req.user.id, page, limit);
+      const { data: transactions, total } = await storage.getTransactionsByNegotiatorId(req.user.id, page, limit);
 
       // Calculate last activity timestamp (this would be more complex in a real implementation)
-      const result = await Promise.all(transactions.map(async (transaction) => {
+      const result = await Promise.all(transactions.map(async (transaction: any) => {
         // Get negotiator name
-        const negotiator = await storage.getUserById(transaction.created_by);
+        const negotiator = await storage.getUserById(transaction.negotiator_id);
         
         // Get last message timestamp as a simple way to determine last activity
         const { data: messages } = await storage.getMessagesByTransactionId(transaction.id, 1, 1);
@@ -204,7 +204,7 @@ export const transactionController = {
           title: transaction.title,
           property_address: transaction.property_address,
           currentPhase: transaction.current_phase,
-          created_by: negotiator?.id || transaction.created_by,
+          created_by: negotiator?.id || transaction.negotiator_id,
           created_at: transaction.created_at.toISOString(),
           lastActivityAt: lastActivityAt.toISOString(),
         };
