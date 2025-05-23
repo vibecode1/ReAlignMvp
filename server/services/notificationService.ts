@@ -11,7 +11,7 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 // Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
 // Initialize Firebase Admin SDK with environment variables
 if (admin.apps.length === 0 && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {

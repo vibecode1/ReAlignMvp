@@ -11,8 +11,8 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-// Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+// Initialize Supabase client with service role key for authentication middleware
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
 /**
  * Middleware to verify JWT token from Supabase Auth

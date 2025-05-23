@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
 
 // Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
 /**
  * Controller for authentication routes

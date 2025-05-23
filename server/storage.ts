@@ -22,7 +22,7 @@ const pool = new Pool({
 const db = drizzle(pool, { schema });
 
 // Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
 
 // Initialize notification service
 const notificationService = new NotificationService();

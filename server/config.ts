@@ -8,7 +8,8 @@ const config = {
   
   // Supabase
   supabaseUrl: process.env.SUPABASE_URL || '',
-  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
   
   // Database
   databaseUrl: process.env.DATABASE_URL || '',
@@ -33,12 +34,19 @@ const config = {
 const requiredEnvVars = [
   'DATABASE_URL',
   'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_ANON_KEY',
 ];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.warn(`Warning: Environment variable ${envVar} is not set.`);
   }
+}
+
+// Critical check for service role key
+if (!config.supabaseServiceRoleKey) {
+  console.error('FATAL ERROR: SUPABASE_SERVICE_ROLE_KEY is required for backend authentication');
 }
 
 export default config;
