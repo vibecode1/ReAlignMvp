@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Eye, EyeOff } from 'lucide-react';
+import { Upload, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -51,6 +51,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
   const [selectedDocType, setSelectedDocType] = useState<string>(docType || '');
   const [selectedRequestId, setSelectedRequestId] = useState<string>(documentRequestId || '');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [failedFile, setFailedFile] = useState<File | null>(null);
   
   // Filter document requests to show only pending ones
   const pendingRequests = documentRequests.filter(req => req.status === 'pending');
@@ -59,11 +60,13 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
   const handleUpload = async (file: File) => {
     if (!selectedDocType) {
       setUploadError('Please select a document type before uploading.');
+      setFailedFile(file);
       return;
     }
     
     try {
       setUploadError(null);
+      setFailedFile(null);
       
       // Create a FormData object to send the file
       const formData = new FormData();
@@ -103,6 +106,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
     } catch (error) {
       console.error('Upload error:', error);
       setUploadError(error instanceof Error ? error.message : 'Failed to upload file. Please try again.');
+      setFailedFile(file); // Store the failed file for retry
       throw error; // Re-throw to show error in the upload component
     }
   };
@@ -237,10 +241,23 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({
           ]}
         />
         
-        {/* Error Display */}
+        {/* Error Display with Retry Button */}
         {uploadError && (
           <Alert variant="destructive" className="mt-4">
-            <AlertDescription>{uploadError}</AlertDescription>
+            <AlertDescription className="flex items-center justify-between">
+              <span>{uploadError}</span>
+              {failedFile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUpload(failedFile)}
+                  className="ml-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
       </CardContent>

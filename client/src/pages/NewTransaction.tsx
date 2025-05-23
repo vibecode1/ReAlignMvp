@@ -31,6 +31,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -52,22 +53,32 @@ const formSchema = z.object({
   seller: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
+    phone: z.string().optional(),
+    sms_opt_in: z.boolean().optional(),
   }),
   buyer: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
+    phone: z.string().optional(),
+    sms_opt_in: z.boolean().optional(),
   }).optional(),
   listing_agent: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
+    phone: z.string().optional(),
+    sms_opt_in: z.boolean().optional(),
   }).optional(),
   buyers_agent: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
+    phone: z.string().optional(),
+    sms_opt_in: z.boolean().optional(),
   }).optional(),
   escrow: z.object({
     name: z.string().min(2, { message: "Name is required" }),
     email: z.string().email({ message: "Valid email is required" }),
+    phone: z.string().optional(),
+    sms_opt_in: z.boolean().optional(),
   }).optional(),
 });
 
