@@ -87,32 +87,8 @@ export default function TransactionView({ id }: TransactionViewProps) {
     isError
   } = useQuery<TransactionDetail>({
     queryKey: [`/api/v1/transactions/${id}`],
-    // For development, provide a fallback mock transaction if no data is retrieved
-    select: (data) => {
-      if (!data) {
-        // This is only for development purposes when the API is not fully implemented
-        return {
-          id,
-          title: 'Sample Transaction',
-          property_address: '123 Main St, Anytown, CA 90210',
-          currentPhase: 'documents',
-          created_by: {
-            id: 'user-1',
-            name: 'John Smith'
-          },
-          created_at: new Date().toISOString(),
-          parties: [],
-          messages: [],
-          documentRequests: [],
-          uploads: []
-        } as TransactionDetail;
-      }
-      return data;
-    }
+    enabled: !!id
   });
-  
-  // Get transaction details object for easier access with default empty object fallback
-  const transactionDetails = transaction || {} as TransactionDetail;
 
   // Reset edited fields when transaction data changes
   useEffect(() => {
