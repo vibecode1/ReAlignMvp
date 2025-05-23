@@ -243,10 +243,10 @@ export class NotificationService {
       );
       
       // Check SMS opt-in and send SMS if enabled
-      const user = await storage.getUserById(userId);
-      if (user && user.phone && user.sms_opt_in) {
+      const userForSms = await storage.getUserById(userId);
+      if (userForSms && userForSms.phone && userForSms.sms_opt_in) {
         // SMS notification would be implemented here with a service like Twilio
-        console.log(`SMS notification would be sent to ${user.phone}: Document request for ${documentType}`);
+        console.log(`SMS notification would be sent to ${userForSms.phone}: Document request for ${documentType}`);
       }
       return true;
     } catch (error) {

@@ -144,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Export broadcast function for use in controllers
-  global.broadcastToTransaction = (transactionId: string, event: any) => {
+  (global as any).broadcastToTransaction = (transactionId: string, event: any) => {
     if (clients.has(transactionId)) {
       const message = JSON.stringify(event);
       clients.get(transactionId)!.forEach(client => {

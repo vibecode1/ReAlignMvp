@@ -404,7 +404,7 @@ class DrizzleStorage implements IStorage {
   }
 
   // Storage methods
-  async generateUploadSignedUrl(path: string, contentType: string): Promise<string> {
+  async generateUploadSignedUrl(path: string, action?: string): Promise<string> {
     // Generate a signed URL for uploading a file to Supabase Storage
     const { data, error } = await supabase.storage
       .from('uploads')
