@@ -408,16 +408,22 @@ class DrizzleStorage implements IStorage {
     // Generate a signed URL for uploading a file to Supabase Storage
     const { data, error } = await supabase.storage
       .from('uploads')
-      .createSignedUploadUrl(path, {
-        contentType,
-        expiresIn: 300, // 5 minutes
-      });
+      .createSignedUploadUrl(path);
     
     if (error) {
       throw new Error(`Failed to generate upload URL: ${error.message}`);
     }
     
     return data.signedUrl;
+  }
+
+  async updateUploadVisibility(uploadId: string, visibility: string): Promise<schema.Upload> {
+    const result = await db
+      .update(schema.uploads)
+      .set({ visibility: visibility as 'private' | 'shared' })
+      .where(eq(schema.uploads.id, uploadId))
+      .returning();
+    return result[0];
   }
 
   // Push notification device token methods
