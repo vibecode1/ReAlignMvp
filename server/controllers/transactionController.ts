@@ -185,7 +185,7 @@ export const transactionController = {
       const page = parseInt(req.query.page as string) || 1;
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
 
-      // Get transactions with pagination
+      // Get transactions with pagination - fixed method name for Tracker MVP
       const { data: transactions, total } = await storage.getTransactionsByNegotiatorId(req.user.id, page, limit);
 
       // Calculate last activity timestamp (this would be more complex in a real implementation)
@@ -260,8 +260,8 @@ export const transactionController = {
         });
       }
 
-      // Get negotiator details
-      const negotiator = await storage.getUserById(transaction.created_by);
+      // Get negotiator details - fixed for Tracker MVP schema
+      const negotiator = await storage.getUserById(transaction.negotiator_id);
 
       // Get participants
       const participants = await storage.getParticipantsByTransactionId(transactionId);
@@ -305,18 +305,17 @@ export const transactionController = {
       // Get document requests
       const { data: docRequests } = await storage.getDocumentRequestsByTransactionId(transactionId, 1, 10);
       
-      // Format document requests with user details
-      const documentRequests = await Promise.all(docRequests.map(async (request) => {
-        const assignedTo = await storage.getUserById(request.assigned_to_user_id);
+      // Format document requests - fixed for Tracker MVP schema
+      const documentRequests = docRequests.map((request) => {
         return {
           id: request.id,
-          docType: request.doc_type,
-          assignedTo: assignedTo?.name || 'Unknown',
+          docType: request.document_name,
+          assignedTo: request.assigned_party_role,
           status: request.status,
           dueDate: request.due_date?.toISOString(),
-          revisionNote: request.revision_note,
+          requestedAt: request.requested_at.toISOString(),
         };
-      }));
+      });
 
       // Get uploads filtered by user role and visibility
       const { data: uploadData } = await storage.getUploadsByTransactionId(
@@ -327,7 +326,7 @@ export const transactionController = {
         10
       );
       
-      // Format uploads
+      // Format uploads - fixed for Tracker MVP schema
       const uploads = uploadData.map(upload => ({
         id: upload.id,
         docType: upload.doc_type,
@@ -335,7 +334,7 @@ export const transactionController = {
         fileUrl: upload.file_url,
         contentType: upload.content_type,
         sizeBytes: upload.size_bytes,
-        uploadedBy: upload.uploaded_by,
+        uploadedBy: upload.uploaded_by_user_id,
         visibility: upload.visibility,
         uploadedAt: upload.uploaded_at.toISOString(),
       }));
@@ -347,7 +346,7 @@ export const transactionController = {
         property_address: transaction.property_address,
         currentPhase: transaction.current_phase,
         created_by: {
-          id: negotiator?.id || transaction.created_by,
+          id: negotiator?.id || transaction.negotiator_id,
           name: negotiator?.name || 'Unknown',
         },
         created_at: transaction.created_at.toISOString(),
@@ -433,7 +432,7 @@ export const transactionController = {
         title: updatedTransaction.title,
         property_address: updatedTransaction.property_address,
         currentPhase: updatedTransaction.current_phase,
-        created_by: updatedTransaction.created_by,
+        created_by: updatedTransaction.negotiator_id,
         created_at: updatedTransaction.created_at.toISOString(),
         updated_at: updatedTransaction.updated_at.toISOString(),
       });
@@ -476,7 +475,7 @@ export const transactionController = {
           role: participant.role_in_transaction,
           status: participant.status,
           lastAction: participant.last_action,
-          last_updated: participant.last_updated.toISOString(),
+          last_updated: participant.updated_at.toISOString(),
         };
       }));
 
@@ -542,7 +541,7 @@ export const transactionController = {
         role: updatedParticipant.role_in_transaction,
         status: updatedParticipant.status,
         lastAction: updatedParticipant.last_action,
-        last_updated: updatedParticipant.last_updated.toISOString(),
+        last_updated: updatedParticipant.updated_at.toISOString(),
       });
     } catch (error) {
       console.error('Update party status error:', error);
