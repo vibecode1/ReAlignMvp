@@ -9,10 +9,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import config from '../config';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+import { supabaseAdmin } from '../lib/supabase';
 
 // Set up temp directory for uploads
 const uploadDir = config.uploadsDir;
@@ -102,7 +99,7 @@ export const uploadController = {
         const fileStream = fs.createReadStream(req.file.path);
         const filePath = `${transactionId}/${Date.now()}-${req.file.originalname}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('uploads')
           .upload(filePath, fileStream, {
             contentType: req.file.mimetype,
@@ -123,7 +120,7 @@ export const uploadController = {
         }
 
         // Get public URL for the file
-        const { data: publicUrl } = supabase.storage
+        const { data: publicUrl } = supabaseAdmin.storage
           .from('uploads')
           .getPublicUrl(filePath);
 

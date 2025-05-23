@@ -21,8 +21,7 @@ const pool = new Pool({
 // Initialize Drizzle ORM
 const db = drizzle(pool, { schema });
 
-// Initialize Supabase client
-// Supabase client is imported from lib/supabase.ts
+// Supabase admin client is imported from lib/supabase.ts
 
 // Initialize notification service
 const notificationService = new NotificationService();
