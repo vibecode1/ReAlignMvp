@@ -45,7 +45,8 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
     // Verify the JWT with Supabase
     const { data, error } = await supabase.auth.getUser(token);
     
-    if (error || !data.user) {
+    if (error) {
+      console.error('Supabase auth error:', error);
       return res.status(401).json({
         error: {
           code: 'UNAUTHENTICATED',
@@ -54,15 +55,35 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
       });
     }
     
+    if (!data.user) {
+      console.error('No user data returned from Supabase auth');
+      return res.status(401).json({
+        error: {
+          code: 'UNAUTHENTICATED',
+          message: 'Invalid or expired token',
+        }
+      });
+    }
+    
+    // Extract role from app_metadata
+    const userRole = (data.user.app_metadata?.role as string) || 'unknown';
+    console.log('User authenticated:', {
+      id: data.user.id,
+      email: data.user.email,
+      role: userRole,
+      hasAppMetadata: !!data.user.app_metadata
+    });
+    
     // Set user information on the request
     req.user = {
       id: data.user.id,
       email: data.user.email || '',
-      role: (data.user.app_metadata?.role as string) || 'unknown',
+      role: userRole,
     };
     
     next();
   } catch (error) {
+    console.error('Authentication middleware error:', error);
     return res.status(401).json({
       error: {
         code: 'UNAUTHENTICATED',

@@ -70,7 +70,7 @@ export const authController = {
         });
       }
 
-      // Return user info and token
+      // Return user info and session data
       return res.status(200).json({
         user: {
           id: user.id,
@@ -79,6 +79,10 @@ export const authController = {
           name: user.name,
         },
         token: data.session.access_token,
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        },
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -340,6 +344,28 @@ export const authController = {
           error: {
             code: 'USER_CREATION_FAILED',
             message: 'Failed to create user profile'
+          }
+        });
+      }
+
+      // CRITICAL: Update Supabase user's app_metadata to include role
+      try {
+        await supabase.auth.admin.updateUserById(
+          data.user.id,
+          { 
+            app_metadata: { 
+              role: 'negotiator', 
+              user_name: name 
+            } 
+          }
+        );
+      } catch (adminUpdateError) {
+        console.error('Failed to update Supabase user app_metadata:', adminUpdateError);
+        // This is critical for authorization, so we should return an error
+        return res.status(500).json({
+          error: {
+            code: 'METADATA_UPDATE_FAILED',
+            message: 'Failed to set user permissions'
           }
         });
       }

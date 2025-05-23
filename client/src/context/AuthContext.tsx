@@ -137,6 +137,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store the token immediately for future API requests
       localStorage.setItem('auth_token', data.token);
       
+      // Also set the session in Supabase client if we have session data
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+      }
+      
       setUser(data.user);
       setIsAuthenticated(true);
       
