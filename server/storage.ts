@@ -6,6 +6,7 @@ import config from './config';
 import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { NotificationService } from './services/notificationService';
 
 
 
@@ -22,6 +23,9 @@ const db = drizzle(pool, { schema });
 
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+
+// Initialize notification service
+const notificationService = new NotificationService();
 
 export interface IStorage {
   // User methods

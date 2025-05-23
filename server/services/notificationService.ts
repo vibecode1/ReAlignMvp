@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import admin from 'firebase-admin';
+import sgMail from '@sendgrid/mail';
 import config from '../config';
 import * as schema from '@shared/schema';
 import { storage } from '../storage';
+
+// Initialize SendGrid
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 // Initialize Supabase client
 const supabase = createClient(config.supabaseUrl, config.supabaseKey);
@@ -102,16 +108,110 @@ export class NotificationService {
       });
 
       if (error) {
-        console.error('Error sending magic link:', error);
+        console.error('Error generating magic link:', error);
         return false;
       }
 
-      // In a real implementation, this might involve customizing the email template
-      // or sending through a different service
-      console.log('Magic link sent to:', email);
+      if (!process.env.SENDGRID_API_KEY) {
+        console.log('SendGrid not configured, magic link would be sent to:', email);
+        console.log('Magic link URL:', data.properties.action_link);
+        return true;
+      }
+
+      // Send email via SendGrid
+      const msg = {
+        to: email,
+        from: 'noreply@realign.app', // Replace with your verified sender
+        subject: 'Your ReAlign Sign-In Link',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Sign in to ReAlign</h2>
+            <p>Click the button below to sign in to your ReAlign account:</p>
+            <a href="${data.properties.action_link}" 
+               style="display: inline-block; background-color: #007bff; color: white; 
+                      padding: 12px 24px; text-decoration: none; border-radius: 4px; 
+                      margin: 20px 0;">
+              Sign In to ReAlign
+            </a>
+            <p style="color: #666; font-size: 14px;">
+              This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.
+            </p>
+          </div>
+        `,
+      };
+
+      await sgMail.send(msg);
+      console.log('Magic link email sent successfully to:', email);
       return true;
     } catch (error) {
       console.error('Failed to send magic link:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Sends a tracker magic link to a party for public access
+   */
+  async sendTrackerMagicLink(
+    email: string,
+    name: string,
+    role: string,
+    transactionTitle: string,
+    propertyAddress: string,
+    negotiatorName: string,
+    magicLinkToken: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      if (!process.env.SENDGRID_API_KEY) {
+        console.log('SendGrid not configured, tracker magic link would be sent to:', email);
+        console.log('Tracker URL:', `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`);
+        return true;
+      }
+
+      const trackerUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`;
+
+      // Send email via SendGrid
+      const msg = {
+        to: email,
+        from: 'noreply@realign.app', // Replace with your verified sender
+        subject: `Track Your Transaction: ${transactionTitle}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Track Your Transaction Progress</h2>
+            <p>Hello ${name},</p>
+            <p>${negotiatorName} has invited you to track the progress of your ${role} role in the transaction for <strong>${propertyAddress}</strong>.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #333;">Transaction: ${transactionTitle}</h3>
+              <p style="margin-bottom: 0; color: #666;">Property: ${propertyAddress}</p>
+            </div>
+            
+            <p>Click the button below to view your transaction tracker:</p>
+            <a href="${trackerUrl}" 
+               style="display: inline-block; background-color: #007bff; color: white; 
+                      padding: 12px 24px; text-decoration: none; border-radius: 4px; 
+                      margin: 20px 0;">
+              View Transaction Tracker
+            </a>
+            
+            <p style="color: #666; font-size: 14px;">
+              This link will remain active for the duration of your transaction. You can bookmark this page to easily check progress updates.
+            </p>
+            
+            <p style="color: #666; font-size: 14px;">
+              Best regards,<br>
+              The ReAlign Team
+            </p>
+          </div>
+        `,
+      };
+
+      await sgMail.send(msg);
+      console.log('Tracker magic link email sent successfully to:', email);
+      return true;
+    } catch (error) {
+      console.error('Failed to send tracker magic link:', error);
       return false;
     }
   }
