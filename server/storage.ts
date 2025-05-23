@@ -5,6 +5,7 @@ const { Pool } = pkg;
 import config from './config';
 import * as schema from '@shared/schema';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 
 
@@ -98,11 +99,26 @@ class DrizzleStorage implements IStorage {
   }
 
   // Transaction methods
-  async createTransaction(transaction: schema.InsertTransaction, userId: string): Promise<schema.Transaction> {
+  async createTransaction(transaction: schema.InsertTransaction, negotiatorId: string, parties?: { email: string, role: string }[], welcomeEmailBody?: string): Promise<schema.Transaction> {
     const result = await db.insert(schema.transactions).values({
       ...transaction,
-      created_by: userId,
+      negotiator_id: negotiatorId,
+      welcome_email_body: welcomeEmailBody,
     }).returning();
+    
+    // Create email subscriptions for parties if provided
+    if (parties && parties.length > 0) {
+      const subscriptions = parties.map(party => ({
+        transaction_id: result[0].id,
+        party_email: party.email,
+        party_role: party.role,
+        magic_link_token: crypto.randomUUID(),
+        token_expires_at: new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000), // 6 months
+      }));
+      
+      await db.insert(schema.email_subscriptions).values(subscriptions);
+    }
+    
     return result[0];
   }
 
@@ -111,50 +127,28 @@ class DrizzleStorage implements IStorage {
     return transactions[0];
   }
 
-  async getTransactionsByUserId(userId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }> {
+  async getTransactionsByNegotiatorId(negotiatorId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }> {
     const offset = (page - 1) * limit;
     
-    // Get transactions created by this user (if negotiator) or where user is a participant
-    const query = db
-      .selectDistinct()
+    // Get transactions created by this negotiator
+    const data = await db
+      .select()
       .from(schema.transactions)
-      .leftJoin(
-        schema.transaction_participants,
-        eq(schema.transactions.id, schema.transaction_participants.transaction_id)
-      )
-      .where(
-        or(
-          eq(schema.transactions.created_by, userId),
-          eq(schema.transaction_participants.user_id, userId)
-        )
-      )
+      .where(eq(schema.transactions.negotiator_id, negotiatorId))
       .orderBy(desc(schema.transactions.created_at))
       .limit(limit)
       .offset(offset);
     
-    const data = await query;
-    
-    // Count total transactions
+    // Count total transactions for this negotiator
     const countResult = await db
-      .select({ count: sql<number>`count(distinct ${schema.transactions.id})` })
+      .select({ count: sql<number>`count(*)` })
       .from(schema.transactions)
-      .leftJoin(
-        schema.transaction_participants,
-        eq(schema.transactions.id, schema.transaction_participants.transaction_id)
-      )
-      .where(
-        or(
-          eq(schema.transactions.created_by, userId),
-          eq(schema.transaction_participants.user_id, userId)
-        )
-      );
+      .where(eq(schema.transactions.negotiator_id, negotiatorId));
     
-    const total = countResult[0]?.count || 0;
-    
-    // Format the result to only include transaction data
-    const transactions = data.map(row => row.transactions);
-    
-    return { data: transactions, total };
+    return {
+      data,
+      total: countResult[0].count,
+    };
   }
 
   async updateTransaction(id: string, data: Partial<schema.InsertTransaction>): Promise<schema.Transaction> {
@@ -167,6 +161,27 @@ class DrizzleStorage implements IStorage {
       .where(eq(schema.transactions.id, id))
       .returning();
     return result[0];
+  }
+
+  async updateTransactionPhase(transactionId: string, newPhase: string, negotiatorId: string): Promise<schema.Transaction> {
+    // Update the transaction phase
+    const [transaction] = await db
+      .update(schema.transactions)
+      .set({
+        current_phase: newPhase as any,
+        updated_at: new Date(),
+      })
+      .where(eq(schema.transactions.id, transactionId))
+      .returning();
+
+    // Record phase change in history
+    await db.insert(schema.transaction_phase_history).values({
+      transaction_id: transactionId,
+      phase_key: newPhase as any,
+      set_by_negotiator_id: negotiatorId,
+    });
+
+    return transaction;
   }
 
   // Transaction participant methods
