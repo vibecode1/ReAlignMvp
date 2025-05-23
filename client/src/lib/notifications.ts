@@ -199,18 +199,56 @@ export const setupFCMHandler = (): void => {
 };
 
 /**
- * Sets up a WebSocket message handler
+ * Sets up a WebSocket message handler with query client integration
  * @param socket WebSocket connection
  * @param handleMessage Function to handle incoming messages
+ * @param queryClient TanStack Query client for cache invalidation
  */
 export const setupWebSocketHandler = (
   socket: WebSocket,
-  handleMessage: (data: any) => void
+  handleMessage: (data: any) => void,
+  queryClient?: any
 ): void => {
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
       handleMessage(data);
+      
+      // Handle real-time updates with cache invalidation
+      if (queryClient && data.type) {
+        switch (data.type) {
+          case 'new_message':
+            // Invalidate messages cache for the transaction
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/transactions/${data.transactionId}/messages`] 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/transactions/${data.transactionId}`] 
+            });
+            break;
+            
+          case 'document_request_created':
+          case 'document_status_updated':
+            // Invalidate document requests cache
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/transactions/${data.transactionId}/doc-requests`] 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/transactions/${data.transactionId}`] 
+            });
+            break;
+            
+          case 'file_uploaded':
+            // Invalidate uploads cache
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/uploads/${data.transactionId}`] 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/v1/transactions/${data.transactionId}`] 
+            });
+            break;
+        }
+      }
       
       // If it's a notification message, show a browser notification
       if (data.type === 'notification' && Notification.permission === 'granted') {

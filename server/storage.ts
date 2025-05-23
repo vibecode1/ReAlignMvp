@@ -109,7 +109,7 @@ class DrizzleStorage implements IStorage {
         created_at: schema.transactions.created_at,
         updated_at: schema.transactions.updated_at,
         last_message_at: sql<Date>`MAX(${schema.messages.created_at})`,
-        last_upload_at: sql<Date>`MAX(${schema.uploads.created_at})`,
+        last_upload_at: sql<Date>`MAX(${schema.uploads.uploaded_at})`,
         last_doc_request_at: sql<Date>`MAX(${schema.document_requests.updated_at})`,
         last_participant_update: sql<Date>`MAX(${schema.transaction_participants.updated_at})`,
       })
@@ -148,7 +148,7 @@ class DrizzleStorage implements IStorage {
       .orderBy(desc(sql`GREATEST(
         ${schema.transactions.updated_at},
         COALESCE(MAX(${schema.messages.created_at}), '1970-01-01'::timestamp),
-        COALESCE(MAX(${schema.uploads.created_at}), '1970-01-01'::timestamp),
+        COALESCE(MAX(${schema.uploads.uploaded_at}), '1970-01-01'::timestamp),
         COALESCE(MAX(${schema.document_requests.updated_at}), '1970-01-01'::timestamp),
         COALESCE(MAX(${schema.transaction_participants.updated_at}), '1970-01-01'::timestamp)
       )`))
@@ -230,7 +230,7 @@ class DrizzleStorage implements IStorage {
       .set({
         status: status as any,
         last_action: lastAction,
-        last_updated: new Date(),
+        updated_at: new Date(),
       })
       .where(
         and(
