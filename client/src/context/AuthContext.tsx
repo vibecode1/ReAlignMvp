@@ -46,6 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session) {
+          // Store the access token for API requests
+          localStorage.setItem('auth_token', session.access_token);
+          
           // Session exists, fetch user info from our API
           try {
             const userData = await apiRequest('GET', '/api/v1/auth/me');
@@ -55,8 +58,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsAuthenticated(true);
           } catch (apiError) {
             console.error('Failed to get user info:', apiError);
+            localStorage.removeItem('auth_token');
             await supabase.auth.signOut();
           }
+        } else {
+          // No session, clear token
+          localStorage.removeItem('auth_token');
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -75,6 +82,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
+        // Store the access token for API requests
+        localStorage.setItem('auth_token', session.access_token);
+        
         try {
           const userData = await apiRequest('GET', '/api/v1/auth/me');
           const userInfo = await userData.json();
@@ -83,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Failed to get user info after sign in:', error);
+          localStorage.removeItem('auth_token');
           await supabase.auth.signOut();
           toast({
             title: "Authentication Error",
@@ -91,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('auth_token');
         setUser(null);
         setIsAuthenticated(false);
         // Clear query cache on logout
