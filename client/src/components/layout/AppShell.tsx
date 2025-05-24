@@ -36,24 +36,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           }}
         >
           <div className="h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg">
-            <AppSidebarContent isExpanded={desktopSidebarExpanded} />
+            <AppSidebarContent isExpanded={desktopSidebarExpanded} isMobile={false} />
           </div>
         </div>
       )}
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Full Screen Navigation */}
       {isMobile && mobileSidebarOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={handleMobileSidebarToggle}
-          />
-          {/* Mobile Sidebar */}
-          <div className="fixed left-0 top-0 bottom-0 w-80 bg-background border-r border-border z-50 shadow-xl">
-            <AppSidebarContent isExpanded={true} />
-          </div>
-        </>
+        <div className="fixed inset-0 bg-white z-50">
+          <AppSidebarContent isExpanded={true} isMobile={true} onClose={handleMobileSidebarToggle} />
+        </div>
       )}
 
       {/* Mobile Header */}

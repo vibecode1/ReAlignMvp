@@ -15,9 +15,11 @@ const navItems = [
 
 interface AppSidebarContentProps {
   isExpanded: boolean;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded }) => {
+export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded, isMobile = false, onClose }) => {
   const [location] = useLocation();
   const { signOut, user } = useAuth();
 
@@ -30,9 +32,75 @@ export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full bg-white text-gray-900">
+        {/* Mobile Header with Close functionality */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" className="flex-shrink-0" />
+              <span className="font-semibold text-lg">ReAlign</span>
+            </div>
+            {/* Clickable area to close navigation */}
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              aria-label="Close navigation"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="flex-1 p-4 space-y-4">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <div 
+                className="flex items-center gap-3 p-3 text-gray-900 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                onClick={onClose}
+              >
+                <span className="flex-shrink-0 w-6 h-6">{item.icon}</span>
+                <span className="text-base font-medium">{item.label}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Mobile Footer */}
+        <div className="p-4 border-t border-gray-200 space-y-3">
+          <div className="flex items-center gap-3 p-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-blue-500 text-white text-sm">
+                {getInitials(user?.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User Name'}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              handleSignOut();
+              onClose?.();
+            }}
+            className="flex items-center gap-3 w-full p-3 text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+          >
+            <LogOut className="flex-shrink-0 w-5 h-5" />
+            <span className="text-base font-medium">Sign Out</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Desktop Header */}
       <div className="p-3 border-b border-sidebar-border">
         <Link href="/dashboard">
           <div className="flex items-center gap-2 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
@@ -46,7 +114,7 @@ export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded
         </Link>
       </div>
 
-      {/* Navigation */}
+      {/* Desktop Navigation */}
       <div className="flex-1 p-2 space-y-1">
         {navItems.map((item) => (
           <div key={item.href}>
@@ -81,7 +149,7 @@ export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded
         ))}
       </div>
 
-      {/* Footer */}
+      {/* Desktop Footer */}
       <div className="p-2 border-t border-sidebar-border">
         {isExpanded ? (
           <div className="space-y-1">
