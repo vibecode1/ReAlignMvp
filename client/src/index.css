@@ -48,7 +48,7 @@
   
   .btn-loading::after {
     content: '';
-    @apply absolute inset-0 bg-current opacity-20 animate-pulse rounded-inherit;
+    @apply absolute inset-0 bg-current opacity-20 animate-pulse rounded;
   }
   
   /* Enhanced focus states for accessibility */
