@@ -77,16 +77,10 @@ export default function ResetPassword() {
               </div>
               <CardTitle className="text-xl">Check Your Email</CardTitle>
               <CardDescription className="text-gray-600">
-                We've sent a password reset email to your address. If the email link doesn't work, copy the token from the email and use the "Update Password" button below.
+                We've sent a password reset link to your email address. Click the link in the email to reset your password.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                onClick={() => navigate("/update-password")} 
-                className="w-full"
-              >
-                Update Password
-              </Button>
               <Button 
                 onClick={() => navigate("/login")} 
                 className="w-full"
