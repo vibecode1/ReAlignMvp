@@ -269,13 +269,24 @@ export const transactionController = {
   async getTransaction(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
-      const transaction = await storage.getTransactionById(id);
+      console.log('=== CONTROLLER: getTransaction METHOD ENTRY ===');
+      console.log(`Transaction ID from params: ${id}`);
 
-      console.log('=== CONTROLLER: GET TRANSACTION RESPONSE DEBUG ===');
-      console.log('Data being sent to frontend:', JSON.stringify(transaction, null, 2));
-      console.log('=== END CONTROLLER DEBUG ===');
+      // ---- NEW DIAGNOSTIC LOGS ----
+      console.log('>>> CONTROLLER: Attempting to call storage layer to fetch transaction.');
+      
+      let transactionDataFromStorage;
+      
+      const storageMethodBeingCalled = 'storage.getTransactionById';
+      console.log(`>>> CONTROLLER: About to call storage method: ${storageMethodBeingCalled} with ID: ${id}`);
 
-      if (!transaction) {
+      transactionDataFromStorage = await storage.getTransactionById(id);
+
+      console.log(`>>> CONTROLLER: Data RECEIVED from storage method (${storageMethodBeingCalled}):`, JSON.stringify(transactionDataFromStorage, null, 2));
+      // ---- END OF NEW DIAGNOSTIC LOGS ----
+
+      if (!transactionDataFromStorage) {
+        console.log('<<< CONTROLLER: Transaction not found by storage method. Returning 404.');
         return res.status(404).json({
           error: {
             code: 'NOT_FOUND',
@@ -284,9 +295,11 @@ export const transactionController = {
         });
       }
 
-      return res.status(200).json(transaction);
+      console.log('=== CONTROLLER: Sending response to frontend ===');
+      console.log('Response data:', JSON.stringify(transactionDataFromStorage, null, 2));
+      return res.status(200).json(transactionDataFromStorage);
     } catch (error) {
-      console.error('Get transaction error:', error);
+      console.error(`Get transaction error in controller for ID ${req.params.id}:`, error);
       return res.status(500).json({
         error: {
           code: 'SERVER_ERROR',

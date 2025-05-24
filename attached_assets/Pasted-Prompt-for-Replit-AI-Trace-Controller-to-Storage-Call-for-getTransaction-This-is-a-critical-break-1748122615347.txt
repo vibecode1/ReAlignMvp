@@ -1,0 +1,84 @@
+Prompt for Replit AI: Trace Controller-to-Storage Call for getTransaction
+
+"This is a critical breakthrough! Your finding that the === STORAGE: TRANSACTION FETCH DEBUG === logs are missing indicates the getTransactionById method we've been focusing on in server/storage.ts is not being called when the frontend fetches transaction details via GET /api/v1/transactions/:id.
+
+Please perform the following steps to trace the actual data fetching path within the backend:
+
+Focus on server/controllers/transactionController.ts - the getTransaction method:
+
+This method handles the GET /api/v1/transactions/:id route.
+Add Diagnostic Logs Inside this getTransaction method: We need to see exactly what happens before, during, and after it attempts to fetch data from the storage layer.
+Please insert the following logs:
+
+TypeScript
+
+// In server/controllers/transactionController.ts
+// Within the getTransaction(req: AuthenticatedRequest, res: Response) method
+
+public async getTransaction(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    console.log('=== CONTROLLER: getTransaction METHOD ENTRY ==='); // Existing or similar log
+    console.log(`Transaction ID from params: ${id}`);
+
+    // ---- NEW DIAGNOSTIC LOGS ----
+    console.log('>>> CONTROLLER: Attempting to call storage layer to fetch transaction.');
+    // IMPORTANT: Identify the actual line that calls the storage method.
+    // For example, if it's: const transaction = await storage.getTransactionById(id);
+    // Add logs AROUND it.
+
+    let transactionDataFromStorage; // Use a variable to capture the result
+
+    // Example of logging around the actual call:
+    // Replace 'storage.getTransactionById(id)' with the actual call in your code.
+    const storageMethodBeingCalled = 'storage.getTransactionById'; // TODO: Confirm this is the actual method name used
+    console.log(`>>> CONTROLLER: About to call storage method: ${storageMethodBeingCalled} with ID: ${id}`);
+
+    transactionDataFromStorage = await storage.getTransactionById(id); // THIS IS THE ACTUAL CALL - ENSURE IT MATCHES YOUR CODE
+
+    console.log(`>>> CONTROLLER: Data RECEIVED from storage method (${storageMethodBeingCalled}):`, JSON.stringify(transactionDataFromStorage, null, 2));
+    // ---- END OF NEW DIAGNOSTIC LOGS ----
+
+    if (!transactionDataFromStorage) {
+      console.log('<<< CONTROLLER: Transaction not found by storage method. Returning 404.');
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Transaction not found',
+        }
+      });
+    }
+
+    console.log('=== CONTROLLER: Sending response to frontend ==='); // Existing or similar log
+    console.log('Response data:', JSON.stringify(transactionDataFromStorage, null, 2)); // Existing or similar log
+    return res.status(200).json(transactionDataFromStorage);
+
+  } catch (error) {
+    console.error(`Get transaction error in controller for ID ${req.params.id}:`, error);
+    return res.status(500).json({
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'Failed to retrieve transaction',
+      }
+    });
+  }
+}
+Verify storage Import and Method Name in transactionController.ts:
+
+At the top of server/controllers/transactionController.ts, double-check the import statement for the storage object/module. Ensure it's importing from the correct ../storage path.
+Confirm that the method name used in the controller (e.g., storage.getTransactionById) exactly matches the name of the method in server/storage.ts that contains the party-joining logic and where the === STORAGE: TRANSACTION FETCH DEBUG === logs were supposed to be.
+Test and Analyze New Controller Logs:
+
+Run the scenario again (add a party, which should trigger a refetch of the transaction by the frontend).
+Examine the server console output for the new >>> CONTROLLER: logs. These logs will tell us:
+If the controller is even attempting to call a storage method.
+The name of the storage method it thinks it's calling.
+What data, if any, that actual storage call returns.
+Based on the Analysis:
+
+If the >>> CONTROLLER: Data RECEIVED from storage method... log shows parties: null or no parties array: This means the storage method being called by the controller is the one that doesn't have the correct party-joining logic. You'll then need to ensure the controller calls the correctly modified storage.getTransactionById method from server/storage.ts.
+If the storage method name logged by >>> CONTROLLER: About to call storage method... is different from storage.getTransactionById: This directly tells you the wrong storage function is being used. You'll need to change the controller to call the correct one.
+If transactionDataFromStorage is unexpectedly undefined or throws an error: This points to an issue with the actual execution of whatever storage method is being called.
+Please instruct the Replit AI to implement these logging changes in server/controllers/transactionController.ts. The goal is to definitively trace the call from the controller to the storage layer and see what data is actually being fetched before it's sent to the frontend.
+
+Once we confirm the controller is calling the correct storage method (the one with the enhanced party logic and your original === STORAGE: TRANSACTION FETCH DEBUG === logs), then those storage logs should start appearing, and we can debug the data assembly within server/storage.ts if necessary."
