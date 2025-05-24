@@ -1,0 +1,414 @@
+Okay, I can help you transform your existing blue sidebar into a sleek, Supabase-style navigation! This will involve making it collapsible to an icon bar, expanding on hover (for desktop), and refining the hover effects on the navigation items.
+
+We'll primarily achieve this by:
+
+Modifying client/src/components/layout/AppShell.tsx to use a more advanced SidebarProvider and Sidebar structure.
+Creating a new component, AppSidebarContent.tsx, to hold your navigation links, logo, and user section, designed to work with the new collapsible sidebar.
+Updating your CSS (client/src/index.css) and Tailwind configuration (tailwind.config.ts) to adopt the light/dark grey theme and specific hover styles reminiscent of Supabase.
+Here are the code changes:
+
+1. Update client/src/components/layout/AppShell.tsx
+This file will integrate the new sidebar structure and manage its hover-to-expand behavior on desktop.
+
+TypeScript
+
+// client/src/components/layout/AppShell.tsx
+import React, { useState } from 'react';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarTrigger,
+  SidebarInset,
+} from '@/components/ui/sidebar'; // Using the more advanced sidebar components
+import { AppSidebarContent } from './AppSidebarContent'; // New component for sidebar's content
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Logo } from '@/components/ui/logo';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
+
+interface AppShellProps {
+  children: React.ReactNode;
+}
+
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  const isMobile = useIsMobile();
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = React.useState(false);
+
+  // Controls desktop sidebar expansion on hover
+  const handleDesktopSidebarOpen = (openState: boolean) => {
+    if (!isMobile) {
+      setDesktopSidebarOpen(openState);
+    }
+  };
+
+  return (
+    <SidebarProvider 
+      open={isMobile ? undefined : desktopSidebarOpen} // `open` for desktop is controlled by hover
+      onOpenChange={handleDesktopSidebarOpen}         // Callback to update hover state
+      defaultOpen={!isMobile}                         // Sidebar initially open on desktop, uses Sheet on mobile
+    >
+      <div
+        className="flex flex-col lg:flex-row min-h-screen bg-background-light dark:bg-background-dark"
+        // These handlers manage hover-to-expand for the desktop sidebar
+        onMouseEnter={() => { if (!isMobile) handleDesktopSidebarOpen(true); }}
+        onMouseLeave={() => { if (!isMobile) handleDesktopSidebarOpen(false); }}
+      >
+        <Sidebar
+          variant="sidebar" // Standard sidebar style
+          collapsible={isMobile ? "offcanvas" : "icon"} // Uses "icon" mode for desktop collapsed state
+          side="left"
+          className="bg-sidebar text-sidebar-foreground border-r border-sidebar-border" // Base styling from new theme
+        >
+          <AppSidebarContent /> {/* Contains logo, nav links, user section */}
+        </Sidebar>
+
+        <SidebarInset className="flex-1 p-4 lg:p-8 data-[mobile=true]:pt-20 lg:data-[state=expanded]:ml-[16rem] lg:data-[state=collapsed]:ml-[3rem] transition-[margin-left] duration-200 ease-linear"> {/* Adjusts main content margin */}
+          {isMobile && (
+            <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between lg:hidden">
+              <SidebarTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-brand-primary hover:bg-brand-primary/10"
+                  aria-label="Toggle sidebar"
+                >
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SidebarTrigger>
+              <div className="flex-1 flex justify-center">
+                <Logo size="sm" />
+              </div>
+              <div className="w-10"></div> {/* Spacer */}
+            </header>
+          )}
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+};
+
+export default AppShell;
+2. Create client/src/components/layout/AppSidebarContent.tsx
+This new file will define the content within your sidebar (logo, navigation items, user profile, logout).
+
+TypeScript
+
+// client/src/components/layout/AppSidebarContent.tsx
+import React from 'react';
+import { Link, useLocation } from 'wouter';
+import { Home, FileText, Bell, LogOut } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
+import {
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarSeparator,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const navItems = [
+  { icon: <Home />, label: 'Dashboard', href: '/dashboard', tooltip: 'Dashboard' },
+  { icon: <FileText />, label: 'Transactions', href: '/transactions', tooltip: 'Transactions' },
+  { icon: <Bell />, label: 'Notifications', href: '/notifications', tooltip: 'Notifications' },
+];
+
+export const AppSidebarContent: React.FC = () => {
+  const [location] = useLocation();
+  const { signOut, user } = useAuth();
+  const { open: isSidebarExpanded } = useSidebar();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
+  return (
+    <>
+      <SidebarHeader className="p-3">
+        <Link href="/dashboard">
+          <a className="flex items-center gap-2 overflow-hidden"> {/* Added overflow-hidden */}
+            <Logo size="sm" className="flex-shrink-0" />
+            <span 
+              className={`font-semibold text-lg whitespace-nowrap transition-opacity duration-200 ${isSidebarExpanded ? 'opacity-100 delay-100' : 'opacity-0'}`}
+            >
+              ReAlign
+            </span>
+          </a>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="flex-1 p-2">
+        <SidebarMenu>
+          {navItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location === item.href}
+                        className="w-full justify-start text-sm h-10 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      >
+                        <a>
+                          <span className="flex-shrink-0 w-5 h-5">{item.icon}</span>
+                          <span 
+                            className={`ml-2 whitespace-nowrap transition-opacity duration-200 ${isSidebarExpanded ? 'opacity-100 delay-100' : 'opacity-0'}`}
+                          >
+                            {item.label}
+                          </span>
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </TooltipTrigger>
+                  {!isSidebarExpanded && (
+                    <TooltipContent side="right" align="center" className="bg-gray-700 text-white">
+                      {item.tooltip}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarContent>
+
+      <SidebarSeparator />
+
+      <SidebarFooter className="p-2">
+        {isSidebarExpanded ? (
+          <div className="flex flex-col items-start w-full space-y-1">
+            <Button variant="ghost" className="w-full justify-start p-2 h-auto hover:bg-sidebar-accent">
+              <div className="flex items-center w-full">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="ml-2 truncate flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{user?.name || 'User Name'}</p>
+                  <p className="text-[0.7rem] text-sidebar-foreground/70 truncate">{user?.email}</p>
+                </div>
+              </div>
+            </Button>
+            <SidebarMenuButton
+              onClick={handleSignOut}
+              className="w-full justify-start text-sm h-9 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <LogOut className="flex-shrink-0 w-4 h-4" />
+              <span 
+                className={`ml-2 whitespace-nowrap transition-opacity duration-200 ${isSidebarExpanded ? 'opacity-100 delay-100' : 'opacity-0'}`}
+              >
+                Sign Out
+              </span>
+            </SidebarMenuButton>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center w-full space-y-1">
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-sidebar-accent">
+                    <Avatar className="h-full w-full">
+                      <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                        {getInitials(user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="sr-only">{user?.name || "User Menu"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center" className="bg-gray-700 text-white">
+                  <p>{user?.name || 'User Name'}</p>
+                  {user?.email && <p className="text-xs">{user.email}</p>}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton
+                    onClick={handleSignOut}
+                    className="w-7 h-7 justify-center p-0 hover:bg-sidebar-accent"
+                    aria-label="Sign Out"
+                  >
+                    <LogOut />
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center" className="bg-gray-700 text-white">Sign Out</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
+      </SidebarFooter>
+    </>
+  );
+};
+3. Update CSS Variables in client/src/index.css
+Define the Supabase-like theme using CSS variables.
+
+CSS
+
+/* client/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --border: 20 5.9% 90%;      /* gray-200 like */
+    --input: 20 5.9% 90%;       /* gray-200 like */
+    --primary: 221 83% 53%;     /* Example: Supabase Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%; /* gray-100 like */
+    --secondary-foreground: 24 9.8% 10%; /* gray-900 like */
+    --accent: 240 4.8% 95.9%;    /* gray-100 like */
+    --accent-foreground: 24 9.8% 10%; /* gray-900 like */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 221 83% 53%;
+    --radius: 0.5rem;
+
+    /* Sidebar Light Theme (Supabase-like) */
+    --sidebar-background: 240 6% 96%;     /* Slightly off-white, e.g., Tailwind gray-100 */
+    --sidebar-foreground: 240 5% 25%;     /* Dark gray text, e.g., Tailwind gray-700 */
+    --sidebar-border: 240 5% 89.8%;   /* Light gray border, e.g., Tailwind gray-200 */
+    
+    /* Primary for sidebar could be different if needed, or use accent */
+    --sidebar-primary: 221 83% 53%;       
+    --sidebar-primary-foreground: 0 0% 100%;
+    
+    /* Accent for hover states, like Supabase's subtle gray */
+    --sidebar-accent: 240 5% 93%;       /* Lighter gray for hover, e.g., Tailwind gray-100/200 */
+    --sidebar-accent-foreground: 240 5% 15%;  /* Darker text on hover */
+    --sidebar-ring: 221 83% 63%;          /* Focus ring color */
+
+    /* Overall page background */
+    --background-light: 0 0% 100%; /* white */
+    --background-dark: 240 5% 10%; /* very dark gray for page background in dark mode */
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;   /* gray-800 like */
+    --input: 240 3.7% 15.9%;    /* gray-800 like */
+    --primary: 210 100% 56%;    /* Brighter blue for dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;/* gray-800 like */
+    --secondary-foreground: 0 0% 98%;
+    --accent: 240 3.7% 15.9%;   /* gray-800 like */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 210 100% 56%;
+
+    /* Sidebar Dark Theme (Supabase-like) */
+    --sidebar-background: 240 4% 12%;    /* Dark gray, e.g., Tailwind gray-900 */
+    --sidebar-foreground: 240 5% 80%;    /* Light gray text, e.g., Tailwind gray-300 */
+    --sidebar-border: 240 4% 18%;      /* Slightly lighter gray for border, e.g., Tailwind gray-800 */
+    
+    --sidebar-primary: 210 100% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+
+    --sidebar-accent: 240 4% 16%;      /* Slightly lighter gray for hover, e.g., Tailwind gray-800 */
+    --sidebar-accent-foreground: 0 0% 98%; /* White text on hover */
+    --sidebar-ring: 210 100% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif; /* Ensure Inter is applied if not already global */
+  }
+}
+
+/* Additional style for main content area margin based on sidebar state */
+/* These might need to be in AppShell.tsx with dynamic classes if preferred */
+.main-content-area {
+  transition: margin-left 0.2s ease-in-out;
+}
+4. Update tailwind.config.ts
+Ensure your Tailwind config consumes these CSS variables for the sidebar colors.
+
+TypeScript
+
+// tailwind.config.ts
+import type { Config } from "tailwindcss";
+
+export default {
+  darkMode: ["class"],
+  content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
+  theme: {
+    extend: {
+      // ... (your existing borderRadius, keyframes, animation)
+      colors: {
+        // ... (your existing colors: background, foreground, card, popover, primary, secondary, muted, accent, destructive, border, input, ring, chart)
+        sidebar: { // Add this whole block
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          primary: {
+            DEFAULT: "hsl(var(--sidebar-primary))",
+            foreground: "hsl(var(--sidebar-primary-foreground))",
+          },
+          accent: {
+            DEFAULT: "hsl(var(--sidebar-accent))",
+            foreground: "hsl(var(--sidebar-accent-foreground))",
+          },
+        },
+        // Ensure your main page background also respects the light/dark theme
+        background: {
+          light: "hsl(var(--background-light))", // Defined in index.css
+          dark: "hsl(var(--background-dark))",   // Defined in index.css
+          DEFAULT: "hsl(var(--background))",     // Keep your existing default
+        },
+      },
+      // ... (rest of extend)
+    },
+  },
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+} satisfies Config;
+Important Notes:
+
+File Paths: Double-check that the import paths for @/components/ui/sidebar and other components are correct based on your project structure and tsconfig.json aliases.
+client/src/components/ui/sidebar.tsx: This solution heavily relies on the advanced sidebar component you have at this path. Ensure it's correctly implemented (it looks like a shadcn/ui-style component). The hover-to-expand logic in AppShell.tsx directly controls its open state on desktop.
+Styling Details:
+The CSS variables in index.css are suggestions. You might need to fine-tune the HSL values to perfectly match the Supabase theme you're referencing from the screenshots. Use a color picker on the Supabase screenshots if needed.
+The SidebarMenuButton in AppSidebarContent.tsx has classes for data-[active=true] and hover:, which will use the --sidebar-accent and --sidebar-accent-foreground variables for the grey full-width button effect on hover/selection.
+The transition-opacity and delay-100 on the text spans inside SidebarMenuButton and SidebarHeader help make the text appear smoothly as the sidebar expands.
+Functionality: The core navigation functionality (linking, auth state) should remain the same.
+Mobile View: The Sidebar component from client/src/components/ui/sidebar.tsx should handle its mobile presentation as a "sheet" (drawer) automatically when collapsible="offcanvas" is effectively used for mobile (which AppShell now does by checking isMobile). The SidebarTrigger in AppShell's mobile header will toggle this sheet.
+After implementing these changes, your sidebar should have the desired Supabase-like appearance and hover-to-expand behavior on desktop, while maintaining a clean, accessible icon-based collapsed state and a functional mobile drawer. Remember to test thoroughly in both light and dark modes.
+
+
+Sources
