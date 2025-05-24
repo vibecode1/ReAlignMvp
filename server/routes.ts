@@ -129,9 +129,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log('Registering notification router at /notifications');
   apiRouter.use('/notifications', notificationRouter);
   
-  // Register API router under /api/v1
+  // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');
-  app.use('/api/v1', apiRouter);
+  app.use('/api/v1', (req, res, next) => {
+    console.log(`API route hit: ${req.method} ${req.path}`);
+    next();
+  }, apiRouter);
+  
+  // Add a catch-all for API routes that don't match
+  app.use('/api/*', (req, res) => {
+    console.log(`Unmatched API route: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+  
   console.log('=== ROUTER REGISTRATION COMPLETE ===');
   
   // Create and return the HTTP server
