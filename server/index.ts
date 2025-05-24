@@ -6,6 +6,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// JSON PARSING ERROR HANDLER for debugging 0ms 401 errors
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err && err.status === 400) {
+    console.error('Malformed JSON in request body:', err.message);
+    return res.status(400).json({ error: { code: 'INVALID_JSON', message: 'Request body is not valid JSON.' }});
+  }
+  // If it's not a JSON parsing error, pass it to the next error handler
+  next(err);
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
