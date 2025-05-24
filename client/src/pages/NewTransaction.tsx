@@ -36,7 +36,7 @@ export default function NewTransaction() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const form = useForm<CreateTransactionForm>({
     resolver: zodResolver(CreateTransactionSchema),
     defaultValues: {
@@ -171,7 +171,7 @@ export default function NewTransaction() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name={`parties.${index}.email`}
@@ -190,7 +190,7 @@ export default function NewTransaction() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="flex items-end gap-3">
                       <div className="flex-1">
                         <FormField
@@ -233,7 +233,7 @@ export default function NewTransaction() {
                   </div>
                 </div>
               ))}
-              
+
               <Button
                 type="button"
                 variant="outline"

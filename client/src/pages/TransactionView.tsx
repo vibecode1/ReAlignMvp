@@ -77,14 +77,14 @@ export default function TransactionView({ id }: TransactionViewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Editable fields
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedAddress, setEditedAddress] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Fetch transaction details
   const { 
     data: transaction, 
@@ -106,24 +106,24 @@ export default function TransactionView({ id }: TransactionViewProps) {
 
   // Provide safe access to transaction data
   const transactionDetails = transaction || {} as TransactionDetail;
-  
+
   // Handle updating transaction details
   const handleUpdateField = async (field: 'title' | 'property_address', value: string) => {
     try {
       setIsUpdating(true);
-      
+
       const updateData: any = {};
       updateData[field] = value;
-      
+
       await apiRequest('PATCH', `/api/v1/transactions/${id}`, updateData);
-      
+
       // Reset edit mode
       setIsEditingTitle(false);
       setIsEditingAddress(false);
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
-      
+
       toast({
         title: "Update Successful",
         description: `Transaction ${field === 'title' ? 'title' : 'address'} has been updated.`,
@@ -139,16 +139,16 @@ export default function TransactionView({ id }: TransactionViewProps) {
       setIsUpdating(false);
     }
   };
-  
+
   const handlePhaseUpdate = (newPhase: string) => {
     // The API call is handled in the PhaseTracker component
     // This is just to update the local state if needed
     queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
   };
-  
+
   // Check if user is a negotiator
   const isNegotiator = user?.role === 'negotiator';
-  
+
   // Loading state
   if (isLoading) {
     return (
@@ -157,7 +157,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
       </div>
     );
   }
-  
+
   // Error state
   if (isError || !transaction) {
     return (
@@ -176,7 +176,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
       </div>
     );
   }
-  
+
   // Render the transaction view
 
   return (
@@ -241,7 +241,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center mt-1 flex-wrap gap-2">
             {isEditingAddress ? (
               <div className="flex items-center gap-2">
@@ -358,7 +358,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
           </div>
         </div>
       </div>
-      
+
       {/* Transaction details content - mobile-first stacking */}
       <div className="space-y-4 lg:space-y-6">
         {/* Phase Tracker */}
@@ -377,12 +377,12 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 await apiRequest('PATCH', `/api/v1/transactions/${id}`, {
                   currentPhase: newPhase
                 });
-                
+
                 toast({
                   title: "Phase Updated",
                   description: "Transaction phase has been successfully updated.",
                 });
-                
+
                 queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
               } catch (error) {
                 console.error('Failed to update phase:', error);
@@ -449,7 +449,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
             </CardContent>
           </Card>
         </motion.div>
-          
+
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -464,14 +464,14 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     text,
                     reply_to: replyToId || null
                   };
-                  
+
                   await apiRequest('POST', `/api/v1/transactions/${id}/messages`, messageData);
-                  
+
                   toast({
                     title: "Message Sent",
                     description: "Your message has been sent successfully.",
                   });
-                  
+
                   // Refresh data
                   queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
                 } catch (error) {
@@ -498,7 +498,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 transactionDetails.messages?.some((m) => m.isSeedMessage === true)}
             />
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -515,7 +515,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     assignedToUserId: assignedTo,
                     dueDate: dueDate || undefined
                   });
-                  
+
                   toast({
                     title: "Request Created",
                     description: "Document request has been created successfully.",
@@ -535,7 +535,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   await apiRequest('PATCH', `/api/v1/doc-requests/${requestId}`, {
                     status: newStatus
                   });
-                  
+
                   toast({
                     title: "Document Status Updated",
                     description: `Document request status has been updated to ${newStatus}.`,
@@ -554,7 +554,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 try {
                   // Call notification service to send a reminder
                   await apiRequest('POST', `/api/v1/doc-requests/${requestId}/remind`, {});
-                  
+
                   toast({
                     title: "Reminder Sent",
                     description: "A reminder has been sent to the assigned party.",
@@ -574,7 +574,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     status: 'pending',
                     revision_note: note
                   });
-                  
+
                   toast({
                     title: "Revision Requested",
                     description: "The document has been reset to pending with your revision notes.",
@@ -592,12 +592,12 @@ export default function TransactionView({ id }: TransactionViewProps) {
               onUploadForRequest={(requestId) => {
                 // Find the document type from the request
                 const docRequest = transactionDetails.documentRequests?.find(req => req.id === requestId);
-                
+
                 // Scroll to the upload section
                 const uploadSection = document.getElementById('upload-section');
                 if (uploadSection) {
                   uploadSection.scrollIntoView({ behavior: 'smooth' });
-                  
+
                   // Set the document type in the upload widget if available
                   if (docRequest) {
                     // Note: In a full implementation, we would also pass the document request ID
@@ -632,14 +632,14 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   text,
                   reply_to: replyToId || null
                 };
-                
+
                 await apiRequest('POST', `/api/v1/transactions/${id}/messages`, messageData);
-                
+
                 toast({
                   title: "Message Sent",
                   description: "Your message has been sent successfully.",
                 });
-                
+
                 queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
               } catch (error) {
                 console.error('Failed to send message:', error);
