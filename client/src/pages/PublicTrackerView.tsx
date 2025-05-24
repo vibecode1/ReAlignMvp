@@ -325,7 +325,7 @@ export default function PublicTrackerView() {
                 <div className="space-y-4">
                   {/* Group documents by party role */}
                   {Object.entries(
-                    trackerData.documentRequests.reduce((groups: any, doc: any) => {
+                    (trackerData.documentRequests || []).reduce((groups: any, doc: any) => {
                       const role = doc.assignedTo || 'Unassigned';
                       if (!groups[role]) groups[role] = [];
                       groups[role].push(doc);
