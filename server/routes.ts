@@ -44,6 +44,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
   
+  // Test endpoint for debugging
+  authRouter.get('/test', (req, res) => {
+    console.log('=== TEST ENDPOINT HIT ===');
+    res.json({ message: 'Auth router is working!', timestamp: new Date().toISOString() });
+  });
+
   // Auth endpoints
   authRouter.post('/login', authController.login);
   authRouter.post('/magic-link', magicLinkLimiter, authController.sendMagicLink);

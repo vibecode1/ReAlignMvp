@@ -21,6 +21,14 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  
+  // Log all API requests for debugging
+  if (path.startsWith('/api/')) {
+    console.log(`=== API REQUEST: ${req.method} ${path} ===`);
+    console.log('Body:', req.body);
+    console.log('Headers:', req.headers);
+  }
+  
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
