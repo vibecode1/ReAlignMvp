@@ -68,14 +68,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // -- Transaction Routes --
   const transactionRouter = express.Router();
   
-  // ADD LOGGING MIDDLEWARE AT THE TOP OF transactionRouter
+  // ADD COMPREHENSIVE LOGGING MIDDLEWARE AT THE TOP OF transactionRouter
   transactionRouter.use((req, res, next) => {
-    console.log(`--- transactionRouter received request: ${req.method} ${req.path} ---`);
-    console.log('Request URL:', req.originalUrl);
+    console.log(`\n=== TRANSACTION ROUTER DEBUG ===`);
+    console.log(`Method: ${req.method}`);
+    console.log(`Path: ${req.path}`);
+    console.log(`Original URL: ${req.originalUrl}`);
+    console.log(`Base URL: ${req.baseUrl}`);
+    console.log(`Route Parameters:`, req.params);
+    console.log(`Query Parameters:`, req.query);
     console.log('Authorization header present:', !!req.headers.authorization);
     if (req.headers.authorization) {
       console.log('Auth header (first 10 chars):', req.headers.authorization.substring(0, 20) + '...');
     }
+    console.log(`=== END TRANSACTION ROUTER DEBUG ===\n`);
     next();
   });
   
@@ -84,9 +90,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
   
   // -- Party Status Routes (move before generic :id routes) --
-  transactionRouter.get('/:id/parties', authenticateJWT, requireTransactionAccess, transactionController.getParties);
-  transactionRouter.post('/:id/parties', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.addPartyToTransaction);
-  transactionRouter.patch('/:transactionId/parties/:userId', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updatePartyStatus);
+  transactionRouter.get('/:id/parties', (req, res, next) => {
+    console.log('🎯 HIT GET /:id/parties route - params:', req.params);
+    next();
+  }, authenticateJWT, requireTransactionAccess, transactionController.getParties);
+  
+  transactionRouter.post('/:id/parties', (req, res, next) => {
+    console.log('🎯 HIT POST /:id/parties route - params:', req.params);
+    console.log('🎯 Request body:', req.body);
+    next();
+  }, authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.addPartyToTransaction);
+  
+  transactionRouter.patch('/:transactionId/parties/:userId', (req, res, next) => {
+    console.log('🎯 HIT PATCH /:transactionId/parties/:userId route - params:', req.params);
+    next();
+  }, authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updatePartyStatus);
   
   // Generic transaction routes (must be after specific sub-routes)
   transactionRouter.get('/:id', authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
