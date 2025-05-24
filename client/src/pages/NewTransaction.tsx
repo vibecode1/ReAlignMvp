@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Plus, X } from 'lucide-react';
 import { DEFAULT_WELCOME_EMAIL_TEMPLATE } from '@/lib/trackerNoteOptions';
@@ -20,8 +21,11 @@ const CreateTransactionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   property_address: z.string().min(1, "Property address is required"),
   parties: z.array(z.object({
+    name: z.string().min(1, "Name is required"),
     email: z.string().email("Valid email is required"),
-    role: z.string().min(1, "Role is required"),
+    role: z.enum(['seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow'], {
+      errorMap: () => ({ message: "Please select a valid role" }),
+    }),
   })).optional(),
   welcome_email_body: z.string().optional(),
 });
@@ -38,7 +42,7 @@ export default function NewTransaction() {
     defaultValues: {
       title: '',
       property_address: '',
-      parties: [{ email: '', role: '' }],
+      parties: [{ name: '', email: '', role: 'seller' as const }],
       welcome_email_body: DEFAULT_WELCOME_EMAIL_TEMPLATE,
     },
   });
@@ -71,7 +75,7 @@ export default function NewTransaction() {
 
   const addParty = () => {
     const currentParties = form.getValues('parties') || [];
-    form.setValue('parties', [...currentParties, { email: '', role: '' }]);
+    form.setValue('parties', [...currentParties, { name: '', email: '', role: 'seller' as const }]);
   };
 
   const removeParty = (index: number) => {
@@ -149,6 +153,24 @@ export default function NewTransaction() {
                   <div className="flex-1">
                     <FormField
                       control={form.control}
+                      name={`parties.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g., John Smith" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <FormField
+                      control={form.control}
                       name={`parties.${index}.email`}
                       render={({ field }) => (
                         <FormItem>
@@ -172,18 +194,26 @@ export default function NewTransaction() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Role</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="e.g., Agent, Homeowner, Attorney" 
-                              {...field} 
-                            />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="seller">Seller</SelectItem>
+                              <SelectItem value="buyer">Buyer</SelectItem>
+                              <SelectItem value="listing_agent">Listing Agent</SelectItem>
+                              <SelectItem value="buyers_agent">Buyer's Agent</SelectItem>
+                              <SelectItem value="escrow">Escrow</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  {form.watch('parties')?.length > 1 && (
+                  {(form.watch('parties')?.length || 0) > 1 && (
                     <Button
                       type="button"
                       variant="outline"
