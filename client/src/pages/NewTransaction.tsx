@@ -52,13 +52,20 @@ export default function NewTransaction() {
       const response = await apiRequest('POST', '/api/v1/transactions', data);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (newTransactionData) => {
       toast({
         title: "Transaction Created",
         description: "Your transaction has been successfully created and parties have been notified.",
       });
+      
+      // Critical fix: Pre-populate the cache for the new transaction view
+      // This ensures TransactionView.tsx has fresh data immediately when it loads
+      queryClient.setQueryData([`/api/v1/transactions/${newTransactionData.id}`], newTransactionData);
+      
+      // Also invalidate the transactions list to show the new transaction
       queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
-      setLocation(`/transactions/${data.id}`);
+      
+      setLocation(`/transactions/${newTransactionData.id}`);
     },
     onError: (error: Error) => {
       toast({

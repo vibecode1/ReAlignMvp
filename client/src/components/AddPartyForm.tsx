@@ -25,122 +25,147 @@ import { apiRequest } from '@/lib/queryClient';
 
 interface AddPartyFormProps {
   transactionId: string;
-  onSuccess: (data: any) => void;
-  isLoading?: boolean;
 }
 
-export default function AddPartyForm({ transactionId, onSuccess, isLoading = false }: AddPartyFormProps) {
+export function AddPartyForm({ transactionId }: AddPartyFormProps) {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("seller");
-  const [formError, setFormError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const addPartyMutation = useMutation({
+    mutationFn: async (partyData: { name: string; email: string; role: string }) => {
+      const response = await apiRequest('POST', `/api/v1/transactions/${transactionId}/parties`, partyData);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Critical fix: Invalidate the transaction query to refetch updated party list
+      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
+      
+      // Also invalidate the transactions list if it exists
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
+
+      toast({
+        title: "Party Added",
+        description: "The party has been successfully added to the transaction.",
+      });
+
+      // Reset form and close dialog
+      setName("");
+      setEmail("");
+      setRole("seller");
+      setOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add party",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    try {
-      // Instead of making the API call directly, pass the data to the parent component
-      const partyData = {
-        name,
-        email,
-        role
-      };
-
-      onSuccess(partyData);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "An unexpected error occurred");
+    
+    if (!name.trim() || !email.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
     }
+
+    addPartyMutation.mutate({
+      name: name.trim(),
+      email: email.trim(),
+      role,
+    });
   };
 
   return (
-    
-      
-        
-          <Plus className="h-4 w-4" />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
           Add Party
-        
-      
+        </Button>
+      </DialogTrigger>
 
-      
-        
-          
-            Add Party to Transaction
-            
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Add Party to Transaction</DialogTitle>
+            <DialogDescription>
               Add a new party to this transaction. They will receive an email notification with a link to track the transaction progress.
-            
-          
+            </DialogDescription>
+          </DialogHeader>
 
-          
-            
-              
-                Name
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter party's full name"
-                  disabled={isLoading}
-                />
-              
-            
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter party's full name"
+                disabled={addPartyMutation.isPending}
+                required
+              />
+            </div>
 
-            
-              
-                Email
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter party's email address"
-                  disabled={isLoading}
-                />
-              
-            
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter party's email address"
+                disabled={addPartyMutation.isPending}
+                required
+              />
+            </div>
 
-            
-              
-                Role
-                <Select value={role} onValueChange={setRole} disabled={isLoading}>
-                  
-                    
-                      Select party's role
-                    
-                  
-                  
-                    Seller
-                  
-                  
-                    Buyer
-                  
-                  
-                    Listing Agent
-                  
-                  
-                    Buyer's Agent
-                  
-                  
-                    Escrow
-                  
-                </Select>
-              
-            
-          
+            <div className="grid gap-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={setRole} disabled={addPartyMutation.isPending}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select party's role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="seller">Seller</SelectItem>
+                  <SelectItem value="buyer">Buyer</SelectItem>
+                  <SelectItem value="listing_agent">Listing Agent</SelectItem>
+                  <SelectItem value="buyers_agent">Buyer's Agent</SelectItem>
+                  <SelectItem value="escrow">Escrow</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-          
-            
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
-            
-            <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? "Adding..." : "Add Party"}
-      </Button>
-          
-          {formError && (
-        <p className="text-red-500 text-sm mt-2">{formError}</p>
-      )}
-        
-      
-    
+            </Button>
+            <Button type="submit" disabled={addPartyMutation.isPending}>
+              {addPartyMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add Party"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
+
+export default AddPartyForm;
