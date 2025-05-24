@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/logo';
@@ -23,6 +23,19 @@ export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Check if user came from email link and redirect to update password page
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    
+    // If there are auth tokens in URL (from email link), redirect to update password
+    if (urlParams.get('access_token') || hashParams.get('access_token') || 
+        urlParams.get('token') || hashParams.get('token')) {
+      navigate('/update-password' + window.location.search + window.location.hash);
+      return;
+    }
+  }, [navigate]);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
