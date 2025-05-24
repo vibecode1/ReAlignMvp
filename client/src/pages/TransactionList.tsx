@@ -88,16 +88,35 @@ export default function TransactionList() {
     return matchesSearch && matchesPhase;
   });
 
-  // Format relative time
+  // Format relative time with robust error handling for NaN values
   const getRelativeTime = (dateString: string) => {
+    // Handle null, undefined, or empty string inputs
+    if (!dateString || dateString.trim() === '') {
+      return 'N/A';
+    }
+    
     const date = new Date(dateString);
+    
+    // Check if the date is invalid
+    if (isNaN(date.getTime())) {
+      return 'Unknown';
+    }
+    
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
+    
+    // Handle negative differences (future dates)
+    if (diffInMs < 0) {
+      return 'Just now';
+    }
+    
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
     
-    if (diffInMins < 60) {
+    if (diffInMins < 1) {
+      return 'Just now';
+    } else if (diffInMins < 60) {
       return `${diffInMins} minute${diffInMins !== 1 ? 's' : ''} ago`;
     } else if (diffInHours < 24) {
       return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;

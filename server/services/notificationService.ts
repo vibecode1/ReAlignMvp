@@ -376,7 +376,7 @@ export class NotificationService {
           console.log(`Weekly digest sent to: ${subscription.party_email}`);
           
         } catch (error) {
-          console.error(`Failed to send weekly digest to ${subscription.email}:`, error);
+          console.error(`Failed to send weekly digest to ${subscription.party_email}:`, error);
         }
       }
 
