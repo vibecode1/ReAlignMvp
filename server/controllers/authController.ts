@@ -65,9 +65,13 @@ export const authController = {
       console.log('User exists:', !!data.user);
 
       // Fetch user details from our database
+      console.log('Attempting to fetch user from database with email:', email);
       const user = await storage.getUserByEmail(email);
+      console.log('Database lookup result:', user ? 'User found' : 'User not found');
+      console.log('User object:', user);
 
       if (!user) {
+        console.log('USER_NOT_FOUND error - email used for lookup:', email);
         return res.status(404).json({
           error: {
             code: 'USER_NOT_FOUND',
