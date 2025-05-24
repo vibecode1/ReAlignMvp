@@ -21,6 +21,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use((req, res, next) => {
+  console.log('!!! GLOBAL TRACE: Main logging middleware --- Path:', req.originalUrl, 'Method:', req.method);
+  if (req.method === 'GET' && req.originalUrl.startsWith('/api/v1/transactions/') && !req.originalUrl.includes('/parties') && !req.originalUrl.includes('/messages') && !req.originalUrl.includes('/phase-history')) {
+    console.log('!!! GLOBAL TRACE: Main logging middleware is processing GET /api/v1/transactions/:id pattern');
+  }
+  
   const start = Date.now();
   const path = req.path;
   

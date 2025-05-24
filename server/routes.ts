@@ -124,13 +124,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Generic transaction routes (must be after specific sub-routes)
   console.log('!!! TRACE: About to define transactionRouter.get("/:id", transactionController.getTransaction)');
-  transactionRouter.get('/:id', (req, res, next) => {
-    console.log('!!! TRACE: transactionRouter GET /:id handler - path:', req.path, 'method:', req.method);
-    if (req.method === 'GET' && req.path.match(/^\/[0-9a-fA-F-]{36}$/)) {
-      console.log('!!! TRACE: transactionRouter GET /:id is processing GET /:uuid pattern');
-    }
-    next();
-  }, authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
+  transactionRouter.get('/:id', 
+    (req, res, next) => { 
+      console.log('!!! TRACE: PRE-AUTH for GET /:id - path:', req.path); 
+      next(); 
+    },
+    authenticateJWT,
+    (req, res, next) => { 
+      console.log('!!! TRACE: POST-AUTH, PRE-ACCESS for GET /:id - path:', req.path); 
+      next(); 
+    },
+    requireTransactionAccess,
+    (req, res, next) => { 
+      console.log('!!! TRACE: POST-ACCESS, PRE-CONTROLLER for GET /:id - path:', req.path); 
+      next(); 
+    },
+    transactionController.getTransaction
+  );
   transactionRouter.patch('/:id', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransaction);
   
   // -- Message Routes --
@@ -172,11 +182,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get('/tracker/:transactionId', publicTrackerController.getTrackerByToken);
   apiRouter.post('/tracker/unsubscribe', publicTrackerController.updateSubscription);
 
+  // Add API Router level tracing
+  console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
+  apiRouter.use((req, res, next) => {
+    console.log('!!! API_ROUTER TRACE: Middleware --- Path:', req.path, 'Method:', req.method);
+    if (req.method === 'GET' && req.path.startsWith('/transactions/') && !req.path.includes('/parties') && !req.path.includes('/messages') && !req.path.includes('/phase-history')) {
+      console.log('!!! API_ROUTER TRACE: Middleware is processing GET /transactions/:id pattern');
+    }
+    next();
+  });
+
   // Register routers
   console.log('=== REGISTERING API ROUTERS ===');
   console.log('Registering auth router at /auth');
   apiRouter.use('/auth', authRouter);
-  console.log('Registering transaction router at /transactions');
+  console.log('!!! APP TRACE: About to mount transactionRouter at /transactions');
   apiRouter.use('/transactions', transactionRouter);
   console.log('Registering notification router at /notifications');
   apiRouter.use('/notifications', notificationRouter);
