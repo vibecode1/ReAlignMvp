@@ -75,7 +75,7 @@ export default function PublicTrackerView() {
       if (!response.ok) {
         throw new Error('Failed to load tracker data');
       }
-      return response.json() as PublicTrackerData;
+      return response.json();
     },
     enabled: !!transactionId && !!token,
   });
@@ -271,102 +271,141 @@ export default function PublicTrackerView() {
           </Card>
         </motion.div>
 
-          {/* Document Status */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Your Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {trackerData.documentRequests.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+        {/* Document Status - Mobile-First Card Design */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5" />
+                Documents Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {trackerData.documentRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400">
                     No documents assigned to your role yet.
                   </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Document</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Days</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {trackerData.documentRequests.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell className="font-medium">
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Sort by status: overdue and pending first */}
+                  {trackerData.documentRequests
+                    .sort((a, b) => {
+                      const statusOrder = { 'overdue': 0, 'pending': 1, 'complete': 2 };
+                      return (statusOrder[a.status as keyof typeof statusOrder] || 3) - 
+                             (statusOrder[b.status as keyof typeof statusOrder] || 3);
+                    })
+                    .map((doc) => (
+                    <div
+                      key={doc.id}
+                      className={`border rounded-lg p-4 ${
+                        doc.status === 'overdue' 
+                          ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                          : doc.status === 'pending'
+                          ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20'
+                          : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                             {doc.document_name}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(doc.status)}
-                              <Badge
-                                variant="secondary"
-                                className={getStatusColor(doc.status)}
-                              >
-                                {doc.status}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                            {getDaysAgo(doc.requested_at)} days ago
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Requested {getDaysAgo(doc.requested_at)} days ago
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getStatusIcon(doc.status)}
+                          <Badge
+                            variant="secondary"
+                            className={`${getStatusColor(doc.status)} text-xs font-medium`}
+                          >
+                            {doc.status.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </div>
+                      {doc.status === 'pending' && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Days pending: <span className="font-medium">{getDaysAgo(doc.requested_at)}</span>
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Tracker Notes */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-2"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {trackerData.trackerNotes.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+        {/* Tracker Notes / Activity Updates - Recent Week Focus */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {trackerData.trackerNotes.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400">
                     No activity updates yet.
                   </p>
-                ) : (
-                  <div className="space-y-4">
-                    {trackerData.trackerNotes.map((note, index) => (
-                      <div key={note.id}>
-                        <div className="flex justify-between items-start">
-                          <p className="text-gray-900 dark:text-white">{note.note_text}</p>
-                          <span className="text-sm text-gray-500 dark:text-gray-400 ml-4 flex-shrink-0">
-                            {getDaysAgo(note.created_at)} days ago
-                          </span>
-                        </div>
-                        {index < trackerData.trackerNotes.length - 1 && (
-                          <Separator className="mt-4" />
-                        )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {trackerData.trackerNotes
+                    .slice(0, 5) // Show recent notes first
+                    .map((note, index) => (
+                    <div 
+                      key={note.id}
+                      className="border-l-4 border-brand-primary/30 pl-4 py-2"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                        <p className="text-gray-900 dark:text-white leading-relaxed text-sm">
+                          {note.note_text}
+                        </p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 font-medium">
+                          {new Date(note.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                      {index < Math.min(trackerData.trackerNotes.length, 5) - 1 && (
+                        <Separator className="mt-4" />
+                      )}
+                    </div>
+                  ))}
+                  
+                  {trackerData.trackerNotes.length > 5 && (
+                    <div className="text-center pt-4">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        View Older Updates
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Footer */}
         <motion.div
