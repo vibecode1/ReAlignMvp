@@ -148,8 +148,10 @@ export const authController = {
       }
 
       // Send password reset email via Supabase
+      // Use the request origin for the redirect URL, but fallback to a deployed URL if needed
+      const baseUrl = req.get('origin') || `${req.protocol}://${req.get('host')}`;
       const { error } = await supabaseAuthClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${req.protocol}://${req.get('host')}/reset-password`,
+        redirectTo: `${baseUrl}/update-password`,
       });
 
       if (error) {
