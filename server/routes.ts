@@ -82,13 +82,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Transaction endpoints
   transactionRouter.post('/', authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
-  transactionRouter.get('/:id', authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
-  transactionRouter.patch('/:id', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransaction);
   
-  // -- Party Status Routes --
+  // -- Party Status Routes (move before generic :id routes) --
   transactionRouter.get('/:id/parties', authenticateJWT, requireTransactionAccess, transactionController.getParties);
   transactionRouter.post('/:id/parties', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.addPartyToTransaction);
   transactionRouter.patch('/:transactionId/parties/:userId', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updatePartyStatus);
+  
+  // Generic transaction routes (must be after specific sub-routes)
+  transactionRouter.get('/:id', authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
+  transactionRouter.patch('/:id', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransaction);
   
   // -- Message Routes --
   transactionRouter.get('/:id/messages', authenticateJWT, requireTransactionAccess, messageController.getMessages);
