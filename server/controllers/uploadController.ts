@@ -127,6 +127,7 @@ export const uploadController = {
         // Store file metadata in database
         const upload = await storage.createUpload(
           {
+            transaction_id: transactionId,
             doc_type: docType,
             visibility: visibility,
             file_url: publicUrl.publicUrl,

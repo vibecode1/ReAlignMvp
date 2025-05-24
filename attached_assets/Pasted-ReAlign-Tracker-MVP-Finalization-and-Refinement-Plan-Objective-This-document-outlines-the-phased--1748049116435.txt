@@ -1,0 +1,303 @@
+ReAlign Tracker MVP - Finalization and Refinement Plan
+Objective: This document outlines the phased steps to complete the ReAlign Tracker MVP. This includes implementing the core tracker functionalities within the transaction view, creating the public tracker view, setting up email notifications, and cleaning up legacy UI elements and routes that are out of scope for the Tracker MVP.
+
+Primary Reference Documents:
+
+"ReAlign_Tracker MVP - Phased Implementation Plan.docx" (and "II.docx")
+
+"ReAlign MVP - API Routes.docx"
+
+"ReAlign MVP – User Onboarding Flow.docx"
+
+"ReAlign MVP - Figma Wireframe Spec.docx"
+
+"ReAlign MVP - Component Spec.docx"
+
+"ReAlign MVP – Notification Rules.docx"
+
+"ReAlign MVP - Database Schema.docx"
+
+"ReAlign MVP - Build Instructions.docx"
+
+Phase 1: Navigation & Legacy UI Cleanup
+Objective: Align navigation with Tracker MVP scope and remove or stub out-of-scope global pages to resolve 404 errors.
+
+Tasks:
+
+Modify Sidebar Navigation (client/src/components/layout/Sidebar.tsx):
+
+Action: Review all navigation links in the sidebar.
+
+Remove "Parties" link: As per "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 0), a global parties management page is out of scope.
+
+Review "Document Requests" and "Messages" links:
+
+If these links point to global list pages (listing all document requests or messages across all transactions), they should be removed. The Tracker MVP focuses on these features within the context of a single transaction (TransactionView.tsx or PublicTrackerView.tsx).
+
+If they are intended for a different purpose compatible with Tracker MVP (e.g., a settings page related to these, though unlikely), clarify. Otherwise, remove.
+
+Keep: "Dashboard", "Transactions", "Notifications" (for settings, as seen in client/src/pages/NotificationSettings.tsx).
+
+Reference: client/src/components/layout/Sidebar.tsx
+
+Update Frontend Routing (client/src/App.tsx):
+
+Action: Remove the <Route> components corresponding to any global pages that were removed from the sidebar (e.g., /parties, /document-requests if global, /messages if global).
+
+Ensure that any links to these removed routes are also removed from other parts of the application to prevent users from navigating to a 404 page.
+
+Reference: client/src/App.tsx
+
+Review and Remove Unused Page Components:
+
+Action: If pages like a global PartiesList.tsx, GlobalDocumentRequests.tsx, or GlobalMessages.tsx exist in client/src/pages/, delete them if they are no longer used after the routing changes.
+
+Phase 2: Implement Negotiator's Transaction View Core Features
+Objective: Fully implement the phase management, document status table, and tracker notes functionality within the negotiator's view of a transaction, as per "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phases 2 & 3).
+
+Primary Files:
+
+client/src/pages/TransactionView.tsx
+
+client/src/components/transactions/PhaseManager.tsx (or adapt PhaseTracker.tsx)
+
+client/src/components/transactions/DocRequestList.tsx
+
+client/src/components/transactions/TrackerNotesWidget.tsx
+
+Backend: server/controllers/transactionController.ts (or phaseController.ts), documentController.ts, trackerNoteController.ts, and storage.ts.
+
+Tasks:
+
+Phase Management (PhaseManager.tsx or enhanced PhaseTracker.tsx within TransactionView.tsx):
+
+UI:
+
+Negotiator must be able to select a new phase from a dropdown populated with the 11 static phases (from client/src/lib/phases.ts).
+
+Display the current phase prominently.
+
+Visually display all 11 phases (e.g., stepper or list), highlighting the current one.
+
+Display phase change history with timestamps and who set it.
+
+Backend API Calls:
+
+On phase update, call PUT /api/v1/transactions/:id/phase (or the equivalent route handled by phaseController.ts).
+
+The backend must update transactions.current_phase_key and create an entry in transaction_phase_history.
+
+Fetch phase history via GET /api/v1/transactions/:id/phase-history.
+
+References: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 2), client/src/lib/phases.ts.
+
+Document Status Table (DocRequestList.tsx within TransactionView.tsx):
+
+UI:
+
+Use Table component to display: Document Name, Assigned Party Role, Status (color-coded: 🟢 Complete, 🟡 Pending, 🔴 Overdue), Days Since Requested/Due Date.
+
+Negotiator actions:
+
+Add new document request: Select docType (from REQUEST_TEMPLATES in DocRequestList.tsx), assign to a party role (dropdown of roles present in the transaction, e.g., 'Seller', 'Buyer Agent'), set optional due date.
+
+Edit existing request status: 'Complete', 'Overdue' (or 'Pending' for revisions).
+
+Delete a document request.
+
+If resetting to 'Pending' for revision, allow adding a revisionNote.
+
+Client-side logic for "Days Since Requested."
+
+Backend API Calls:
+
+POST /api/v1/transactions/:id/doc-requests: Create new request. Backend saves document_name, assigned_party_role, initial status ('Pending'), requested_at, due_date.
+
+PATCH /api/v1/doc-requests/:requestId: Update status, completed_at (if 'Complete'), revisionNote.
+
+DELETE /api/v1/doc-requests/:requestId: Delete request. (Ensure this route exists or add it).
+
+GET /api/v1/transactions/:id/doc-requests: Fetch requests.
+
+References: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 3), client/src/components/transactions/DocRequestList.tsx (for REQUEST_TEMPLATES), server/controllers/documentController.ts.
+
+Tracker Notes / Activity Updates (TrackerNotesWidget.tsx within TransactionView.tsx):
+
+UI:
+
+Display a list of notes with timestamps, attributed to "Negotiator."
+
+Input field/dropdown for negotiator to add new notes using predefined options (from client/src/lib/trackerNoteOptions.ts) or a custom text option.
+
+Backend API Calls:
+
+POST /api/v1/transactions/:id/tracker-notes: Negotiator adds note. Backend saves note_text, transaction_id, negotiator_id, created_at.
+
+GET /api/v1/transactions/:id/tracker-notes: Fetch notes for the transaction.
+
+References: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 3), client/src/lib/trackerNoteOptions.ts, server/controllers/trackerNoteController.ts.
+
+File Uploads by Negotiator (within TransactionView.tsx using UploadWidget.tsx):
+
+UI: Negotiator should be able to upload general documents or documents specifically fulfilling a doc_request.
+
+The UploadWidget.tsx should allow linking an upload to a document_request_id.
+
+Implement the negotiator's ability to toggle visibility of any uploaded file (private/shared) after the initial upload.
+
+Backend: Requires PATCH /api/v1/uploads/:uploadId/visibility endpoint (negotiator-only) as defined in "ReAlign-MVP-Remaining-Work.md".
+
+Frontend: Add UI controls (e.g., in FileList.tsx or similar component within TransactionView.tsx) for the negotiator.
+
+References: "ReAlign-MVP-Remaining-Work.md" (Item 1.2), client/src/components/transactions/UploadWidget.tsx.
+
+Phase 3: Implement Public Tracker View
+Objective: Create the view-only Tracker page accessible via magic link for subscribed parties, as per "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 4).
+
+Primary Files:
+
+Frontend: client/src/pages/PublicTrackerView.tsx (New Page)
+
+Backend: server/controllers/publicTrackerController.ts, server/storage.ts (for validateMagicLinkToken, updateSubscriptionStatus).
+
+Tasks:
+
+Backend - Public Access & Subscriptions:
+
+GET /api/v1/tracker/:transactionId?token=[magic_link_token] (publicTrackerController.getTrackerByToken):
+
+Validate the magic_link_token against email_subscriptions (check expiry, ensure it matches transactionId).
+
+If valid, return:
+
+Transaction details: property_address, current_phase_key.
+
+Party role of the subscriber.
+
+Doc Status Table data: Filtered for the subscriber's role (doc_requests.assigned_party_role). Show document name, status. No edit controls.
+
+Tracker Notes (all notes for the transaction).
+
+Phase history.
+
+Subscription status (is_subscribed).
+
+POST /api/v1/tracker/unsubscribe (publicTrackerController.updateSubscription):
+
+Requires a way to identify the subscription to update (e.g., subscription_id or the magic link token itself).
+
+Updates is_subscribed to false in email_subscriptions.
+
+Reference: server/controllers/publicTrackerController.ts, server/storage.ts.
+
+Frontend - PublicTrackerView.tsx:
+
+Layout: Standalone page (no AppShell sidebar/header).
+
+Data Fetching: On load, extract transactionId from URL path and token from URL query parameter. Call GET /api/v1/tracker/:transactionId?token=[token].
+
+Display:
+
+Property Address, Current Phase (visual list, current highlighted).
+
+Doc Status Table: View-only, filtered for the party's role.
+
+Tracker Notes: View-only list.
+
+Phase History: View-only.
+
+Functionality:
+
+"Unsubscribe" link/button that calls POST /api/v1/tracker/unsubscribe.
+
+User-friendly message if token is invalid/expired (e.g., "This access link has expired or is invalid. Please contact your negotiator for a new link.").
+
+References: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 4).
+
+Phase 4: Implement Email Notifications
+Objective: Implement automated welcome emails and weekly email digests, as per "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 5).
+
+Primary Files:
+
+Backend: server/services/notificationService.ts, server/controllers/transactionController.ts (for triggering welcome email), a new cron job/scheduler.
+
+Tasks:
+
+Email Service Integration (notificationService.ts):
+
+Ensure SendGrid (or chosen provider) is fully integrated with API key from Replit Secrets.
+
+Verify sender email is configured and verified.
+
+Welcome Email:
+
+Trigger: When a negotiator creates a transaction and adds parties (transactionController.createTransaction).
+
+Content: Use the welcome_email_body (customized by negotiator, defaults to DEFAULT_WELCOME_EMAIL_TEMPLATE from client/src/lib/trackerNoteOptions.ts) and include the unique magic_link_token for the PublicTrackerView.
+
+Action: notificationService.sendTrackerMagicLink (or a similar method) should be called for each subscribed party. This method needs to construct and send the welcome email.
+
+Weekly Email Digest (New Backend Logic):
+
+Scheduler: Implement a cron job (e.g., using node-cron in server/index.ts or a Replit cron feature) to run weekly (e.g., Friday 5 PM).
+
+Logic:
+
+Job queries email_subscriptions for is_subscribed=true parties.
+
+For each active transaction associated with these subscriptions:
+
+Fetch summary data: current phase, docs completed/overdue (for that party's role), recent tracker notes.
+
+Compile email content:
+
+Subject: "[Tracker Update] Your Short Sale Status - [Property Address]"
+
+Body: Summary of progress, link to full Tracker view (using their magic_link_token), unsubscribe link.
+
+Send emails via notificationService.ts.
+
+References: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 5).
+
+Resend Welcome/Access Link (MVP Stretch Goal - Optional):
+
+If implementing, add a "Resend Welcome/Access Link" button in the negotiator's view for each subscribed party.
+
+Backend: New endpoint (e.g., POST /api/v1/subscriptions/:subscriptionId/resend-welcome) to generate a new magic link token, update it in email_subscriptions, and re-trigger the welcome email.
+
+Reference: "ReAlign_Tracker MVP - Phased Implementation Plan.docx" (Phase 4, stretch goal).
+
+Phase 5: Frontend Polish, Bug Fixing, and Final QA
+Objective: Address any remaining UI/UX issues, fix bugs, and perform final testing.
+
+Tasks:
+
+Fix NaN days ago on TransactionList.tsx:
+
+Backend: Ensure lastActivityAt in the response from GET /api/v1/transactions is always a valid ISO date string. Review the logic in server/controllers/transactionController.ts that calculates this. Consider all relevant activity timestamps (new messages, phase changes, doc status updates, new tracker notes, new uploads).
+
+Frontend: Make getRelativeTime function in client/src/pages/TransactionList.tsx more robust to handle potential null, undefined, or invalid date inputs, displaying "N/A" or "Unknown" instead of "NaN".
+
+UI Consistency and Responsiveness:
+
+Review all implemented views against "ReAlign MVP - Figma Wireframe Spec.docx" and "ReAlign MVP – Brand Kit.docx".
+
+Ensure consistent use of shadcn/ui components and Tailwind CSS.
+
+Verify responsiveness on mobile, tablet, and desktop views. Check tap targets.
+
+Error Handling:
+
+Ensure user-friendly error messages (toasts) are shown for all API call failures.
+
+Verify loading states are implemented for all asynchronous operations.
+
+Final QA Testing:
+
+Execute all test cases from "ReAlign MVP - QA Test Plan.docx".
+
+Focus on role-based access control, data visibility, and notification delivery.
+
+Test all user flows for negotiators and party roles.
+
+This comprehensive plan should guide the Replit AI to complete the ReAlign Tracker MVP. Remember to test thoroughly after each phase.

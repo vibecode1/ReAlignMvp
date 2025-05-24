@@ -44,24 +44,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
       href: '/transactions',
     },
     {
-      icon: <Users className="h-5 w-5" />,
-      label: 'Parties',
-      href: '/parties',
-    },
-    {
-      icon: <FilePlus2 className="h-5 w-5" />,
-      label: 'Document Requests',
-      href: '/document-requests',
-    },
-    {
       icon: <Bell className="h-5 w-5" />,
       label: 'Notifications',
       href: '/notifications',
-    },
-    {
-      icon: <MessageCircle className="h-5 w-5" />,
-      label: 'Messages',
-      href: '/messages',
     },
   ];
 
@@ -112,9 +97,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
           <nav className="space-y-2">
             {items.map((item) => (
               <Link key={item.href} href={item.href}>
-                <a 
+                <div 
                   className={`
-                    flex items-center p-2 rounded-lg transition-all
+                    flex items-center p-2 rounded-lg transition-all cursor-pointer
                     ${location === item.href 
                       ? 'bg-white bg-opacity-20' 
                       : 'hover:bg-white hover:bg-opacity-10'
@@ -134,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
                       {item.label}
                     </motion.span>
                   )}
-                </a>
+                </div>
               </Link>
             ))}
           </nav>
