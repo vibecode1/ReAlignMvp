@@ -41,14 +41,14 @@ export const AppSidebarContent: React.FC = () => {
     <>
       <SidebarHeader className="p-3">
         <Link href="/dashboard">
-          <a className="flex items-center gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 overflow-hidden cursor-pointer">
             <Logo size="sm" className="flex-shrink-0" />
             <span 
               className={`font-semibold text-lg whitespace-nowrap transition-opacity duration-200 ${isSidebarExpanded ? 'opacity-100 delay-100' : 'opacity-0'}`}
             >
               ReAlign
             </span>
-          </a>
+          </div>
         </Link>
       </SidebarHeader>
 
@@ -65,14 +65,14 @@ export const AppSidebarContent: React.FC = () => {
                       className="w-full justify-start text-sm h-10 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     >
                       <Link href={item.href}>
-                        <a>
+                        <div className="flex items-center w-full">
                           <span className="flex-shrink-0 w-5 h-5">{item.icon}</span>
                           <span 
                             className={`ml-2 whitespace-nowrap transition-opacity duration-200 ${isSidebarExpanded ? 'opacity-100 delay-100' : 'opacity-0'}`}
                           >
                             {item.label}
                           </span>
-                        </a>
+                        </div>
                       </Link>
                     </SidebarMenuButton>
                   </TooltipTrigger>

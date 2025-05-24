@@ -32,21 +32,23 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       onOpenChange={handleDesktopSidebarOpen}
       defaultOpen={!isMobile}
     >
-      <div
-        className="flex flex-col lg:flex-row min-h-screen bg-background-light dark:bg-background-dark"
-        onMouseEnter={() => { if (!isMobile) handleDesktopSidebarOpen(true); }}
-        onMouseLeave={() => { if (!isMobile) handleDesktopSidebarOpen(false); }}
-      >
-        <Sidebar
-          variant="sidebar"
-          collapsible={isMobile ? "offcanvas" : "icon"}
-          side="left"
-          className="bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
+      <div className="flex flex-col lg:flex-row min-h-screen bg-background-light dark:bg-background-dark">
+        <div
+          onMouseEnter={() => { if (!isMobile) handleDesktopSidebarOpen(true); }}
+          onMouseLeave={() => { if (!isMobile) handleDesktopSidebarOpen(false); }}
+          className="relative"
         >
-          <AppSidebarContent />
-        </Sidebar>
+          <Sidebar
+            variant="sidebar"
+            collapsible={isMobile ? "offcanvas" : "icon"}
+            side="left"
+            className="bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
+          >
+            <AppSidebarContent />
+          </Sidebar>
+        </div>
 
-        <SidebarInset className="flex-1 p-4 lg:p-8 data-[mobile=true]:pt-20 lg:data-[state=expanded]:ml-[16rem] lg:data-[state=collapsed]:ml-[3rem] transition-[margin-left] duration-200 ease-linear">
+        <SidebarInset className="flex-1 p-4 lg:p-8 transition-[margin-left] duration-200 ease-linear">
           {isMobile && (
             <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between lg:hidden">
               <SidebarTrigger asChild>
@@ -65,7 +67,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               <div className="w-10"></div>
             </header>
           )}
-          {children}
+          <main className={`${isMobile ? 'pt-20' : ''}`}>
+            {children}
+          </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
