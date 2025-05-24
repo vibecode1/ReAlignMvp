@@ -94,18 +94,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // -- Party Status Routes - DIRECT IMPLEMENTATION --
   // Add party route with direct implementation to bypass middleware issues
-  transactionRouter.post('/:id/parties', async (req, res) => {
+  transactionRouter.post('/:id/parties', (req, res) => {
     console.log('🎯 DIRECT POST /:id/parties route HIT!');
     console.log('🎯 Route params:', req.params);
     console.log('🎯 Request body:', req.body);
+    console.log('🎯 Full req.path:', req.path);
+    console.log('🎯 Method:', req.method);
     
-    try {
-      // Call the controller directly
-      await transactionController.addPartyToTransaction(req as any, res);
-    } catch (error) {
-      console.error('❌ Direct route error:', error);
-      res.status(500).json({ error: 'Failed to add party' });
-    }
+    // Simple test response first
+    res.json({ 
+      success: true, 
+      message: 'Route matched successfully',
+      params: req.params,
+      body: req.body,
+      path: req.path
+    });
   });
   
   transactionRouter.get('/:id/parties', (req, res, next) => {
