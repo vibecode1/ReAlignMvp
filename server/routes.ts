@@ -32,6 +32,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // -- Authentication Routes --
   const authRouter = express.Router();
   
+  // Add debugging middleware for auth routes
+  authRouter.use((req, res, next) => {
+    console.log(`--- authRouter received request: ${req.method} ${req.path} ---`);
+    next();
+  });
+  
   // Rate limiting for magic links (3 per hour)
   const magicLinkLimiter = rateLimit({
     windowMs: config.magicLinkRateLimit.windowMs,
