@@ -1,0 +1,79 @@
+Objective:
+Diagnose and fix why a POST request to /api/v1/transactions/:id/parties is not being matched by its intended route handler within transactionRouter in server/routes.ts, despite the request correctly reaching the transactionRouter's initial middleware.
+
+Current Key Logs:
+
+Entry log (SUCCESSFUL): --- transactionRouter received request: POST /<uuid>/parties --- (Indicates request enters transactionRouter with path /<uuid>/parties)
+Exit log (FAILURE): Unmatched API route: POST /api/v1/transactions/<uuid>/parties (Indicates request passed through transactionRouter without matching any internal route for this path and method).
+MISSING LOGS: No logs from the POST /:id/parties route handler itself or any specific middleware attached directly to it are appearing.
+Primary File for Investigation: server/routes.ts
+
+Instructions for the AI:
+
+1. Strict Verification of Implemented Code:
+* Ask the user to provide the exact code snippet from server/routes.ts showing the transactionRouter definition, its initial use middleware (the one that logs --- transactionRouter received request ---), and specifically how and where the POST /:id/parties route was added, including its middleware and controller.
+* The AI should meticulously check this provided snippet for:
+* Correct router variable: Is it transactionRouter.post(...)?
+* Correct HTTP method: post.
+* Exact path string: '/:id/parties'.
+* Correct controller reference: transactionController.addPartiesToTransaction.
+* Ensure transactionController and its addPartiesToTransaction method are correctly imported and exported.
+* Any typos in parameter names (e.g., :id vs :transactionId - though /:id/parties should be correct based on the incoming path).
+
+2. Isolate the Problematic Route with Hyper-Focused Logging:
+* Instruct the user to add very specific console.log statements immediately before the POST /:id/parties definition and as the very first line inside a simplified, temporary handler for this route. This is to confirm that Express is even considering this route definition.
+
+**Example modification in `server/routes.ts` within `transactionRouter`:**
+```typescript
+// ... (other routes in transactionRouter) ...
+
+console.log('!!! TRANSACTION ROUTER DEBUG: About to define POST /:id/parties route'); // Log A
+
+transactionRouter.post(
+  '/:id/parties',
+  (req, res, next) => {
+    // Temporary, first-line-of-defense middleware for this specific route
+    console.log(`!!! TRANSACTION ROUTER DEBUG: Middleware for POST /:id/parties HIT. Path: ${req.path}, OriginalURL: ${req.originalUrl}`); // Log B
+    // You can even try sending an immediate response here for testing:
+    // return res.status(200).json({ message: "POST /:id/parties directly hit!" });
+    next();
+  },
+  authenticateJWT,
+  requireNegotiatorRole,
+  requireTransactionAccess,
+  (req, res) => { // Temporarily simplify the final handler
+    console.log('!!! TRANSACTION ROUTER DEBUG: Final handler for POST /:id/parties HIT.'); // Log C
+    res.status(200).json({ message: 'Reached POST /:id/parties successfully via direct handler' });
+    // Original call: transactionController.addPartiesToTransaction(req, res);
+  }
+);
+
+console.log('!!! TRANSACTION ROUTER DEBUG: Successfully defined POST /:id/parties route'); // Log D
+
+// ... (other routes in transactionRouter) ...
+```
+* **Analysis of these logs:**
+    * If Log A & D appear but B & C do NOT for a `POST` to that path, Express is seeing the definition but not matching the route.
+    * If the initial `transactionRouter.use()` log appears, but A, B, C, D do NOT (or only A and D appear out of sequence due to async issues, though unlikely here), then there's a fundamental issue with how `transactionRouter` is processing routes after its initial middleware.
+3. Drastic Route Isolation (Temporary):
+* If the above logging doesn't pinpoint the issue, suggest the user temporarily comment out ALL other routes and route-specific middleware within transactionRouter except for:
+* The initial transactionRouter.use((req, res, next) => { console.log("--- transactionRouter received request..."); next(); });
+* The problematic POST /:id/parties route (with its hyper-focused logging from step 2).
+* Purpose: This will determine if any other route definition within transactionRouter is somehow interfering or being matched incorrectly. If the route works in isolation, the problem is an interaction with another route. Then, reintroduce routes one by one.
+
+4. Check for Global Middleware Interference (Less Likely but Possible):
+* Review how body-parsing middleware (e.g., express.json(), express.urlencoded()) is applied in server/routes.ts or server/index.ts. Ensure it's applied before app.use('/api/v1', apiRouter);. If body parsing fails or isn't applied for POST requests, it could theoretically cause issues before the route handler, though Express usually handles this gracefully or errors out differently.
+* Are there any other app.use(...) or apiRouter.use(...) calls with very broad path matching (e.g., apiRouter.use('/:id', ...)) defined before apiRouter.use('/transactions', transactionRouter) that could be intercepting and mishandling the request?
+
+5. Examine the apiRouter.use('/transactions', transactionRouter) call:
+* While it seems correct, double-check there are no typos or unusual configurations around this line.
+* Add a log immediately before and after this line in server/routes.ts:
+typescript console.log('!!! MAIN API ROUTER DEBUG: About to mount transactionRouter at /transactions'); apiRouter.use('/transactions', transactionRouter); console.log('!!! MAIN API ROUTER DEBUG: Successfully mounted transactionRouter');
+
+6. Final Check for Typos in Controller/Service:
+* Although logs from the controller aren't appearing (indicating the route isn't matched), if Express encounters an error when trying to wire up a route because the handler function is undefined (e.g., due to a typo in transactionController.addPartiesToTransaction or an import/export issue), it might silently fail to register the route or behave unpredictably. The AI should ask the user to re-verify the controller method's existence and export/import.
+
+Request for Output:
+The AI should ask the user to perform these steps, report back with the exact code modifications they made for logging, and the full sequence of logs observed when making the POST request. This detailed information is critical for the next diagnostic step.
+
+This methodical approach of stripping down the router and adding precise logs should help isolate where the request processing is deviating from the expected path.

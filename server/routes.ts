@@ -93,13 +93,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
   
   // -- Add Parties to Transaction Route (NEW) --
+  console.log('!!! TRANSACTION ROUTER DEBUG: About to define POST /:id/parties route'); // Log A
+  
   transactionRouter.post(
     '/:id/parties',
+    (req, res, next) => {
+      // Temporary, first-line-of-defense middleware for this specific route
+      console.log(`!!! TRANSACTION ROUTER DEBUG: Middleware for POST /:id/parties HIT. Path: ${req.path}, OriginalURL: ${req.originalUrl}`); // Log B
+      next();
+    },
     authenticateJWT,         // Ensure user is authenticated
     requireNegotiatorRole,   // Ensure user is a negotiator
     requireTransactionAccess, // Ensure negotiator has access to this transaction :id
-    transactionController.addPartiesToTransaction // New controller method
+    (req, res) => { // Temporarily simplify the final handler
+      console.log('!!! TRANSACTION ROUTER DEBUG: Final handler for POST /:id/parties HIT.'); // Log C
+      res.status(200).json({ message: 'Reached POST /:id/parties successfully via direct handler' });
+      // Original call: transactionController.addPartiesToTransaction(req, res);
+    }
   );
+  
+  console.log('!!! TRANSACTION ROUTER DEBUG: Successfully defined POST /:id/parties route'); // Log D
   
   transactionRouter.get('/:id/parties', (req, res, next) => {
     console.log('🎯 HIT GET /:id/parties route - params:', req.params);
