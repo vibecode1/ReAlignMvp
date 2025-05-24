@@ -140,11 +140,13 @@ export class NotificationService {
         `,
       };
 
-      await sgMail.send(msg);
+      const result = await sgMail.send(msg);
       console.log('Magic link email sent successfully to:', email);
+      console.log('SendGrid response:', result[0].statusCode, result[0].headers);
       return true;
     } catch (error) {
       console.error('Failed to send magic link:', error);
+      console.error('SendGrid error details:', error.response ? error.response.body : 'No response body');
       return false;
     }
   }
@@ -207,11 +209,13 @@ export class NotificationService {
         `,
       };
 
-      await sgMail.send(msg);
+      const result = await sgMail.send(msg);
       console.log('Tracker magic link email sent successfully to:', email);
+      console.log('SendGrid response:', result[0].statusCode, result[0].headers);
       return true;
     } catch (error) {
       console.error('Failed to send tracker magic link:', error);
+      console.error('SendGrid error details:', error.response ? error.response.body : 'No response body');
       return false;
     }
   }
