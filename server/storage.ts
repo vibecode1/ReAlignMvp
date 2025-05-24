@@ -491,6 +491,14 @@ class DrizzleStorage implements IStorage {
   }
 
   async getEmailSubscriptionsByTransactionId(transactionId: string): Promise<schema.EmailSubscription[]> {
+    // If empty string is passed, return all active subscriptions for weekly digest
+    if (transactionId === '') {
+      return await db
+        .select()
+        .from(schema.email_subscriptions)
+        .where(eq(schema.email_subscriptions.is_subscribed, true));
+    }
+    
     return await db
       .select()
       .from(schema.email_subscriptions)

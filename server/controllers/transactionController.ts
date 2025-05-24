@@ -82,7 +82,7 @@ export const transactionController = {
         });
       }
 
-      // Process each party
+      // Process each party and set up email subscriptions
       if (parties) {
         for (const party of parties) {
           // Check if user already exists
@@ -104,6 +104,37 @@ export const transactionController = {
             role_in_transaction: party.role,
             status: 'pending',
           });
+
+          // Create email subscription with magic link token for Tracker MVP
+          const magicLinkToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          const tokenExpiresAt = new Date();
+          tokenExpiresAt.setFullYear(tokenExpiresAt.getFullYear() + 1); // 1 year expiry
+
+          await storage.createEmailSubscription({
+            transaction_id: transaction.id,
+            party_email: party.email,
+            party_role: party.role,
+            magic_link_token: magicLinkToken,
+            token_expires_at: tokenExpiresAt,
+            is_subscribed: true,
+          });
+
+          // Send welcome email with tracker magic link
+          try {
+            await notificationService.sendTrackerMagicLink(
+              party.email,
+              party.name,
+              party.role,
+              transaction.title,
+              transaction.property_address,
+              negotiator?.name || 'Your Negotiator',
+              magicLinkToken,
+              transaction.id
+            );
+          } catch (emailError) {
+            console.error(`Failed to send welcome email to ${party.email}:`, emailError);
+            // Continue processing other parties even if email fails
+          }
         }
       }
 
