@@ -149,6 +149,9 @@ class DrizzleStorage implements IStorage {
   }
 
   async getTransactionById(id: string): Promise<any> {
+    console.log('=== STORAGE: TRANSACTION FETCH DEBUG ===');
+    console.log('Transaction ID Arg:', id);
+
     // Get the transaction with all related data
     const transaction = await db
       .select()
@@ -156,7 +159,10 @@ class DrizzleStorage implements IStorage {
       .where(eq(schema.transactions.id, id))
       .limit(1);
 
+    console.log('Raw transaction from DB:', JSON.stringify(transaction, null, 2));
+
     if (!transaction[0]) {
+      console.log('No transaction found with ID:', id);
       return undefined;
     }
 
@@ -175,11 +181,18 @@ class DrizzleStorage implements IStorage {
       .leftJoin(schema.users, eq(schema.transaction_participants.user_id, schema.users.id))
       .where(eq(schema.transaction_participants.transaction_id, id));
 
+    console.log('Raw participants data from DB/join:', JSON.stringify(participants, null, 2));
+
     // Return transaction with parties array
-    return {
+    const finalResult = {
       ...transaction[0],
       parties: participants,
     };
+
+    console.log('Final assembled object from storage:', JSON.stringify(finalResult, null, 2));
+    console.log('=== END STORAGE DEBUG ===');
+
+    return finalResult;
   }
 
   async getTransactionsByNegotiatorId(negotiatorId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }> {

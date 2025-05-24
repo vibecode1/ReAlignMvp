@@ -271,6 +271,10 @@ export const transactionController = {
       const { id } = req.params;
       const transaction = await storage.getTransactionById(id);
 
+      console.log('=== CONTROLLER: GET TRANSACTION RESPONSE DEBUG ===');
+      console.log('Data being sent to frontend:', JSON.stringify(transaction, null, 2));
+      console.log('=== END CONTROLLER DEBUG ===');
+
       if (!transaction) {
         return res.status(404).json({
           error: {

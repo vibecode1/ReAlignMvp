@@ -106,6 +106,16 @@ export default function TransactionView({ id }: TransactionViewProps) {
     }
   }, [transaction]);
 
+  // Debug logging for frontend data
+  useEffect(() => {
+    if (transaction) {
+      console.log('=== FRONTEND: RECEIVED TRANSACTION DATA ===');
+      console.log('Full transactionDetails object:', transaction);
+      console.log('transactionDetails.parties:', transaction?.parties);
+      console.log('=== END FRONTEND DEBUG ===');
+    }
+  }, [transaction]);
+
   // Provide safe access to transaction data
   const transactionDetails = transaction || {} as TransactionDetail;
 

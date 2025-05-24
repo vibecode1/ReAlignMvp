@@ -1,0 +1,56 @@
+Yes, please proceed with adding the detailed diagnostic logs you proposed to trace the exact point of failure for the party data. We need to understand precisely how the parties array is being (or not being) constructed and passed from the backend to the frontend.
+
+1. Implement the Following Logging Strategy:
+
+In server/storage.ts (within the getTransactionById method or its equivalent):
+
+TypeScript
+
+console.log('=== STORAGE: TRANSACTION FETCH DEBUG ===');
+console.log('Transaction ID Arg:', id); // Log the ID received by the function
+// Log raw transaction data fetched from the primary 'transactions' table
+// (Assuming 'transaction' is the variable holding this before party processing)
+console.log('Raw transaction from DB:', JSON.stringify(transaction, null, 2)); // Adjust 'transaction' as per your actual variable
+// Log the raw data fetched for participants (e.g., from a separate query or the result of a join before mapping)
+// (Assuming 'participantsData' is the variable holding this)
+console.log('Raw participants data from DB/join:', JSON.stringify(participantsData, null, 2)); // Adjust 'participantsData' as per your actual variable
+// Log the final assembled object that this storage method is about to return
+// (Assuming 'finalResult' or a similar variable holds the transaction object with the .parties array)
+console.log('Final assembled object from storage:', JSON.stringify(finalResult, null, 2)); // Adjust 'finalResult' as per your actual variable
+In server/controllers/transactionController.ts (within the getTransaction route handler for GET /api/v1/transactions/:id):
+
+TypeScript
+
+console.log('=== CONTROLLER: GET TRANSACTION RESPONSE DEBUG ===');
+// (Assuming 'transactionData' is the variable holding the data prepared by storage, before res.json())
+console.log('Data being sent to frontend:', JSON.stringify(transactionData, null, 2)); // Adjust 'transactionData' as per your actual variable
+In client/src/pages/TransactionView.tsx (where useQuery for transaction details returns data):
+
+TypeScript
+
+// (Assuming 'transactionDetails' is the object returned by your useQuery for the transaction)
+// Place this log where 'transactionDetails' is available, ideally in a useEffect or directly in the render if careful
+console.log('=== FRONTEND: RECEIVED TRANSACTION DATA ===');
+console.log('Full transactionDetails object:', transactionDetails);
+console.log('transactionDetails.parties:', transactionDetails?.parties);
+2. Test and Analyze Logs:
+* After adding these logs, please run the test case again: add a party to an existing transaction.
+* Carefully examine the console output from both the server and the client (browser developer console).
+
+3. Pinpoint and Fix the Discrepancy:
+* Based on the log output, determine exactly where the parties data is:
+* Not being fetched correctly from the database (e.g., JOIN logic in Drizzle in server/storage.ts is faulty).
+* Being lost or malformed during the data assembly/mapping process in server/storage.ts.
+* Not being correctly passed from server/storage.ts to server/controllers/transactionController.ts.
+* Or, less likely now but still possible, being misinterpreted by the frontend despite being sent correctly (though the focus is backend data shaping).
+* The goal is to ensure the parties array in the final JSON response from GET /api/v1/transactions/:id precisely matches the frontend's expected structure:
+typescript // Frontend expected structure for each party object in the 'parties' array: // { // userId: string; // name: string; // role: PartyRole; // e.g., 'seller', 'buyer' // status: PartyStatus; // e.g., 'pending', 'complete' // lastAction?: string; // welcome_email_sent?: boolean; // For the later UX enhancement // }
+* Implement the necessary code changes in server/storage.ts (primarily the Drizzle query for fetching/joining transaction and participant/user data) and/or server/controllers/transactionController.ts to correct the data structure.
+
+4. Address UX Enhancements (After Primary Fix):
+* Once parties are correctly displaying:
+* Remove the "Success" toast notification from the onSuccess callback of the add party mutation in client/src/pages/TransactionView.tsx (or its related party addition component).
+* Ensure the welcome_email_sent field (boolean) is correctly included in the party data from the backend (as part of the fix in step 3).
+* Modify client/src/components/transactions/PartyCard.tsx or the relevant rendering logic in TransactionView.tsx to display a checkmark icon if party.welcome_email_sent is true.
+
+Please provide the modified code snippets once you've analyzed the logs and implemented the fixes, particularly for server/storage.ts."
