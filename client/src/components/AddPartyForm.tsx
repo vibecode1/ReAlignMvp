@@ -37,10 +37,7 @@ export function AddPartyForm({ transactionId }: AddPartyFormProps) {
 
   const addPartyMutation = useMutation({
     mutationFn: async (partyData: { name: string; email: string; role: string }) => {
-      return apiRequest(`/api/v1/transactions/${transactionId}/parties`, {
-        method: 'POST',
-        body: JSON.stringify(partyData),
-      });
+      return apiRequest('POST', `/api/v1/transactions/${transactionId}/parties`, partyData);
     },
     onSuccess: () => {
       toast({

@@ -31,6 +31,8 @@ import UploadWidget from "@/components/transactions/UploadWidget";
 import FileList from "@/components/transactions/FileList";
 import TrackerNotesWidget from "@/components/transactions/TrackerNotesWidget";
 import PhaseManager from "@/components/transactions/PhaseManager";
+import { AddPartyForm } from "@/components/AddPartyForm";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 // Define transaction interface to help with TypeScript errors
@@ -393,11 +395,65 @@ export default function TransactionView({ id }: TransactionViewProps) {
             }}
           />
         </motion.div>
+
+        {/* Party Management Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Transaction Parties</CardTitle>
+                  <CardDescription>
+                    Manage the parties involved in this transaction
+                  </CardDescription>
+                </div>
+                {isNegotiator && (
+                  <AddPartyForm transactionId={id} />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {transactionDetails.parties?.map((party, index) => (
+                  <div key={party.userId || index} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{party.name}</h4>
+                      <Badge variant={
+                        party.status === 'complete' ? 'default' :
+                        party.status === 'overdue' ? 'destructive' : 'secondary'
+                      }>
+                        {party.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Role: {party.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </p>
+                    {party.lastAction && (
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Last action: {party.lastAction}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                {(!transactionDetails.parties || transactionDetails.parties.length === 0) && (
+                  <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                    No parties added yet
+                    {isNegotiator && <span className="block text-sm mt-1">Click "Add Party" to get started</span>}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
           
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
             <MessageThread 
               messages={transactionDetails.messages || []}
