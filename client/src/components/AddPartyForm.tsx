@@ -40,14 +40,20 @@ export function AddPartyForm({ transactionId }: AddPartyFormProps) {
       const response = await apiRequest('POST', `/api/v1/transactions/${transactionId}/parties`, partyData);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      console.log('=== MUTATION SUCCESS ===');
+      console.log('Add party response:', data);
+      
+      // Add a small delay to ensure backend processing is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Critical fix: Invalidate the transaction query to refetch updated party list
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${transactionId}`] });
       
       // Also invalidate the transactions list if it exists
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
 
-      // Success is now indicated by the party appearing in the list - no toast needed
+      console.log('=== CACHE INVALIDATED ===');
 
       // Reset form and close dialog
       setName("");
