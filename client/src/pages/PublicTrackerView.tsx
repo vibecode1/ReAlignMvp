@@ -330,7 +330,7 @@ export default function PublicTrackerView() {
                       if (!groups[role]) groups[role] = [];
                       groups[role].push(doc);
                       return groups;
-                    }, {})
+                    }, {} as Record<string, any[]>)
                   ).map(([role, docs]: [string, any[]]) => (
                     <div key={role} className="space-y-3">
                       <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">

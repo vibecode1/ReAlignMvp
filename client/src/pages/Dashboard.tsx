@@ -20,6 +20,7 @@ import {
   AlertCircle 
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { EnhancedEmptyState } from "@/components/ui/enhanced-empty-state";
 
 interface TransactionSummary {
   id: string;
@@ -146,7 +147,10 @@ export default function Dashboard() {
             <CardDescription>Your recently active transactions</CardDescription>
           </div>
           {user?.role === 'negotiator' && (
-            <Button onClick={() => navigate('/transactions/new')}>
+            <Button 
+              onClick={() => navigate('/transactions/new')}
+              className="btn-mobile focus-enhanced"
+            >
               <Plus className="h-4 w-4 mr-1" />
               New Transaction
             </Button>
@@ -163,20 +167,16 @@ export default function Dashboard() {
               <span>Failed to load transactions</span>
             </div>
           ) : recentTransactions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-              <p>No transactions yet.</p>
-              {user?.role === 'negotiator' && (
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => navigate('/transactions/new')}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create Your First Transaction
-                </Button>
-              )}
-            </div>
+            <EnhancedEmptyState
+              icon={<FileText className="h-12 w-12" />}
+              title="No transactions yet"
+              description={user?.role === 'negotiator' 
+                ? "Start managing real estate transactions efficiently with your first deal." 
+                : "Once you're added to transactions, they'll appear here for easy tracking."
+              }
+              actionLabel={user?.role === 'negotiator' ? "Create Your First Transaction" : undefined}
+              onAction={user?.role === 'negotiator' ? () => navigate('/transactions/new') : undefined}
+            />
           ) : (
             <div className="space-y-4">
               {recentTransactions.map((transaction, index) => (
@@ -186,29 +186,42 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.1 * index }}
                 >
-                  <Link href={`/transactions/${transaction.id}`}>
-                    <a className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{transaction.title}</h3>
-                          <p className="text-sm text-gray-500 mt-1">{transaction.property_address}</p>
-                          <div className="mt-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {transaction.currentPhase}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Last activity: {getRelativeTime(transaction.lastActivityAt)}
+                  <div 
+                    className="block p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer btn-mobile focus-enhanced"
+                    onClick={() => navigate(`/transactions/${transaction.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/transactions/${transaction.id}`);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-white">{transaction.title}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{transaction.property_address}</p>
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+                            {transaction.currentPhase}
+                          </span>
                         </div>
                       </div>
-                    </a>
-                  </Link>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Last activity: {getRelativeTime(transaction.lastActivityAt)}
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
               
               <div className="text-center pt-4">
-                <Button variant="outline" onClick={() => navigate('/transactions')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/transactions')}
+                  className="btn-mobile focus-enhanced"
+                >
                   View All Transactions
                 </Button>
               </div>
@@ -225,15 +238,27 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-auto py-6 flex flex-col" onClick={() => navigate('/transactions')}>
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col btn-mobile focus-enhanced" 
+              onClick={() => navigate('/transactions')}
+            >
               <FileText className="h-8 w-8 mb-2" />
               <span>Manage Transactions</span>
             </Button>
-            <Button variant="outline" className="h-auto py-6 flex flex-col" onClick={() => navigate('/document-requests')}>
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col btn-mobile focus-enhanced" 
+              onClick={() => navigate('/document-requests')}
+            >
               <Home className="h-8 w-8 mb-2" />
               <span>Document Requests</span>
             </Button>
-            <Button variant="outline" className="h-auto py-6 flex flex-col" onClick={() => navigate('/notifications')}>
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col btn-mobile focus-enhanced" 
+              onClick={() => navigate('/notifications')}
+            >
               <Clock className="h-8 w-8 mb-2" />
               <span>Notification Settings</span>
             </Button>
