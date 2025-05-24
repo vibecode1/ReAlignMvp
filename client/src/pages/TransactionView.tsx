@@ -288,7 +288,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
       
       {/* Transaction details content - mobile-first stacking */}
       <div className="space-y-4 lg:space-y-6">
-        {/* Mobile-first: Phase Tracker comes first */}
+        {/* Phase Tracker */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -321,8 +321,9 @@ export default function TransactionView({ id }: TransactionViewProps) {
               }
             }}
           />
+        </motion.div>
           
-          <motion.div
+        <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
@@ -488,63 +489,128 @@ export default function TransactionView({ id }: TransactionViewProps) {
               }}
             />
           </motion.div>
-        </div>
-        
-        {/* Right column - sidebar */}
-        <div className="space-y-6">
+
+        {/* Message Thread - Mobile Optimized */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <MessageThread 
+            messages={transactionDetails.messages || []}
+            currentUserRole={user?.role || 'unknown'}
+            onSendMessage={async (text, replyToId) => {
+              try {
+                const messageData = {
+                  text,
+                  reply_to: replyToId || null
+                };
+                
+                await apiRequest('POST', `/api/v1/transactions/${id}/messages`, messageData);
+                
+                toast({
+                  title: "Message Sent",
+                  description: "Your message has been sent successfully.",
+                });
+                
+                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              } catch (error) {
+                console.error('Failed to send message:', error);
+                toast({
+                  title: "Message Failed",
+                  description: "There was an error sending your message. Please try again.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            onUpload={(file) => {
+              const uploadSection = document.getElementById('upload-section');
+              if (uploadSection) {
+                uploadSection.scrollIntoView({ behavior: 'smooth' });
+                toast({
+                  title: "File Selected",
+                  description: "Please complete your upload using the upload panel.",
+                });
+              }
+            }}
+            initialMessageEditable={isNegotiator && 
+              transactionDetails.messages?.some((m) => m.isSeedMessage === true)}
+          />
+        </motion.div>
+
+        {/* Upload and File Management - Mobile Optimized */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          id="upload-section"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            {/* Upload Widget */}
+            <div>
+              <UploadWidget
+                transactionId={id!}
+                onUploadComplete={() => {
+                  queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                  toast({
+                    title: "Upload Complete",
+                    description: "Your file has been uploaded successfully.",
+                  });
+                }}
+              />
+            </div>
+
+            {/* File List */}
+            <div>
+              <FileList 
+                transactionId={id!}
+                currentUserRole={user?.role || 'unknown'}
+                onVisibilityChange={async (uploadId, visibility) => {
+                  try {
+                    await apiRequest('PATCH', `/api/v1/uploads/${uploadId}`, {
+                      visibility
+                    });
+                    
+                    toast({
+                      title: "Visibility Updated",
+                      description: "File visibility has been updated.",
+                    });
+                    
+                    queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                  } catch (error) {
+                    console.error('Failed to update visibility:', error);
+                    toast({
+                      title: "Update Failed",
+                      description: "There was an error updating file visibility.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Phase Manager for Negotiators - Mobile Optimized */}
+        {isNegotiator && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction Parties</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {transactionDetails.parties && transactionDetails.parties.map((party) => (
-                  <PartyCard
-                    key={party.userId}
-                    role={party.role}
-                    name={party.name}
-                    status={party.status}
-                    lastAction={party.lastAction}
-                    isEditable={isNegotiator}
-                    onStatusChange={async (newStatus) => {
-                      try {
-                        await apiRequest('PATCH', `/api/v1/transactions/${id}/parties/${party.userId}`, {
-                          status: newStatus,
-                          lastAction: `Status updated to ${newStatus} on ${new Date().toLocaleDateString()}`
-                        });
-                        
-                        toast({
-                          title: "Status Updated",
-                          description: `${party.name}'s status has been updated to ${newStatus}.`
-                        });
-                        queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
-                      } catch (error) {
-                        console.error('Failed to update party status:', error);
-                        toast({
-                          title: "Update Failed",
-                          description: "There was an error updating the party status. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  />
-                ))}
-                {(!transactionDetails.parties || transactionDetails.parties.length === 0) && (
-                  <div className="text-center py-4 text-gray-500">
-                    No parties assigned to this transaction yet.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <PhaseManager 
+              transactionId={id!}
+              currentPhase={transactionDetails.currentPhase || 'intro'}
+              onPhaseUpdate={(newPhase) => {
+                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+              }}
+            />
           </motion.div>
-          
-          <motion.div
-            id="upload-section"
-            initial={{ opacity: 0, y: 10 }}
+        )}
+      </div>
+    </div>
+  );
+}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}
           >
@@ -614,7 +680,6 @@ export default function TransactionView({ id }: TransactionViewProps) {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
       </div>
     </div>
   );
