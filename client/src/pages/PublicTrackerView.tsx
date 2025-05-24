@@ -322,15 +322,29 @@ export default function PublicTrackerView() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {/* Sort by status: overdue and pending first */}
-                  {trackerData.documentRequests
-                    .sort((a: any, b: any) => {
-                      const statusOrder = { 'overdue': 0, 'pending': 1, 'complete': 2 };
-                      return (statusOrder[a.status as keyof typeof statusOrder] || 3) - 
-                             (statusOrder[b.status as keyof typeof statusOrder] || 3);
-                    })
-                    .map((doc: any) => (
+                <div className="space-y-4">
+                  {/* Group documents by party role */}
+                  {Object.entries(
+                    trackerData.documentRequests.reduce((groups: any, doc: any) => {
+                      const role = doc.assignedTo || 'Unassigned';
+                      if (!groups[role]) groups[role] = [];
+                      groups[role].push(doc);
+                      return groups;
+                    }, {})
+                  ).map(([role, docs]: [string, any[]]) => (
+                    <div key={role} className="space-y-3">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                        Outstanding from {role}:
+                      </h4>
+                      
+                      <div className="space-y-2 ml-2">
+                        {docs
+                          .sort((a: any, b: any) => {
+                            const statusOrder = { 'overdue': 0, 'pending': 1, 'complete': 2 };
+                            return (statusOrder[a.status as keyof typeof statusOrder] || 3) - 
+                                   (statusOrder[b.status as keyof typeof statusOrder] || 3);
+                          })
+                          .map((doc: any) => (
                     <div
                       key={doc.id}
                       className={`border rounded-lg p-4 ${
@@ -365,6 +379,9 @@ export default function PublicTrackerView() {
                           Days pending: <span className="font-medium">{getDaysAgo(doc.requested_at)}</span>
                         </p>
                       )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

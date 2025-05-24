@@ -22,15 +22,33 @@
   
   /* Better mobile button states and touch targets */
   .btn-mobile {
-    @apply min-h-[44px] min-w-[44px] transition-all duration-200;
+    @apply min-h-[44px] min-w-[44px] transition-all duration-200 relative;
   }
   
   .btn-mobile:hover {
-    @apply scale-[1.02];
+    @apply scale-[1.02] shadow-md;
   }
   
   .btn-mobile:active {
-    @apply scale-[0.98];
+    @apply scale-[0.98] shadow-sm;
+  }
+  
+  .btn-mobile:disabled {
+    @apply opacity-50 cursor-not-allowed transform-none shadow-none;
+  }
+  
+  .btn-mobile:focus-visible {
+    @apply ring-2 ring-blue-500/50 ring-offset-2;
+  }
+  
+  /* Loading state for buttons */
+  .btn-loading {
+    @apply pointer-events-none relative;
+  }
+  
+  .btn-loading::after {
+    content: '';
+    @apply absolute inset-0 bg-current opacity-20 animate-pulse rounded-inherit;
   }
   
   /* Enhanced focus states for accessibility */
