@@ -46,9 +46,12 @@ export const authController = {
       });
 
       if (error) {
-        console.error('Supabase login error code:', error.status);
-        console.error('Supabase login error message:', error.message);
-        console.error('Full Supabase error:', JSON.stringify(error, null, 2));
+        console.error('=== SUPABASE LOGIN ERROR ===');
+        console.error('Error status:', error.status);
+        console.error('Error message:', error.message);
+        console.error('Error name:', error.name);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        console.error('=== END SUPABASE ERROR ===');
         return res.status(401).json({
           error: {
             code: 'INVALID_CREDENTIALS',
