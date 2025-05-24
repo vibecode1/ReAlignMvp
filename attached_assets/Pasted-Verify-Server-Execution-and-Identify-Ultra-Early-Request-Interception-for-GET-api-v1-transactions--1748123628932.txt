@@ -1,0 +1,63 @@
+Verify Server Execution and Identify Ultra-Early Request Interception for GET /api/v1/transactions/:id
+
+"The latest finding that NONE of our detailed !!! TRACE: logs (from global, apiRouter, or transactionRouter specific route middleware) are appearing—despite basic API request logs, the initial transactionRouter debug log, and an authenticateJWT log showing up—is a critical turning point. This indicates the request for GET /api/v1/transactions/:id is likely being intercepted and handled by a mechanism outside or extremely early in the Express routing stack we've been instrumenting, or the server is not running the code with these detailed logs.
+
+Our primary goal now is to confirm what code is actually running and identify this intercepting mechanism.
+
+Please guide me through these VERY BASIC verification and diagnostic steps:
+
+Absolute Server Code Execution Verification:
+
+Action: Go to the very top of your main server entry point file, server/index.ts. As the absolute first line of executable code (even before imports, if possible, or immediately after them), add an unmistakable, unique console log that includes a version counter you manually increment each time you save.
+TypeScript
+
+console.log('!!!!!!!! SERVER ENTRY POINT (server/index.ts) IS RUNNING - VERSION 1 !!!!!!!!');
+// Increment to VERSION 2, VERSION 3, etc., on each change and server restart.
+// ... rest of your imports and server/index.ts code
+Purpose: To confirm that Replit is picking up changes to server/index.ts and running the latest version of this core file upon restart. If this log doesn't appear or doesn't update with the version, we have a fundamental environment/reload issue.
+Ultra-Early Global Interceptor Test in server/index.ts (or server/routes.ts):
+
+Action: In server/index.ts, immediately after the app (Express instance) is initialized, and before any other middleware or routers are attached to app (including registerRoutes), add the following temporary, catch-all handler for the specific problematic route:
+TypeScript
+
+// In server/index.ts, right after const app = express();
+// And BEFORE app.use(corsInstance); app.use(express.json()); etc.
+// And BEFORE registerRoutes(app);
+
+app.get('/api/v1/transactions/:id', (req, res, next) => {
+  console.log('!!!!!!!! GLOBAL APP-LEVEL INTERCEPTOR for /api/v1/transactions/:id HIT !!!!!! ID:', req.params.id);
+  // Temporarily hijack the response to be absolutely sure this is what's being hit.
+  res.status(599).json({
+    message: 'Request HIT GLOBAL APP-LEVEL INTERCEPTOR in server/index.ts',
+    transactionId: req.params.id,
+    source: 'server/index.ts global interceptor',
+    timestamp: new Date().toISOString(),
+    parties: [{ name: "Test Party from Global Interceptor in server/index.ts" }]
+  });
+  return; // Stop further processing
+});
+
+console.log('!!!!!!!! GLOBAL APP-LEVEL INTERCEPTOR for /api/v1/transactions/:id has been defined in server/index.ts !!!!!!!!');
+Purpose:
+If this log and response are triggered, it means the Express app defined in server/index.ts is receiving the request directly, and the interception point is somewhere in the subsequent global middleware or within registerRoutes but before the trace logs you added previously could execute (perhaps due to a file save/reload issue for server/routes.ts itself).
+If this log and response are NOT triggered (and your VERSION X log from step 1 is appearing), it strongly suggests:
+Another process or server (e.g., Vite dev server proxy, a different Node.js process, Replit's internal routing) is handling /api/v1/transactions/:id before it even reaches this Node.js/Express application instance.
+Or, the server/index.ts file itself isn't being reloaded/run with the latest changes (which step 1 should help clarify).
+Examine Vite Configuration for Backend Requests (if applicable):
+
+File: vite.config.ts (and potentially server/vite.ts if it's involved in serving).
+Action: Look for any server.proxy rules in vite.config.ts that might be catching /api/v1/transactions/:id and handling it differently or proxying it to an unexpected place (or an old version of your backend). Vite is primarily for frontend dev serving, but its proxy can be used for API requests.
+Server Start Script & Build Process:
+
+File: package.json (look at scripts like dev, start, build).
+File: tsconfig.json (look for outDir if a separate build step is involved).
+Action: Understand how the server is started. Is it running compiled JavaScript from a dist or build folder? If so, ensure the TypeScript-to-JavaScript compilation is happening correctly and includes your latest changes with all the logs. If it's using a direct TypeScript runner like ts-node or tsx, changes should ideally be picked up on restart.
+Request for You (the User):
+After the AI helps you implement these very top-level diagnostics (especially the VERSION X log and the global app-level interceptor in server/index.ts):
+
+Manually restart the server thoroughly.
+Perform the action (add a party) to trigger the GET /api/v1/transactions/:id call.
+Provide the complete server console output back to the AI.
+Report specifically:
+Did the VERSION X log from server/index.ts appear and update correctly?
+Was the "GLOBAL APP-LEVEL INTERCEPTOR" hit (did you get a 599 response with its specific JSON)?
