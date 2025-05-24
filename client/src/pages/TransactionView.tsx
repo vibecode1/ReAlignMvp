@@ -563,8 +563,10 @@ export default function TransactionView({ id }: TransactionViewProps) {
             {/* File List */}
             <div>
               <FileList 
+                uploads={transactionDetails.uploads || []}
                 transactionId={id!}
                 currentUserRole={user?.role || 'unknown'}
+                currentUserId={user?.id || ''}
               />
             </div>
           </div>
