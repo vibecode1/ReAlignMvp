@@ -314,7 +314,7 @@ export default function PublicTrackerView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {trackerData.documentRequests.length === 0 ? (
+              {!trackerData?.documentRequests || trackerData.documentRequests.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 dark:text-gray-400">
