@@ -506,9 +506,10 @@ export const transactionController = {
         console.log(`✅ Email subscription created for ${email} with token: ${magicLinkToken.substring(0, 10)}...`);
 
         // Send notification email
+        let emailSent = false;
         try {
           console.log(`📧 Sending notification email to ${email}...`);
-          const emailSent = await notificationService.sendTrackerMagicLink(
+          emailSent = await notificationService.sendTrackerMagicLink(
             email,
             name,
             role,
@@ -521,6 +522,8 @@ export const transactionController = {
           
           if (emailSent) {
             console.log('✅ EMAIL SENT SUCCESSFULLY to', email);
+            // Update participant to mark email as sent
+            await storage.updateParticipantEmailSent(transactionId, user.id, true);
           } else {
             console.log('⚠️ EMAIL SENDING RETURNED FALSE for', email);
           }

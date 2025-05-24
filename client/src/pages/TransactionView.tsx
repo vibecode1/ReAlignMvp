@@ -18,7 +18,8 @@ import {
   Save, 
   X,
   ExternalLink,
-  Copy
+  Copy,
+  CheckCircle2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -52,6 +53,7 @@ interface TransactionDetail {
     role: PartyRole;
     status: PartyStatus;
     lastAction?: string;
+    welcome_email_sent?: boolean;
   }>;
   messages: Message[];
   documentRequests: DocumentRequest[];
@@ -421,7 +423,12 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 {transactionDetails.parties?.map((party, index) => (
                   <div key={party.userId || index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium">{party.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{party.name}</h4>
+                        {party.welcome_email_sent && (
+                          <CheckCircle2 size={16} className="text-green-500" />
+                        )}
+                      </div>
                       <Badge variant={
                         party.status === 'complete' ? 'default' :
                         party.status === 'overdue' ? 'destructive' : 'secondary'

@@ -47,10 +47,7 @@ export function AddPartyForm({ transactionId }: AddPartyFormProps) {
       // Also invalidate the transactions list if it exists
       queryClient.invalidateQueries({ queryKey: ['/api/v1/transactions'] });
 
-      toast({
-        title: "Party Added",
-        description: "The party has been successfully added to the transaction.",
-      });
+      // Success is now indicated by the party appearing in the list - no toast needed
 
       // Reset form and close dialog
       setName("");
