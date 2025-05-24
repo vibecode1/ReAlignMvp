@@ -9,7 +9,7 @@ export interface TransactionPhase {
   description: string;
 }
 
-export const TRANSACTION_PHASES: TransactionPhase[] = [
+export const PHASE_CONFIG: TransactionPhase[] = [
   {
     key: 'Transaction Initiated',
     name: 'Transaction Initiated',
@@ -70,15 +70,20 @@ export const TRANSACTION_PHASES: TransactionPhase[] = [
 /**
  * Get phase by key
  */
+export const TRANSACTION_PHASES = PHASE_CONFIG;
+
+// Also export for backward compatibility
+export { PHASE_CONFIG as TRANSACTION_PHASES_LEGACY };
+
 export const getPhaseByKey = (key: string): TransactionPhase | undefined => {
-  return TRANSACTION_PHASES.find(phase => phase.key === key);
+  return PHASE_CONFIG.find(phase => phase.key === key);
 };
 
 /**
  * Get phase index
  */
 export const getPhaseIndex = (key: string): number => {
-  return TRANSACTION_PHASES.findIndex(phase => phase.key === key);
+  return PHASE_CONFIG.findIndex(phase => phase.key === key);
 };
 
 /**
@@ -86,8 +91,8 @@ export const getPhaseIndex = (key: string): number => {
  */
 export const getNextPhase = (currentKey: string): TransactionPhase | undefined => {
   const currentIndex = getPhaseIndex(currentKey);
-  if (currentIndex >= 0 && currentIndex < TRANSACTION_PHASES.length - 1) {
-    return TRANSACTION_PHASES[currentIndex + 1];
+  if (currentIndex >= 0 && currentIndex < PHASE_CONFIG.length - 1) {
+    return PHASE_CONFIG[currentIndex + 1];
   }
   return undefined;
 };
