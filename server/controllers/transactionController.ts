@@ -483,22 +483,35 @@ export const transactionController = {
 
         // Check if participant already exists in this transaction WITH THE SAME ROLE
         const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
+        console.log(`=== PARTICIPANT CHECK DEBUG ===`);
+        console.log(`Checking for user ${user.id} with role ${role}`);
+        console.log(`Existing participants:`, existingParticipants.map(p => ({ userId: p.user_id, role: p.role_in_transaction })));
+        
         const existingParticipant = existingParticipants.find(p => p.user_id === user.id && p.role_in_transaction === role);
+        console.log(`Found existing participant with same role?`, !!existingParticipant);
 
         let participant;
         if (existingParticipant) {
-          console.log(`Participant already exists with same role (${role}), skipping duplicate`);
+          console.log(`❌ Participant already exists with same role (${role}), skipping duplicate`);
           participant = existingParticipant;
         } else {
           // Check if user has ANY role in this transaction (for logging purposes)
           const userInTransaction = existingParticipants.filter(p => p.user_id === user.id);
           if (userInTransaction.length > 0) {
-            console.log(`User already has roles: [${userInTransaction.map(p => p.role_in_transaction).join(', ')}]. Adding additional role: ${role}`);
+            console.log(`✅ User already has roles: [${userInTransaction.map(p => p.role_in_transaction).join(', ')}]. Adding additional role: ${role}`);
           } else {
-            console.log(`Adding new participant with role: ${role}`);
+            console.log(`✅ Adding new participant with role: ${role}`);
           }
           
           // Add new participant (allows multiple roles for same user)
+          console.log(`>>> CALLING storage.addParticipant with:`, {
+            transaction_id: transactionId,
+            user_id: user.id,
+            role_in_transaction: role,
+            status: 'pending',
+            last_action: 'Added to transaction',
+          });
+          
           participant = await storage.addParticipant({
             transaction_id: transactionId,
             user_id: user.id,
@@ -506,6 +519,8 @@ export const transactionController = {
             status: 'pending',
             last_action: 'Added to transaction',
           });
+          
+          console.log(`✅ NEW PARTICIPANT CREATED:`, participant);
         }
 
         // Generate magic link token for email subscription
