@@ -16,9 +16,15 @@ export const authController = {
    */
   async login(req: Request, res: Response) {
     try {
+      console.log('=== LOGIN REQUEST RECEIVED ===');
+      console.log('Request body keys:', Object.keys(req.body));
+      console.log('Environment check - Supabase URL exists:', !!config.supabaseUrl);
+      console.log('Environment check - Supabase Anon Key exists:', !!config.supabaseAnonKey);
+      
       // Validate request body
       const validation = LoginSchema.safeParse(req.body);
       if (!validation.success) {
+        console.log('Validation failed:', validation.error.errors);
         return res.status(400).json({
           error: {
             code: 'VALIDATION_ERROR',
@@ -29,16 +35,20 @@ export const authController = {
       }
 
       const { email, password } = validation.data;
+      console.log('Login attempt for email:', email);
+      console.log('Password length:', password.length);
 
       // Authenticate with Supabase using auth client
-      console.log('Login attempt for:', email);
+      console.log('Attempting Supabase authentication...');
       const { data, error } = await supabaseAuthClient.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('Login error:', error.message);
+        console.error('Supabase login error code:', error.status);
+        console.error('Supabase login error message:', error.message);
+        console.error('Full Supabase error:', JSON.stringify(error, null, 2));
         return res.status(401).json({
           error: {
             code: 'INVALID_CREDENTIALS',
@@ -46,6 +56,10 @@ export const authController = {
           }
         });
       }
+
+      console.log('Supabase authentication successful');
+      console.log('Session exists:', !!data.session);
+      console.log('User exists:', !!data.user);
 
       // Fetch user details from our database
       const user = await storage.getUserByEmail(email);
