@@ -65,12 +65,10 @@ export default function Account() {
                 </Badge>
               </div>
 
-              {user?.createdAt && (
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Member since {formatDate(user.createdAt)}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Active Member</span>
+              </div>
             </div>
           </CardContent>
         </Card>
