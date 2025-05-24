@@ -16,6 +16,7 @@ export interface AuthenticatedRequest extends Request {
  * Middleware to verify JWT token from Supabase Auth
  */
 export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  console.log(`--- authenticateJWT MIDDLEWARE CALLED for ${req.method} ${req.originalUrl} ---`);
   const authHeader = req.headers.authorization;
   
   if (!authHeader) {

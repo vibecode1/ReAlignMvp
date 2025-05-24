@@ -44,6 +44,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // -- Transaction Routes --
   const transactionRouter = express.Router();
   
+  // ADD LOGGING MIDDLEWARE AT THE TOP OF transactionRouter
+  transactionRouter.use((req, res, next) => {
+    console.log(`--- transactionRouter received request: ${req.method} ${req.path} ---`);
+    console.log('Request URL:', req.originalUrl);
+    console.log('Authorization header present:', !!req.headers.authorization);
+    if (req.headers.authorization) {
+      console.log('Auth header (first 10 chars):', req.headers.authorization.substring(0, 20) + '...');
+    }
+    next();
+  });
+  
   // Transaction endpoints
   transactionRouter.post('/', authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
