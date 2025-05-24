@@ -92,24 +92,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.post('/', authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
   
-  // -- Party Status Routes - DIRECT IMPLEMENTATION --
-  // Add party route with direct implementation to bypass middleware issues
-  transactionRouter.post('/:id/parties', (req, res) => {
-    console.log('🎯 DIRECT POST /:id/parties route HIT!');
-    console.log('🎯 Route params:', req.params);
-    console.log('🎯 Request body:', req.body);
-    console.log('🎯 Full req.path:', req.path);
-    console.log('🎯 Method:', req.method);
-    
-    // Simple test response first
-    res.json({ 
-      success: true, 
-      message: 'Route matched successfully',
-      params: req.params,
-      body: req.body,
-      path: req.path
-    });
-  });
+  // -- Add Parties to Transaction Route (NEW) --
+  transactionRouter.post(
+    '/:id/parties',
+    authenticateJWT,         // Ensure user is authenticated
+    requireNegotiatorRole,   // Ensure user is a negotiator
+    requireTransactionAccess, // Ensure negotiator has access to this transaction :id
+    transactionController.addPartiesToTransaction // New controller method
+  );
   
   transactionRouter.get('/:id/parties', (req, res, next) => {
     console.log('🎯 HIT GET /:id/parties route - params:', req.params);

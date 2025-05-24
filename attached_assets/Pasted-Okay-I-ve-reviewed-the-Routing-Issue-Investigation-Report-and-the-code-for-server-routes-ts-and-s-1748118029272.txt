@@ -1,0 +1,122 @@
+Okay, I've reviewed the "Routing Issue Investigation Report" and the code for server/routes.ts and server/controllers/transactionController.ts.
+
+The primary issue appears to be that there is no POST route defined for /api/v1/transactions/:id/parties in your server/routes.ts file. The existing routes for parties under the transaction router are:
+
+transactionRouter.get('/:id/parties', ...) for fetching parties.
+transactionRouter.patch('/:transactionId/parties/:userId', ...) for updating a specific party's status, which has a different path structure.
+Since a POST request to /api/v1/transactions/:id/parties does not match any defined route, an HTTP 404 error is the expected behavior from Express.js.
+
+Here's a detailed prompt you can use for an AI to help you implement the missing functionality:
+
+AI Prompt to Resolve 404 Error for Adding Parties to Transaction
+
+Objective:
+Resolve the HTTP 404 error occurring when a POST request is made to /api/v1/transactions/:id/parties. This involves defining the missing route in server/routes.ts and creating the corresponding controller method in server/controllers/transactionController.ts to handle the logic for adding one or more parties to an existing transaction.
+
+Background:
+The application uses Express.js for routing. Logs confirm that requests like POST /api/v1/transactions/some-uuid/parties reach the transactionRouter defined in server/routes.ts. However, this specific POST endpoint for adding parties is currently resulting in a 404. Analysis of server/routes.ts reveals that while GET and PATCH routes related to parties exist, the POST /:id/parties route is missing. Additionally, server/controllers/transactionController.ts does not currently have a dedicated method for adding new parties to an existing transaction via this endpoint.
+
+Files to Modify:
+
+server/routes.ts
+server/controllers/transactionController.ts
+Instructions for the AI:
+
+1. Modify server/routes.ts:
+* Locate the transactionRouter section.
+* Add a new route definition for POST /:id/parties. This route should handle adding new parties to an existing transaction identified by :id.
+* Apply appropriate middleware: Based on other transaction routes, this should likely include authenticateJWT, requireNegotiatorRole, and requireTransactionAccess.
+* Point this new route to a new controller method in transactionController, for example, transactionController.addPartiesToTransaction.
+
+**Example structure for the new route in `server/routes.ts` (within the `transactionRouter` definitions):**
+```typescript
+// -- Add Parties to Transaction Route (NEW) --
+transactionRouter.post(
+  '/:id/parties',
+  authenticateJWT,         // Ensure user is authenticated
+  requireNegotiatorRole,   // Ensure user is a negotiator
+  requireTransactionAccess, // Ensure negotiator has access to this transaction :id
+  transactionController.addPartiesToTransaction // New controller method
+);
+```
+2. Modify server/controllers/transactionController.ts:
+* Define the new controller method addPartiesToTransaction(req: AuthenticatedRequest, res: Response).
+* This method will be responsible for:
+* Retrieving the transaction ID from req.params.id.
+* Validating the request body (req.body). Assume the body will contain an array of party objects to be added. Define a Zod schema (similar to CreateTransactionSchemaTrackerMVP but for adding parties) to validate this input. Each party object in the array should at least contain name, email, and role.
+Example Party Schema for req.body:
+typescript // Define this schema at the top of the file or in a shared types file const AddPartiesSchema = z.object({ parties: z.array(z.object({ name: z.string().min(1, "Name is required"), email: z.string().email("Invalid email"), role: z.enum(['seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow'], { errorMap: () => ({ message: "Invalid role" }), }), // Potentially other fields like 'send_welcome_email' boolean })).min(1, "At least one party must be provided"), });
+* Checking if the transaction exists using storage.getTransactionById(transactionId).
+* Iterating through the provided parties:
+* For each party, check if a user with that email already exists (storage.getUserByEmail).
+* If not, create the user (storage.createUser).
+* Add the user as a participant to the transaction (storage.addParticipant). Ensure you handle cases where a user might already be a participant in a different role or the same role (decide on behavior: update, error, or ignore).
+* Create an email subscription for the new party (storage.createEmailSubscription) similar to how it's done in createTransaction.
+* Optionally, send a welcome/notification email to the newly added party using notificationService.sendTrackerMagicLink or a similar new notification method tailored for adding parties.
+* Returning an appropriate response:
+* On success (e.g., HTTP 200 or 201), return the updated transaction details or a list of the newly added parties.
+* Handle errors (e.g., validation errors with 400, transaction not found with 404, server errors with 500).
+* Ensure proper error handling and logging throughout the method.
+
+**Example skeleton for the new `addPartiesToTransaction` method in `server/controllers/transactionController.ts`:**
+```typescript
+// ... other imports and schemas ...
+
+// Potentially define AddPartiesSchema here or import it
+
+export const transactionController = {
+  // ... existing methods ...
+
+  /**
+   * Add new parties to an existing transaction
+   */
+  async addPartiesToTransaction(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: { code: 'UNAUTHENTICATED', message: 'Authentication required' } });
+      }
+
+      const transactionId = req.params.id;
+
+      // 1. Validate request body (req.body.parties) using AddPartiesSchema
+      // const validation = AddPartiesSchema.safeParse(req.body);
+      // if (!validation.success) { ... return 400 ... }
+      // const { parties } = validation.data;
+
+      // 2. Fetch the transaction to ensure it exists and user has access (already covered by middleware, but good practice)
+      // const transaction = await storage.getTransactionById(transactionId);
+      // if (!transaction) { ... return 404 ... }
+
+      // 3. Get current negotiator details (for sending emails, etc.)
+      // const negotiator = await storage.getUserById(req.user.id);
+
+      // 4. Loop through parties in req.body.parties:
+      //    For each party:
+      //      a. Check if user exists (storage.getUserByEmail)
+      //      b. Create user if not exists (storage.createUser)
+      //      c. Add participant to transaction (storage.addParticipant)
+      //         - Handle potential conflicts if participant already exists
+      //      d. Create email subscription (storage.createEmailSubscription)
+      //      e. Send notification/welcome email (notificationService.sendTrackerMagicLink or new method)
+
+      // 5. Fetch updated list of participants for the response
+      // const updatedParticipants = await storage.getParticipantsByTransactionId(transactionId);
+
+      // 6. Return success response (e.g., 200 OK with updated participants or transaction details)
+      // return res.status(200).json({ message: 'Parties added successfully', data: updatedParticipants });
+
+    } catch (error) {
+      console.error(`Error adding parties to transaction ${req.params.id}:`, error);
+      return res.status(500).json({ error: { code: 'SERVER_ERROR', message: 'Failed to add parties' } });
+    }
+  },
+
+  // ... other existing methods ...
+};
+```
+3. Request for Output:
+Please provide the complete modified code for:
+
+The transactionRouter section in server/routes.ts.
+The new addPartiesToTransaction method and any necessary new schemas or imports in server/controllers/transactionController.ts.
+This approach directly addresses the missing route and provides the necessary controller logic, which should resolve the 404 error and implement the desired functionality.

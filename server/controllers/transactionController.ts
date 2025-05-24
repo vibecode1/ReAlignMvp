@@ -33,6 +33,11 @@ const AddPartyToTransactionSchema = z.object({
   }),
 });
 
+// Schema for adding multiple parties to existing transactions
+const AddPartiesToTransactionSchema = z.object({
+  parties: z.array(AddPartyToTransactionSchema).min(1, "At least one party must be provided"),
+});
+
 /**
  * Controller for transaction routes
  */
@@ -362,6 +367,195 @@ export const transactionController = {
         error: {
           code: 'SERVER_ERROR',
           message: 'Failed to retrieve phase history',
+        }
+      });
+    }
+  },
+
+  /**
+   * Add multiple parties to an existing transaction
+   */
+  async addPartiesToTransaction(req: AuthenticatedRequest, res: Response) {
+    try {
+      console.log('=== ADD PARTIES TO TRANSACTION REQUEST ===');
+      console.log('Transaction ID:', req.params.id);
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User:', req.user?.email, req.user?.id);
+
+      if (!req.user) {
+        console.log('ERROR: No authenticated user');
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const transactionId = req.params.id;
+
+      // Validate request body - handle single party or multiple parties
+      let parties: any[];
+      if (req.body.parties) {
+        // Multiple parties format
+        const validation = AddPartiesToTransactionSchema.safeParse(req.body);
+        if (!validation.success) {
+          console.error('VALIDATION_ERROR in addPartiesToTransaction:', validation.error.errors);
+          return res.status(400).json({
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid request data',
+              details: validation.error.errors,
+            }
+          });
+        }
+        parties = validation.data.parties;
+      } else {
+        // Single party format (backwards compatibility)
+        const validation = AddPartyToTransactionSchema.safeParse(req.body);
+        if (!validation.success) {
+          console.error('VALIDATION_ERROR in addPartiesToTransaction:', validation.error.errors);
+          return res.status(400).json({
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid request data',
+              details: validation.error.errors,
+            }
+          });
+        }
+        parties = [validation.data];
+      }
+
+      // Fetch the transaction to ensure it exists
+      const transaction = await storage.getTransactionById(transactionId);
+      if (!transaction) {
+        console.log('ERROR: Transaction not found:', transactionId);
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found',
+          }
+        });
+      }
+
+      // Get current negotiator details
+      const negotiator = await storage.getUserById(req.user.id);
+      const addedParties = [];
+
+      // Process each party
+      for (const partyData of parties) {
+        const { name, email, role } = partyData;
+        
+        console.log(`Processing party: ${name} (${email}) as ${role}`);
+
+        // Check if user already exists
+        let user = await storage.getUserByEmail(email);
+        
+        if (!user) {
+          console.log(`Creating new user for ${email}`);
+          // Create new user
+          user = await storage.createUser({
+            name: name,
+            email: email,
+            role: 'party', // Default role for parties
+          });
+          console.log(`✅ User created: ${user.id}`);
+        } else {
+          console.log(`User already exists: ${user.id}`);
+        }
+
+        // Check if participant already exists in this transaction
+        const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
+        const existingParticipant = existingParticipants.find(p => p.user_id === user.id);
+
+        let participant;
+        if (existingParticipant) {
+          console.log(`Participant already exists, updating role from ${existingParticipant.role_in_transaction} to ${role}`);
+          // Update existing participant's role
+          participant = await storage.updateParticipantStatus(
+            transactionId,
+            user.id,
+            existingParticipant.status,
+            `Role updated to ${role}`
+          );
+        } else {
+          console.log(`Adding new participant with role: ${role}`);
+          // Add new participant
+          participant = await storage.addParticipant({
+            transaction_id: transactionId,
+            user_id: user.id,
+            role_in_transaction: role,
+            status: 'invited',
+            last_action: 'Added to transaction',
+          });
+        }
+
+        // Generate magic link token for email subscription
+        const magicLinkToken = Math.random().toString(36).substring(2, 15) + 
+                              Math.random().toString(36).substring(2, 15);
+
+        // Create email subscription
+        const emailSubscription = await storage.createEmailSubscription({
+          transaction_id: transactionId,
+          email: email,
+          magic_link_token: magicLinkToken,
+          is_subscribed: true,
+        });
+
+        console.log(`✅ Email subscription created for ${email} with token: ${magicLinkToken.substring(0, 10)}...`);
+
+        // Send notification email
+        try {
+          console.log(`📧 Sending notification email to ${email}...`);
+          const emailSent = await notificationService.sendTrackerMagicLink(
+            email,
+            name,
+            transaction.title,
+            transaction.property_address,
+            negotiator?.name || 'Your Negotiator',
+            magicLinkToken,
+            transactionId
+          );
+          
+          if (emailSent) {
+            console.log('✅ EMAIL SENT SUCCESSFULLY to', email);
+          } else {
+            console.log('⚠️ EMAIL SENDING RETURNED FALSE for', email);
+          }
+        } catch (emailError) {
+          console.error('❌ EMAIL SENDING FAILED:', emailError);
+          // Continue processing - don't fail the entire request for email issues
+        }
+
+        addedParties.push({
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          role: participant.role_in_transaction,
+          status: participant.status,
+          lastAction: participant.last_action,
+        });
+      }
+
+      console.log('=== ADD PARTIES OPERATION COMPLETED ===');
+      console.log(`Successfully processed ${addedParties.length} parties`);
+
+      return res.status(201).json({
+        message: `Successfully added ${addedParties.length} ${addedParties.length === 1 ? 'party' : 'parties'}`,
+        data: addedParties,
+      });
+
+    } catch (error) {
+      console.error('❌ ADD PARTIES TO TRANSACTION ERROR:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        code: (error as any)?.code || 'Unknown code',
+      });
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to add parties to transaction',
         }
       });
     }
