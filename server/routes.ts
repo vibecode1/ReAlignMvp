@@ -16,6 +16,16 @@ import { publicTrackerController } from "./controllers/publicTrackerController";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add middleware to log all incoming requests
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      console.log(`=== INCOMING REQUEST: ${req.method} ${req.url} ===`);
+      console.log('Full path:', req.path);
+      console.log('Original URL:', req.originalUrl);
+    }
+    next();
+  });
+
   // API routes - all prefixed with /api/v1
   const apiRouter = express.Router();
   
@@ -105,12 +115,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post('/tracker/unsubscribe', publicTrackerController.updateSubscription);
 
   // Register routers
+  console.log('=== REGISTERING API ROUTERS ===');
+  console.log('Registering auth router at /auth');
   apiRouter.use('/auth', authRouter);
+  console.log('Registering transaction router at /transactions');
   apiRouter.use('/transactions', transactionRouter);
+  console.log('Registering notification router at /notifications');
   apiRouter.use('/notifications', notificationRouter);
   
   // Register API router under /api/v1
+  console.log('Registering main API router at /api/v1');
   app.use('/api/v1', apiRouter);
+  console.log('=== ROUTER REGISTRATION COMPLETE ===');
   
   // Create and return the HTTP server
   const httpServer = createServer(app);
