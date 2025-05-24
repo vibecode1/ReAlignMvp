@@ -120,6 +120,115 @@ export const authController = {
   },
 
   /**
+   * Send password reset email
+   */
+  async resetPassword(req: Request, res: Response) {
+    try {
+      console.log('=== PASSWORD RESET REQUEST ===');
+      
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Email is required',
+          }
+        });
+      }
+
+      console.log('Password reset requested for:', email);
+
+      // Check if user exists in our database
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Return success even if user doesn't exist (security best practice)
+        return res.status(200).json({
+          message: 'If an account with that email exists, a password reset email has been sent.',
+        });
+      }
+
+      // Send password reset email via Supabase
+      const { error } = await supabaseAuthClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${req.protocol}://${req.get('host')}/reset-password`,
+      });
+
+      if (error) {
+        console.error('Supabase password reset error:', error);
+        return res.status(500).json({
+          error: {
+            code: 'RESET_ERROR',
+            message: 'Failed to send password reset email',
+          }
+        });
+      }
+
+      console.log('Password reset email sent successfully to:', email);
+      
+      return res.status(200).json({
+        message: 'Password reset email sent successfully',
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to process password reset request',
+        }
+      });
+    }
+  },
+
+  /**
+   * Update password with reset token
+   */
+  async updatePassword(req: Request, res: Response) {
+    try {
+      console.log('=== PASSWORD UPDATE REQUEST ===');
+      
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Token and new password are required',
+          }
+        });
+      }
+
+      console.log('Password update attempt with token');
+
+      // Update password via Supabase
+      const { error } = await supabaseAuthClient.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        console.error('Supabase password update error:', error);
+        return res.status(400).json({
+          error: {
+            code: 'UPDATE_ERROR',
+            message: 'Failed to update password',
+          }
+        });
+      }
+
+      console.log('Password updated successfully');
+      
+      return res.status(200).json({
+        message: 'Password updated successfully',
+      });
+    } catch (error) {
+      console.error('Password update error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to update password',
+        }
+      });
+    }
+  },
+
+  /**
    * Generate and send a magic link
    */
   async sendMagicLink(req: Request, res: Response) {

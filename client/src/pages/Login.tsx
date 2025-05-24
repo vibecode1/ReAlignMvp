@@ -140,6 +140,16 @@ export default function Login() {
                 </Button>
               </p>
               <p className="text-sm text-gray-500">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-600 hover:text-blue-500"
+                  onClick={() => navigate("/reset-password")}
+                  disabled={isLoading}
+                >
+                  Forgot Password?
+                </Button>
+              </p>
+              <p className="text-sm text-gray-500">
                 Not a negotiator?{" "}
                 <Button 
                   variant="link" 
