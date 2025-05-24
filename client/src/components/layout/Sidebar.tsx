@@ -28,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [location] = useLocation();
   const { signOut, user } = useAuth();
-  const [internalIsOpen, setInternalIsOpen] = useState(!isMobile);
+  const [internalIsOpen, setInternalIsOpen] = useState(false); // Always start closed
   
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 
