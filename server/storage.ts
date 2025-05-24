@@ -120,7 +120,7 @@ class DrizzleStorage implements IStorage {
         party_email: party.email,
         party_role: party.role,
         magic_link_token: crypto.randomUUID(),
-        token_expires_at: new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000), // 6 months
+        token_expires_at: null, // Permanent links - no expiration
       }));
       
       await db.insert(schema.email_subscriptions).values(subscriptions);
@@ -516,7 +516,11 @@ class DrizzleStorage implements IStorage {
       .where(
         and(
           eq(schema.email_subscriptions.magic_link_token, token),
-          sql`${schema.email_subscriptions.token_expires_at} > NOW()`
+          // Check if token is permanent (no expiration) or still valid
+          or(
+            isNull(schema.email_subscriptions.token_expires_at),
+            sql`${schema.email_subscriptions.token_expires_at} > NOW()`
+          )
         )
       )
       .limit(1);

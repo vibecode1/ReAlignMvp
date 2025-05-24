@@ -110,7 +110,7 @@ export const email_subscriptions = pgTable('email_subscriptions', {
   party_role: text('party_role').notNull(), // e.g., 'Agent', 'Homeowner'
   is_subscribed: boolean('is_subscribed').notNull().default(true),
   magic_link_token: text('magic_link_token').notNull().unique(), // For view-only access
-  token_expires_at: timestamp('token_expires_at').notNull(),
+  token_expires_at: timestamp('token_expires_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
