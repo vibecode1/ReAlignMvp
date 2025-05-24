@@ -481,23 +481,24 @@ export const transactionController = {
           console.log(`User already exists: ${user.id}`);
         }
 
-        // Check if participant already exists in this transaction
+        // Check if participant already exists in this transaction WITH THE SAME ROLE
         const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
-        const existingParticipant = existingParticipants.find(p => p.user_id === user.id);
+        const existingParticipant = existingParticipants.find(p => p.user_id === user.id && p.role_in_transaction === role);
 
         let participant;
         if (existingParticipant) {
-          console.log(`Participant already exists, updating role from ${existingParticipant.role_in_transaction} to ${role}`);
-          // Update existing participant's role
-          participant = await storage.updateParticipantStatus(
-            transactionId,
-            user.id,
-            existingParticipant.status,
-            `Role updated to ${role}`
-          );
+          console.log(`Participant already exists with same role (${role}), skipping duplicate`);
+          participant = existingParticipant;
         } else {
-          console.log(`Adding new participant with role: ${role}`);
-          // Add new participant
+          // Check if user has ANY role in this transaction (for logging purposes)
+          const userInTransaction = existingParticipants.filter(p => p.user_id === user.id);
+          if (userInTransaction.length > 0) {
+            console.log(`User already has roles: [${userInTransaction.map(p => p.role_in_transaction).join(', ')}]. Adding additional role: ${role}`);
+          } else {
+            console.log(`Adding new participant with role: ${role}`);
+          }
+          
+          // Add new participant (allows multiple roles for same user)
           participant = await storage.addParticipant({
             transaction_id: transactionId,
             user_id: user.id,
@@ -701,18 +702,24 @@ export const transactionController = {
         console.log('New user created:', user.id, user.email);
       }
 
-      // Check if user is already a participant in this transaction
+      // Check if user is already a participant in this transaction WITH THE SAME ROLE
       const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
-      const isAlreadyParticipant = existingParticipants.some(p => p.user_id === user!.id);
+      const existingParticipantWithSameRole = existingParticipants.find(p => p.user_id === user!.id && p.role_in_transaction === role);
       
-      if (isAlreadyParticipant) {
-        console.log('ERROR: User is already a participant in this transaction');
+      if (existingParticipantWithSameRole) {
+        console.log('ERROR: User already has this exact role in this transaction');
         return res.status(400).json({
           error: {
-            code: 'ALREADY_PARTICIPANT',
-            message: 'User is already a participant in this transaction',
+            code: 'DUPLICATE_ROLE',
+            message: `User already has the role "${role}" in this transaction`,
           }
         });
+      }
+
+      // Log if user has other roles (for visibility)
+      const userRoles = existingParticipants.filter(p => p.user_id === user!.id);
+      if (userRoles.length > 0) {
+        console.log(`User already has roles: [${userRoles.map(p => p.role_in_transaction).join(', ')}]. Adding additional role: ${role}`);
       }
 
       console.log('Adding user as participant...');
