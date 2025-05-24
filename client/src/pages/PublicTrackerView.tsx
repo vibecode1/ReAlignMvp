@@ -48,6 +48,7 @@ export default function PublicTrackerView() {
   const [transactionId, setTransactionId] = useState<string>('');
   const [token, setToken] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [showAllNotes, setShowAllNotes] = useState<boolean>(false);
 
   useEffect(() => {
     // Extract transaction ID from URL path
@@ -174,6 +175,26 @@ export default function PublicTrackerView() {
     ? getDaysAgo(trackerData.phaseHistory[trackerData.phaseHistory.length - 1].created_at) 
     : 0;
 
+  // Generate high-level action summary
+  const getActionSummary = () => {
+    const pendingDocs = trackerData.documentRequests.filter((doc: any) => doc.status === 'pending' || doc.status === 'overdue');
+    const overdueDocs = trackerData.documentRequests.filter((doc: any) => doc.status === 'overdue');
+    
+    if (overdueDocs.length > 0) {
+      return `⚠️ ${overdueDocs.length} overdue document${overdueDocs.length > 1 ? 's' : ''} need${overdueDocs.length === 1 ? 's' : ''} immediate attention`;
+    }
+    
+    if (pendingDocs.length > 0) {
+      return `📋 Awaiting ${pendingDocs.length} document${pendingDocs.length > 1 ? 's' : ''}`;
+    }
+    
+    if (trackerData.documentRequests.length === 0) {
+      return `✨ Transaction progressing smoothly`;
+    }
+    
+    return `✅ All documents received - transaction moving forward`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -200,9 +221,16 @@ export default function PublicTrackerView() {
               <h2 className="text-lg font-semibold text-brand-primary mb-2">
                 {currentPhase?.name || trackerData.transaction.current_phase}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Days in current phase: <span className="font-medium">{daysInCurrentPhase}</span>
               </p>
+              
+              {/* High-Level Action Summary */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {getActionSummary()}
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -367,7 +395,7 @@ export default function PublicTrackerView() {
               ) : (
                 <div className="space-y-4">
                   {trackerData.trackerNotes
-                    .slice(0, 5) // Show recent notes first
+                    .slice(0, showAllNotes ? trackerData.trackerNotes.length : 5)
                     .map((note: any, index: number) => (
                     <div 
                       key={note.id}
@@ -385,7 +413,7 @@ export default function PublicTrackerView() {
                           })}
                         </span>
                       </div>
-                      {index < Math.min(trackerData.trackerNotes.length, 5) - 1 && (
+                      {index < (showAllNotes ? trackerData.trackerNotes.length : Math.min(trackerData.trackerNotes.length, 5)) - 1 && (
                         <Separator className="mt-4" />
                       )}
                     </div>
@@ -393,8 +421,13 @@ export default function PublicTrackerView() {
                   
                   {trackerData.trackerNotes.length > 5 && (
                     <div className="text-center pt-4">
-                      <Button variant="outline" size="sm" className="text-xs">
-                        View Older Updates
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs"
+                        onClick={() => setShowAllNotes(!showAllNotes)}
+                      >
+                        {showAllNotes ? 'Show Recent Updates' : 'View Older Updates'}
                       </Button>
                     </div>
                   )}
