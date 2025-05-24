@@ -59,12 +59,12 @@ export const AppSidebarContent: React.FC = () => {
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location === item.href}
-                        className="w-full justify-start text-sm h-10 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === item.href}
+                      className="w-full justify-start text-sm h-10 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    >
+                      <Link href={item.href}>
                         <a>
                           <span className="flex-shrink-0 w-5 h-5">{item.icon}</span>
                           <span 
@@ -73,8 +73,8 @@ export const AppSidebarContent: React.FC = () => {
                             {item.label}
                           </span>
                         </a>
-                      </SidebarMenuButton>
-                    </Link>
+                      </Link>
+                    </SidebarMenuButton>
                   </TooltipTrigger>
                   {!isSidebarExpanded && (
                     <TooltipContent side="right" align="center" className="bg-gray-700 text-white">
