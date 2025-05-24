@@ -18,6 +18,7 @@ import PartyTransactionView from "@/pages/PartyTransactionView";
 import NewTransaction from "@/pages/NewTransaction";
 import NotificationSettings from "@/pages/NotificationSettings";
 import PublicTrackerView from "@/pages/PublicTrackerView";
+import Account from "@/pages/Account";
 import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,9 @@ function Router() {
       </Route>
       <Route path="/notifications">
         <ProtectedRoute component={NotificationSettings} />
+      </Route>
+      <Route path="/account">
+        <ProtectedRoute component={Account} />
       </Route>
       
       {/* Fallback to 404 */}
