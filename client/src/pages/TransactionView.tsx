@@ -610,35 +610,4 @@ export default function TransactionView({ id }: TransactionViewProps) {
       </div>
     </div>
   );
-}}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Transaction Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Created by</p>
-                    <p>{transactionDetails.created_by?.name || 'Unknown'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Created on</p>
-                    <p>{new Date(transactionDetails.created_at || Date.now()).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Current Phase</p>
-                    <p className="capitalize">{transactionDetails.currentPhase || 'Not set'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-      </div>
-    </div>
-  );
 }
