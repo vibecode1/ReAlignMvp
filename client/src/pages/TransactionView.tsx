@@ -610,49 +610,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
       </div>
     </div>
   );
-}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-          >
-            <UploadWidget 
-              transactionId={id}
-              onUploadComplete={async (uploadDetails) => {
-                // Show immediate toast for the upload
-                toast({
-                  title: "Upload Successful",
-                  description: `Your ${uploadDetails.name} has been uploaded successfully.`,
-                });
-                
-                // If this upload was for a document request, mark the request as complete
-                if (uploadDetails.documentRequestId) {
-                  try {
-                    await apiRequest('PATCH', `/api/v1/doc-requests/${uploadDetails.documentRequestId}`, {
-                      status: 'complete'
-                    });
-                    
-                    toast({
-                      title: "Document Request Completed",
-                      description: "The document request has been marked as complete.",
-                    });
-                  } catch (error) {
-                    console.error('Failed to update document request status:', error);
-                    // Don't show error toast here since the upload was successful
-                  }
-                }
-                
-                // Refresh the transaction data
-                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
-              }}
-              defaultVisibility="private"
-              role={user?.role}
-              maxFileSizeMB={10}
-              documentRequests={transactionDetails.documentRequests?.filter(
-                req => req.assignedTo === user?.role && req.status !== 'complete'
-              )}
-            />
-          </motion.div>
-          
-          {/* Transaction Info Card */}
+}}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
