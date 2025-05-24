@@ -84,10 +84,10 @@ export default function NewTransaction() {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
+    <div className="container mx-auto py-4 px-4 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create New Transaction</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Create New Transaction</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
           Set up a new short sale transaction with automated tracking and email notifications.
         </p>
       </div>
@@ -149,17 +149,19 @@ export default function NewTransaction() {
             </CardHeader>
             <CardContent className="space-y-4">
               {form.watch('parties')?.map((party, index) => (
-                <div key={index} className="flex gap-4 items-end">
-                  <div className="flex-1">
+                <div key={index} className="border rounded-lg p-4 space-y-4 bg-gray-50 dark:bg-gray-800/50">
+                  {/* Mobile-first: Stack fields vertically */}
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name={`parties.${index}.name`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel className="text-sm font-medium">Full Name</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g., John Smith" 
+                              className="h-11" // Larger touch target
                               {...field} 
                             />
                           </FormControl>
@@ -167,18 +169,18 @@ export default function NewTransaction() {
                         </FormItem>
                       )}
                     />
-                  </div>
-                  <div className="flex-1">
+                    
                     <FormField
                       control={form.control}
                       name={`parties.${index}.email`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email Address</FormLabel>
+                          <FormLabel className="text-sm font-medium">Email Address</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="email@example.com" 
                               type="email"
+                              className="h-11" // Larger touch target
                               {...field} 
                             />
                           </FormControl>
@@ -186,17 +188,18 @@ export default function NewTransaction() {
                         </FormItem>
                       )}
                     />
-                  </div>
-                  <div className="flex-1">
-                    <FormField
-                      control={form.control}
-                      name={`parties.${index}.role`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Role</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
+                    
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <FormField
+                          control={form.control}
+                          name={`parties.${index}.role`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">Role</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11">
                                 <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                             </FormControl>
@@ -212,18 +215,20 @@ export default function NewTransaction() {
                         </FormItem>
                       )}
                     />
+                      </div>
+                      {(form.watch('parties')?.length || 0) > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeParty(index)}
+                          className="h-11 w-11 shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {(form.watch('parties')?.length || 0) > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeParty(index)}
-                      className="mb-2"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
               
