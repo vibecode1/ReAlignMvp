@@ -35,7 +35,7 @@
   
   /* Enhanced focus states for accessibility */
   .focus-enhanced {
-    @apply focus:ring-2 focus:ring-brand-primary/20 focus:outline-none;
+    @apply focus:ring-2 focus:ring-blue-500/20 focus:outline-none;
   }
   
   /* Smooth scrolling for the entire page */

@@ -177,24 +177,24 @@ export default function TransactionView({ id }: TransactionViewProps) {
 
   return (
     <div>
-      {/* Header with back button */}
-      <div className="mb-6 flex items-center">
+      {/* Header with back button - mobile optimized */}
+      <div className="mb-4 sm:mb-6 flex items-start gap-3 sm:gap-4">
         <Button 
           variant="outline" 
           size="icon" 
-          className="mr-4"
+          className="btn-mobile focus-enhanced flex-shrink-0 mt-1"
           onClick={() => navigate('/transactions')}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <div className="flex items-center">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start flex-col sm:flex-row sm:items-center gap-2">
             {isEditingTitle ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full">
                 <Input 
                   value={editedTitle} 
                   onChange={(e) => setEditedTitle(e.target.value)}
-                  className="text-xl font-bold"
+                  className="text-lg sm:text-xl font-bold flex-1"
                   disabled={isUpdating}
                 />
                 <Button 
@@ -202,6 +202,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
                   variant="ghost"
                   disabled={isUpdating}
                   onClick={() => handleUpdateField('title', editedTitle)}
+                  className="btn-mobile focus-enhanced"
                 >
                   {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 </Button>
@@ -213,24 +214,27 @@ export default function TransactionView({ id }: TransactionViewProps) {
                     setEditedTitle(transactionDetails.title || '');
                     setIsEditingTitle(false);
                   }}
+                  className="btn-mobile focus-enhanced"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <h1 className="text-2xl font-bold text-brand-primary">
-                {transactionDetails.title || 'Transaction Title'}
+              <div className="flex items-start gap-2 w-full">
+                <h1 className="text-lg sm:text-2xl font-bold text-brand-primary leading-tight flex-1 min-w-0 break-words">
+                  {transactionDetails.title || 'Transaction Title'}
+                </h1>
                 {isNegotiator && (
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="ml-2"
+                    className="btn-mobile focus-enhanced flex-shrink-0"
                     onClick={() => setIsEditingTitle(true)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
-              </h1>
+              </div>
             )}
           </div>
           
@@ -282,10 +286,14 @@ export default function TransactionView({ id }: TransactionViewProps) {
         </div>
       </div>
       
-      {/* Transaction details content */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left column - main content */}
-        <div className="md:col-span-2 space-y-6">
+      {/* Transaction details content - mobile-first stacking */}
+      <div className="space-y-4 lg:space-y-6">
+        {/* Mobile-first: Phase Tracker comes first */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <PhaseTracker 
             currentPhase={transactionDetails.currentPhase || 'intro'}
             showTimeline={true}
