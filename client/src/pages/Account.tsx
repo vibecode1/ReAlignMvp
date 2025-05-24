@@ -22,12 +22,10 @@ export default function Account() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account</h1>
-        <p className="text-muted-foreground">
-          Manage your account information and preferences
-        </p>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-brand-primary">Account</h1>
+        <p className="text-gray-600 mt-1">Manage your account information and preferences</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
