@@ -565,27 +565,6 @@ export default function TransactionView({ id }: TransactionViewProps) {
               <FileList 
                 transactionId={id!}
                 currentUserRole={user?.role || 'unknown'}
-                onVisibilityChange={async (uploadId, visibility) => {
-                  try {
-                    await apiRequest('PATCH', `/api/v1/uploads/${uploadId}`, {
-                      visibility
-                    });
-                    
-                    toast({
-                      title: "Visibility Updated",
-                      description: "File visibility has been updated.",
-                    });
-                    
-                    queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
-                  } catch (error) {
-                    console.error('Failed to update visibility:', error);
-                    toast({
-                      title: "Update Failed",
-                      description: "There was an error updating file visibility.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
               />
             </div>
           </div>
@@ -601,9 +580,6 @@ export default function TransactionView({ id }: TransactionViewProps) {
             <PhaseManager 
               transactionId={id!}
               currentPhase={transactionDetails.currentPhase || 'intro'}
-              onPhaseUpdate={(newPhase) => {
-                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
-              }}
             />
           </motion.div>
         )}

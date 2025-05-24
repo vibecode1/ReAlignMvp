@@ -112,6 +112,7 @@ export default function NewTransaction() {
                     <FormControl>
                       <Input 
                         placeholder="e.g., Smith Property Short Sale" 
+                        className="h-12 text-base focus:ring-2 focus:ring-blue-500/20 btn-mobile" 
                         {...field} 
                       />
                     </FormControl>
@@ -129,6 +130,7 @@ export default function NewTransaction() {
                     <FormControl>
                       <Input 
                         placeholder="e.g., 123 Main St, City, State 12345" 
+                        className="h-12 text-base focus:ring-2 focus:ring-blue-500/20 btn-mobile" 
                         {...field} 
                       />
                     </FormControl>
@@ -199,7 +201,7 @@ export default function NewTransaction() {
                               <FormLabel className="text-sm font-medium">Role</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                  <SelectTrigger className="h-11">
+                                  <SelectTrigger className="h-12 btn-mobile focus-enhanced">
                                 <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                             </FormControl>
@@ -236,7 +238,7 @@ export default function NewTransaction() {
                 type="button"
                 variant="outline"
                 onClick={addParty}
-                className="w-full"
+                className="w-full btn-mobile focus-enhanced"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Another Party
