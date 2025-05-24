@@ -167,11 +167,11 @@ export class NotificationService {
     try {
       if (!process.env.SENDGRID_API_KEY) {
         console.log('SendGrid not configured, tracker magic link would be sent to:', email);
-        console.log('Tracker URL:', `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`);
+        console.log('Tracker URL:', `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`);
         return true;
       }
 
-      const trackerUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`;
+      const trackerUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`;
 
       // Send email via SendGrid
       const msg = {
@@ -311,8 +311,8 @@ export class NotificationService {
           const pendingDocs = partyDocRequests.filter(req => req.status === 'pending').length;
 
           // Create tracker URL with magic link token
-          const trackerUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${subscription.transaction_id}?token=${subscription.magic_link_token}`;
-          const unsubscribeUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/unsubscribe?token=${subscription.magic_link_token}`;
+          const trackerUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/${subscription.transaction_id}?token=${subscription.magic_link_token}`;
+          const unsubscribeUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/unsubscribe?token=${subscription.magic_link_token}`;
 
           // Send weekly digest email
           const msg = {
