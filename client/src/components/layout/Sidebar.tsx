@@ -17,19 +17,31 @@ import { motion } from 'framer-motion';
 
 interface SidebarProps {
   isMobile?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  isMobile = false, 
+  isOpen: controlledIsOpen, 
+  onToggle 
+}) => {
   const [location] = useLocation();
   const { signOut, user } = useAuth();
-  const [isOpen, setIsOpen] = useState(!isMobile);
+  const [internalIsOpen, setInternalIsOpen] = useState(!isMobile);
+  
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 
   const handleSignOut = async () => {
     await signOut();
   };
 
   const toggleSidebar = () => {
-    setIsOpen(!isOpen);
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalIsOpen(!internalIsOpen);
+    }
   };
 
   const items = [
@@ -57,13 +69,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
 
   return (
     <>
-      {isMobile && (
-        <div className="fixed top-0 left-0 z-50 p-4">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-            <Menu className="h-6 w-6 text-brand-primary" />
-          </Button>
-        </div>
-      )}
 
       <motion.aside
         variants={sidebarVariants}
@@ -124,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
             ))}
           </nav>
 
-          {/* User Section */}
+          {/* User Section & Logout - moved to mobile nav */}
           {isOpen && user && (
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <div className="border-t border-white border-opacity-20 pt-4">
@@ -138,9 +143,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false }) => {
                   </div>
                 </div>
 
+                {/* Logout button in sidebar for mobile */}
                 <Button 
-                  variant="outline" 
-                  className="w-full border-white text-white hover:bg-white hover:bg-opacity-10"
+                  variant="ghost" 
+                  className="w-full text-white hover:bg-white hover:bg-opacity-10 justify-start"
                   onClick={handleSignOut}
                 >
                   <LogOut className="h-4 w-4 mr-2" />

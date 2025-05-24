@@ -172,82 +172,104 @@ export default function PublicTrackerView() {
 
   const currentPhaseIndex = PHASE_CONFIG.findIndex(phase => phase.key === trackerData.transaction.current_phase);
 
+  const currentPhase = PHASE_CONFIG.find(phase => phase.key === trackerData.transaction.current_phase);
+  const daysInCurrentPhase = trackerData.phaseHistory.length > 0 
+    ? getDaysAgo(trackerData.phaseHistory[trackerData.phaseHistory.length - 1].created_at) 
+    : 0;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        {/* Header - Property Address Prominently */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Home className="h-5 w-5 text-brand-primary" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Transaction Tracker
+          <div className="text-center mb-4">
+            <Home className="h-6 w-6 text-brand-primary mx-auto mb-2" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {trackerData.transaction.property_address}
             </h1>
+            <Badge variant="outline" className="text-xs">
+              {trackerData.subscription.party_role.replace('_', ' ').toUpperCase()} VIEW
+            </Badge>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            {trackerData.transaction.property_address}
-          </p>
-          <Badge variant="outline" className="mt-2">
-            {trackerData.subscription.party_role.replace('_', ' ').toUpperCase()} VIEW
-          </Badge>
+
+          {/* Current Status Overview */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Phase</p>
+              <h2 className="text-lg font-semibold text-brand-primary mb-2">
+                {currentPhase?.name || trackerData.transaction.current_phase}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Days in current phase: <span className="font-medium">{daysInCurrentPhase}</span>
+              </p>
+            </div>
+          </div>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Current Phase */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Current Phase
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {PHASE_CONFIG.map((phase, index) => (
-                    <div
-                      key={phase.key}
-                      className={`flex items-center gap-3 p-2 rounded-lg ${
-                        index === currentPhaseIndex
-                          ? 'bg-brand-primary/10 border-l-4 border-brand-primary'
-                          : index < currentPhaseIndex
-                          ? 'bg-green-50 dark:bg-green-900/20'
-                          : 'bg-gray-50 dark:bg-gray-800'
-                      }`}
-                    >
-                      <div
-                        className={`w-3 h-3 rounded-full ${
+        {/* Phase Progression Display - Mobile First */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-5 w-5" />
+                Transaction Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {PHASE_CONFIG.map((phase, index) => (
+                  <div
+                    key={phase.key}
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
+                      index === currentPhaseIndex
+                        ? 'bg-brand-primary/10 border-l-4 border-brand-primary shadow-sm'
+                        : index < currentPhaseIndex
+                        ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500'
+                        : 'bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-1">
+                      {index < currentPhaseIndex ? (
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      ) : index === currentPhaseIndex ? (
+                        <div className="w-5 h-5 rounded-full bg-brand-primary animate-pulse" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-sm font-medium leading-relaxed ${
                           index === currentPhaseIndex
-                            ? 'bg-brand-primary'
-                            : index < currentPhaseIndex
-                            ? 'bg-green-500'
-                            : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
-                      />
-                      <span
-                        className={`text-sm ${
-                          index === currentPhaseIndex
-                            ? 'font-semibold text-brand-primary'
+                            ? 'text-brand-primary'
                             : index < currentPhaseIndex
                             ? 'text-green-700 dark:text-green-300'
                             : 'text-gray-600 dark:text-gray-400'
                         }`}
                       >
                         {phase.name}
-                      </span>
+                      </p>
+                      {index === currentPhaseIndex && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Currently in progress
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
           {/* Document Status */}
           <motion.div
