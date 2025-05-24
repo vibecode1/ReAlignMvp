@@ -379,12 +379,12 @@ export default function PublicTrackerView() {
                           Days pending: <span className="font-medium">{getDaysAgo(doc.requested_at)}</span>
                         </p>
                       )}
-                          </div>
-                        ))}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
               )}
             </CardContent>
           </Card>
