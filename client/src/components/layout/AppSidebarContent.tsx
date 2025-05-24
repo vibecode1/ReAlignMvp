@@ -42,6 +42,7 @@ export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1 justify-center">
               <Logo size="sm" className="flex-shrink-0" />
+              <span className="font-semibold text-lg">ReAlign</span>
             </div>
             {/* Hamburger in same position as when closed */}
             <button 
