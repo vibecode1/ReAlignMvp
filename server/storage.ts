@@ -148,9 +148,38 @@ class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async getTransactionById(id: string): Promise<schema.Transaction | undefined> {
-    const transactions = await db.select().from(schema.transactions).where(eq(schema.transactions.id, id));
-    return transactions[0];
+  async getTransactionById(id: string): Promise<any> {
+    // Get the transaction with all related data
+    const transaction = await db
+      .select()
+      .from(schema.transactions)
+      .where(eq(schema.transactions.id, id))
+      .limit(1);
+
+    if (!transaction[0]) {
+      return undefined;
+    }
+
+    // Get participants with user details
+    const participants = await db
+      .select({
+        userId: schema.users.id,
+        name: schema.users.name,
+        email: schema.users.email,
+        role: schema.transaction_participants.role_in_transaction,
+        status: schema.transaction_participants.status,
+        lastAction: schema.transaction_participants.last_action,
+        welcome_email_sent: schema.transaction_participants.welcome_email_sent,
+      })
+      .from(schema.transaction_participants)
+      .leftJoin(schema.users, eq(schema.transaction_participants.user_id, schema.users.id))
+      .where(eq(schema.transaction_participants.transaction_id, id));
+
+    // Return transaction with parties array
+    return {
+      ...transaction[0],
+      parties: participants,
+    };
   }
 
   async getTransactionsByNegotiatorId(negotiatorId: string, page: number, limit: number): Promise<{ data: schema.Transaction[], total: number }> {
