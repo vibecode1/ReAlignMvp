@@ -580,6 +580,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
             <PhaseManager 
               transactionId={id!}
               currentPhase={transactionDetails.currentPhase || 'intro'}
+              userRole={user?.role || 'unknown'}
             />
           </motion.div>
         )}

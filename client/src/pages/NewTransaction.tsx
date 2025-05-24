@@ -283,12 +283,14 @@ export default function NewTransaction() {
               type="button"
               variant="outline"
               onClick={() => setLocation('/dashboard')}
+              className="btn-mobile focus-enhanced"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={createTransactionMutation.isPending}
+              className={`btn-mobile focus-enhanced ${createTransactionMutation.isPending ? 'btn-loading' : ''}`}
             >
               {createTransactionMutation.isPending ? 'Creating...' : 'Create Transaction'}
             </Button>
