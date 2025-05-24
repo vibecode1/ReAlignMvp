@@ -49,8 +49,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       )}
 
       {/* Mobile Header */}
-      {isMobile && (
+      {isMobile && !mobileSidebarOpen && (
         <header className="fixed top-0 left-0 right-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex-1 flex justify-center">
+            <Logo size="sm" />
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -59,10 +62,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           >
             <Menu className="h-6 w-6" />
           </Button>
-          <div className="flex-1 flex justify-center">
-            <Logo size="sm" />
-          </div>
-          <div className="w-10"></div>
         </header>
       )}
 

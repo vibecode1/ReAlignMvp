@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, FileText, Bell, LogOut } from 'lucide-react';
+import { Home, FileText, Bell, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/logo';
@@ -35,22 +35,20 @@ export const AppSidebarContent: React.FC<AppSidebarContentProps> = ({ isExpanded
   if (isMobile) {
     return (
       <div className="flex flex-col h-full bg-white text-gray-900">
-        {/* Mobile Header with Close functionality */}
+        {/* Mobile Header with hamburger in same position */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 justify-center">
               <Logo size="sm" className="flex-shrink-0" />
               <span className="font-semibold text-lg">ReAlign</span>
             </div>
-            {/* Clickable area to close navigation */}
+            {/* Hamburger in same position as when closed */}
             <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-md transition-colors"
               aria-label="Close navigation"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <Menu className="h-6 w-6" />
             </button>
           </div>
         </div>
