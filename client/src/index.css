@@ -2,6 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* Enhanced typography and visual hierarchy */
+  h1 {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+  }
+  
+  h2 {
+    @apply text-xl sm:text-2xl font-semibold tracking-tight;
+  }
+  
+  h3 {
+    @apply text-lg sm:text-xl font-semibold;
+  }
+  
+  h4 {
+    @apply text-base sm:text-lg font-medium;
+  }
+  
+  /* Better mobile button states and touch targets */
+  .btn-mobile {
+    @apply min-h-[44px] min-w-[44px] transition-all duration-200;
+  }
+  
+  .btn-mobile:hover {
+    @apply scale-[1.02];
+  }
+  
+  .btn-mobile:active {
+    @apply scale-[0.98];
+  }
+  
+  /* Enhanced focus states for accessibility */
+  .focus-enhanced {
+    @apply focus:ring-2 focus:ring-brand-primary/20 focus:outline-none;
+  }
+  
+  /* Smooth scrolling for the entire page */
+  html {
+    @apply scroll-smooth;
+  }
+}
+
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;

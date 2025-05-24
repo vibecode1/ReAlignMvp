@@ -20,7 +20,9 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Clock
+  Clock,
+  List,
+  Grid
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
@@ -50,6 +52,7 @@ export default function TransactionList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [isCompactView, setIsCompactView] = useState(true);
   
   // Fetch transactions with pagination
   const { data, isLoading, error } = useQuery({
@@ -186,10 +189,37 @@ export default function TransactionList() {
       {/* Transactions List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Transactions</CardTitle>
-          <CardDescription>
-            {pagination.totalItems} total transaction{pagination.totalItems !== 1 ? 's' : ''}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Transactions</CardTitle>
+              <CardDescription>
+                {pagination.totalItems} total transaction{pagination.totalItems !== 1 ? 's' : ''}
+              </CardDescription>
+            </div>
+            
+            {/* Desktop View Toggle */}
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
+              <div className="flex items-center border rounded-lg">
+                <Button
+                  variant={isCompactView ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setIsCompactView(true)}
+                  className="rounded-r-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={!isCompactView ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setIsCompactView(false)}
+                  className="rounded-l-none"
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -229,34 +259,63 @@ export default function TransactionList() {
                   className="cursor-pointer"
                   onClick={() => navigate(`/transactions/${transaction.id}`)}
                 >
-                  <div className="block p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm hover:shadow-md">
-                    <div className="flex flex-col space-y-3">
-                      {/* Property Address - Prominent on mobile */}
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-tight">
-                          {transaction.property_address}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{transaction.title}</p>
-                      </div>
-                      
-                      {/* Current Phase - Clearly visible */}
+                  {isCompactView && window.innerWidth >= 768 ? (
+                    // Desktop Compact View - Single Line
+                    <div className="block p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-                          {transaction.currentPhase}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                          {getRelativeTime(transaction.lastActivityAt)}
-                        </span>
-                      </div>
-                      
-                      {/* Mobile-friendly button */}
-                      <div className="pt-1">
-                        <Button size="sm" className="w-full sm:w-auto">
-                          View Transaction Details
+                        <div className="flex-1 min-w-0 grid grid-cols-4 gap-4 items-center">
+                          <div className="truncate">
+                            <h3 className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                              {transaction.property_address}
+                            </h3>
+                          </div>
+                          <div className="truncate">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{transaction.title}</p>
+                          </div>
+                          <div>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
+                              {transaction.currentPhase}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {getRelativeTime(transaction.lastActivityAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button size="sm" className="ml-4">
+                          View
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    // Mobile & Expanded Desktop View - Card Format
+                    <div className="block p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm hover:shadow-md">
+                      <div className="flex flex-col space-y-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-tight">
+                            {transaction.property_address}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{transaction.title}</p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+                            {transaction.currentPhase}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            {getRelativeTime(transaction.lastActivityAt)}
+                          </span>
+                        </div>
+                        
+                        <div className="pt-1">
+                          <Button size="sm" className="w-full sm:w-auto">
+                            View Transaction Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>

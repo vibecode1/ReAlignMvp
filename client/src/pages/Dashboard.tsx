@@ -38,8 +38,8 @@ export default function Dashboard() {
     queryKey: ['/api/v1/transactions'],
   });
 
-  // Format data
-  const transactions: TransactionSummary[] = data?.data || [];
+  // Format data with type safety
+  const transactions: TransactionSummary[] = (data as any)?.data || [];
   const transactionsCount = transactions.length;
   const activeTransactions = transactions.filter(t => 
     t.currentPhase !== 'In Closing'
