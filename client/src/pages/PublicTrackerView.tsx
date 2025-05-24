@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Clock, AlertCircle, Home, Calendar, User, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PHASE_CONFIG } from '@/lib/phases';
+import { PublicTrackerSkeleton } from '@/components/ui/mobile-skeleton';
 
 interface PublicTrackerData {
   transaction: {
@@ -149,11 +150,7 @@ export default function PublicTrackerView() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <PublicTrackerSkeleton />;
   }
 
   if (!trackerData) {
@@ -297,12 +294,12 @@ export default function PublicTrackerView() {
                 <div className="space-y-3">
                   {/* Sort by status: overdue and pending first */}
                   {trackerData.documentRequests
-                    .sort((a, b) => {
+                    .sort((a: any, b: any) => {
                       const statusOrder = { 'overdue': 0, 'pending': 1, 'complete': 2 };
                       return (statusOrder[a.status as keyof typeof statusOrder] || 3) - 
                              (statusOrder[b.status as keyof typeof statusOrder] || 3);
                     })
-                    .map((doc) => (
+                    .map((doc: any) => (
                     <div
                       key={doc.id}
                       className={`border rounded-lg p-4 ${
@@ -371,7 +368,7 @@ export default function PublicTrackerView() {
                 <div className="space-y-4">
                   {trackerData.trackerNotes
                     .slice(0, 5) // Show recent notes first
-                    .map((note, index) => (
+                    .map((note: any, index: number) => (
                     <div 
                       key={note.id}
                       className="border-l-4 border-brand-primary/30 pl-4 py-2"

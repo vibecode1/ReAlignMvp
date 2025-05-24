@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
+import { TransactionCardSkeleton } from "@/components/ui/mobile-skeleton";
 
 interface TransactionSummary {
   id: string;
@@ -55,9 +56,9 @@ export default function TransactionList() {
     queryKey: [`/api/v1/transactions?page=${page}&limit=10`],
   });
 
-  // Format data
-  const transactions: TransactionSummary[] = data?.data || [];
-  const pagination: PaginationInfo = data?.pagination || {
+  // Format data with better type safety
+  const transactions: TransactionSummary[] = (data as any)?.data || [];
+  const pagination: PaginationInfo = (data as any)?.pagination || {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
@@ -192,8 +193,10 @@ export default function TransactionList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <TransactionCardSkeleton key={i} />
+              ))}
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-8 text-red-500">
@@ -226,23 +229,31 @@ export default function TransactionList() {
                   className="cursor-pointer"
                   onClick={() => navigate(`/transactions/${transaction.id}`)}
                 >
-                  <div className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex flex-col md:flex-row justify-between items-start">
+                  <div className="block p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm hover:shadow-md">
+                    <div className="flex flex-col space-y-3">
+                      {/* Property Address - Prominent on mobile */}
                       <div>
-                        <h3 className="font-medium text-gray-900">{transaction.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1">{transaction.property_address}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {transaction.currentPhase}
-                          </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {getRelativeTime(transaction.lastActivityAt)}
-                          </span>
-                        </div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-tight">
+                          {transaction.property_address}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{transaction.title}</p>
                       </div>
-                      <div className="mt-3 md:mt-0">
-                        <Button size="sm">View Details</Button>
+                      
+                      {/* Current Phase - Clearly visible */}
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+                          {transaction.currentPhase}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                          {getRelativeTime(transaction.lastActivityAt)}
+                        </span>
+                      </div>
+                      
+                      {/* Mobile-friendly button */}
+                      <div className="pt-1">
+                        <Button size="sm" className="w-full sm:w-auto">
+                          View Transaction Details
+                        </Button>
                       </div>
                     </div>
                   </div>
