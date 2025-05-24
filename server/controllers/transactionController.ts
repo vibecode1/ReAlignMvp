@@ -457,7 +457,7 @@ export const transactionController = {
           user = await storage.createUser({
             name: name,
             email: email,
-            role: 'party', // Default role for parties
+            role: 'buyer', // Use valid role from enum
           });
           console.log(`✅ User created: ${user.id}`);
         } else {
@@ -485,7 +485,7 @@ export const transactionController = {
             transaction_id: transactionId,
             user_id: user.id,
             role_in_transaction: role,
-            status: 'invited',
+            status: 'pending',
             last_action: 'Added to transaction',
           });
         }
@@ -497,7 +497,8 @@ export const transactionController = {
         // Create email subscription
         const emailSubscription = await storage.createEmailSubscription({
           transaction_id: transactionId,
-          email: email,
+          party_email: email,
+          party_role: role,
           magic_link_token: magicLinkToken,
           is_subscribed: true,
         });
@@ -510,6 +511,7 @@ export const transactionController = {
           const emailSent = await notificationService.sendTrackerMagicLink(
             email,
             name,
+            role,
             transaction.title,
             transaction.property_address,
             negotiator?.name || 'Your Negotiator',
