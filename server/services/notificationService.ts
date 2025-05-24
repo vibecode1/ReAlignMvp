@@ -165,13 +165,20 @@ export class NotificationService {
     transactionId: string
   ): Promise<boolean> {
     try {
+      console.log('=== SENDGRID EMAIL NOTIFICATION ATTEMPT ===');
+      console.log('SendGrid API Key configured:', !!process.env.SENDGRID_API_KEY);
+      console.log('SendGrid Verified Sender:', process.env.SENDGRID_VERIFIED_SENDER || 'help@realignapp.com');
+      
       if (!process.env.SENDGRID_API_KEY) {
-        console.log('SendGrid not configured, tracker magic link would be sent to:', email);
+        console.log('⚠️ SendGrid not configured, tracker magic link would be sent to:', email);
         console.log('Tracker URL:', `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`);
         return true;
       }
 
       const trackerUrl = `https://${process.env.REPLIT_DEV_DOMAIN || process.env.APP_URL || 'localhost:5000'}/tracker/${transactionId}?token=${magicLinkToken}`;
+
+      console.log('📧 Preparing email message...');
+      console.log('Tracker URL being sent:', trackerUrl);
 
       // Send email via SendGrid
       const msg = {
@@ -209,13 +216,16 @@ export class NotificationService {
         `,
       };
 
+      console.log('📤 Sending email via SendGrid...');
       const result = await sgMail.send(msg);
-      console.log('Tracker magic link email sent successfully to:', email);
-      console.log('SendGrid response:', result[0].statusCode, result[0].headers);
+      console.log('✅ Tracker magic link email sent successfully to:', email);
+      console.log('SendGrid response status:', result[0].statusCode);
+      console.log('SendGrid response headers:', JSON.stringify(result[0].headers, null, 2));
       return true;
     } catch (error) {
-      console.error('Failed to send tracker magic link:', error);
-      console.error('SendGrid error details:', error.response ? error.response.body : 'No response body');
+      console.error('❌ Failed to send tracker magic link:', error);
+      console.error('SendGrid error details:', (error as any)?.response?.body ? (error as any).response.body : 'No response body');
+      console.error('Full error object:', JSON.stringify(error, null, 2));
       return false;
     }
   }
