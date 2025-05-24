@@ -87,6 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // -- Party Status Routes --
   transactionRouter.get('/:id/parties', authenticateJWT, requireTransactionAccess, transactionController.getParties);
+  transactionRouter.post('/:id/parties', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.addPartyToTransaction);
   transactionRouter.patch('/:transactionId/parties/:userId', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updatePartyStatus);
   
   // -- Message Routes --

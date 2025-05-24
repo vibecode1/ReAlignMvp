@@ -24,6 +24,15 @@ const CreateTransactionSchemaTrackerMVP = z.object({
   welcome_email_body: z.string().optional(),
 });
 
+// Schema for adding parties to existing transactions
+const AddPartyToTransactionSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email"),
+  role: z.enum(['seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow'], {
+    errorMap: () => ({ message: "Invalid role" }),
+  }),
+});
+
 /**
  * Controller for transaction routes
  */
@@ -400,6 +409,187 @@ export const transactionController = {
         error: {
           code: 'SERVER_ERROR',
           message: 'Failed to update party status',
+        }
+      });
+    }
+  },
+
+  /**
+   * Add party to existing transaction
+   */
+  async addPartyToTransaction(req: AuthenticatedRequest, res: Response) {
+    try {
+      console.log('=== ADD PARTY TO TRANSACTION REQUEST ===');
+      console.log('Transaction ID:', req.params.id);
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User:', req.user?.email, req.user?.id);
+
+      if (!req.user) {
+        console.log('ERROR: No authenticated user');
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const { id: transactionId } = req.params;
+
+      // Validate request body
+      const validation = AddPartyToTransactionSchema.safeParse(req.body);
+      if (!validation.success) {
+        console.error('VALIDATION_ERROR in addPartyToTransaction:', validation.error.errors);
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid party data',
+            details: validation.error.errors,
+          }
+        });
+      }
+
+      const { name, email, role } = validation.data;
+      console.log('Validated party data:', { name, email, role });
+
+      // Get the transaction to verify it exists and get details for email
+      const transaction = await storage.getTransactionById(transactionId);
+      if (!transaction) {
+        console.log('ERROR: Transaction not found');
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found',
+          }
+        });
+      }
+
+      console.log('Transaction found:', transaction.title, transaction.property_address);
+
+      // Get negotiator details for email
+      const negotiator = await storage.getUserById(req.user.id);
+      console.log('Negotiator details:', negotiator?.name, negotiator?.email);
+
+      // Check if user already exists
+      let user = await storage.getUserByEmail(email);
+      console.log('Existing user check:', user ? `Found user: ${user.name}` : 'User not found, will create new one');
+
+      // Create user if it doesn't exist
+      if (!user) {
+        console.log('Creating new user for party...');
+        user = await storage.createUser({
+          email,
+          name,
+          role,
+        });
+        console.log('New user created:', user.id, user.email);
+      }
+
+      // Check if user is already a participant in this transaction
+      const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
+      const isAlreadyParticipant = existingParticipants.some(p => p.user_id === user!.id);
+      
+      if (isAlreadyParticipant) {
+        console.log('ERROR: User is already a participant in this transaction');
+        return res.status(400).json({
+          error: {
+            code: 'ALREADY_PARTICIPANT',
+            message: 'User is already a participant in this transaction',
+          }
+        });
+      }
+
+      console.log('Adding user as participant...');
+      // Add as participant
+      const participant = await storage.addParticipant({
+        transaction_id: transactionId,
+        user_id: user.id,
+        role_in_transaction: role,
+        status: 'pending',
+        last_action: `Added to transaction by ${negotiator?.name || 'negotiator'}`,
+      });
+      console.log('Participant added successfully');
+
+      // Create email subscription with magic link token
+      console.log('Creating email subscription with magic link...');
+      const magicLinkToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const tokenExpiresAt = new Date();
+      tokenExpiresAt.setFullYear(tokenExpiresAt.getFullYear() + 1); // 1 year expiry
+
+      const emailSubscription = await storage.createEmailSubscription({
+        transaction_id: transactionId,
+        party_email: email,
+        party_role: role,
+        magic_link_token: magicLinkToken,
+        token_expires_at: tokenExpiresAt,
+        is_subscribed: true,
+      });
+      console.log('Email subscription created:', emailSubscription.id, 'Token:', magicLinkToken);
+
+      // Send welcome email with tracker magic link
+      console.log('=== SENDING EMAIL NOTIFICATION ===');
+      console.log('Email details:');
+      console.log('  To:', email);
+      console.log('  Name:', name);
+      console.log('  Role:', role);
+      console.log('  Transaction:', transaction.title);
+      console.log('  Property:', transaction.property_address);
+      console.log('  Negotiator:', negotiator?.name || 'Your Negotiator');
+      console.log('  Magic Link Token:', magicLinkToken);
+
+      try {
+        const emailSent = await notificationService.sendTrackerMagicLink(
+          email,
+          name,
+          role,
+          transaction.title,
+          transaction.property_address,
+          negotiator?.name || 'Your Negotiator',
+          magicLinkToken,
+          transactionId
+        );
+        
+        if (emailSent) {
+          console.log('✅ EMAIL SENT SUCCESSFULLY to', email);
+        } else {
+          console.log('⚠️ EMAIL SENDING RETURNED FALSE for', email);
+        }
+      } catch (emailError) {
+        console.error('❌ EMAIL SENDING FAILED:', emailError);
+        console.error('Email error details:', {
+          message: emailError instanceof Error ? emailError.message : 'Unknown error',
+          stack: emailError instanceof Error ? emailError.stack : 'No stack trace',
+          code: (emailError as any)?.code || 'Unknown code',
+        });
+        // Continue processing - don't fail the entire request for email issues
+      }
+
+      console.log('=== ADD PARTY OPERATION COMPLETED ===');
+
+      // Return the new participant details
+      const responseData = {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        role: participant.role_in_transaction,
+        status: participant.status,
+        lastAction: participant.last_action,
+        magicLinkToken: magicLinkToken, // Include for debugging purposes
+      };
+
+      console.log('Response data:', JSON.stringify(responseData, null, 2));
+      return res.status(201).json(responseData);
+    } catch (error) {
+      console.error('❌ ADD PARTY TO TRANSACTION ERROR:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        code: (error as any)?.code || 'Unknown code',
+      });
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to add party to transaction',
         }
       });
     }
