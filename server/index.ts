@@ -1,4 +1,4 @@
-console.log('!!!!!!!! SERVER ENTRY POINT (server/index.ts) IS RUNNING - VERSION 1 !!!!!!!!');
+console.log('!!!!!!!! SERVER ENTRY POINT (server/index.ts) IS RUNNING - VERSION 2 !!!!!!!!');
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -7,22 +7,6 @@ import * as cron from 'node-cron';
 import { NotificationService } from './services/notificationService';
 
 const app = express();
-
-// ULTRA-EARLY GLOBAL INTERCEPTOR TEST - CATCH-ALL BEFORE ANY OTHER MIDDLEWARE
-app.get('/api/v1/transactions/:id', (req, res, next) => {
-  console.log('!!!!!!!! GLOBAL APP-LEVEL INTERCEPTOR for /api/v1/transactions/:id HIT !!!!!! ID:', req.params.id);
-  // Temporarily hijack the response to be absolutely sure this is what's being hit.
-  res.status(599).json({
-    message: 'Request HIT GLOBAL APP-LEVEL INTERCEPTOR in server/index.ts',
-    transactionId: req.params.id,
-    source: 'server/index.ts global interceptor',
-    timestamp: new Date().toISOString(),
-    parties: [{ name: "Test Party from Global Interceptor in server/index.ts" }]
-  });
-  return; // Stop further processing
-});
-
-console.log('!!!!!!!! GLOBAL APP-LEVEL INTERCEPTOR for /api/v1/transactions/:id has been defined in server/index.ts !!!!!!!!');
 // Disable ETags to prevent 304 Not Modified responses that cause stale party data
 app.disable('etag');
 app.use(express.json());
