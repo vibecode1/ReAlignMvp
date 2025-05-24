@@ -287,9 +287,19 @@ export default function TransactionList() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=placeholder`;
-                              window.open(trackerUrl, '_blank');
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/v1/transactions/${transaction.id}/tracker-link`);
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=${data.token}`;
+                                  window.open(trackerUrl, '_blank');
+                                } else {
+                                  console.error('Could not get tracker link');
+                                }
+                              } catch (error) {
+                                console.error('Error getting tracker link:', error);
+                              }
                             }}
                           >
                             Transaction View
@@ -325,9 +335,19 @@ export default function TransactionList() {
                             variant="outline" 
                             size="sm" 
                             className="flex-1 sm:flex-none"
-                            onClick={() => {
-                              const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=placeholder`;
-                              window.open(trackerUrl, '_blank');
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/v1/transactions/${transaction.id}/tracker-link`);
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=${data.token}`;
+                                  window.open(trackerUrl, '_blank');
+                                } else {
+                                  console.error('Could not get tracker link');
+                                }
+                              } catch (error) {
+                                console.error('Error getting tracker link:', error);
+                              }
                             }}
                           >
                             Transaction View

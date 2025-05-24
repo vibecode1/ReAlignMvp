@@ -403,5 +403,48 @@ export const transactionController = {
         }
       });
     }
-  }
+  },
+
+  /**
+   * Get tracker link for a transaction
+   */
+  async getTrackerLink(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const transactionId = req.params.id;
+
+      // Get the first available magic link token for this transaction
+      const subscriptions = await storage.getEmailSubscriptionsByTransactionId(transactionId);
+      
+      if (subscriptions.length === 0) {
+        return res.status(404).json({
+          error: {
+            code: 'NO_TRACKER_LINK',
+            message: 'No tracker link available for this transaction',
+          }
+        });
+      }
+
+      // Return the first valid token
+      return res.status(200).json({
+        token: subscriptions[0].magic_link_token
+      });
+    } catch (error) {
+      console.error('Get tracker link error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to retrieve tracker link',
+        }
+      });
+    }
+  },
 };
