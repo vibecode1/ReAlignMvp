@@ -51,15 +51,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <SidebarInset className="flex-1 p-4 lg:p-8 transition-[margin-left] duration-200 ease-linear">
           {isMobile && (
             <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between lg:hidden">
-              <SidebarTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-brand-primary hover:bg-brand-primary/10"
-                  aria-label="Toggle sidebar"
-                >
-                  <Menu className="h-6 w-6" />
-                </Button>
+              <SidebarTrigger>
+                <Menu className="h-6 w-6" />
               </SidebarTrigger>
               <div className="flex-1 flex justify-center">
                 <Logo size="sm" />
