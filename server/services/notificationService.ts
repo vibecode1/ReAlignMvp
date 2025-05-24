@@ -269,6 +269,126 @@ export class NotificationService {
   }
 
   /**
+   * Sends weekly digest emails to subscribed parties
+   */
+  async sendWeeklyDigest(): Promise<boolean> {
+    try {
+      console.log('Starting weekly digest email job...');
+      
+      if (!process.env.SENDGRID_API_KEY) {
+        console.log('SendGrid not configured, skipping weekly digest emails');
+        return true;
+      }
+
+      // Get all active email subscriptions
+      const subscriptions = await storage.getEmailSubscriptionsByTransactionId(''); // Get all subscriptions
+      
+      for (const subscription of subscriptions) {
+        try {
+          // Get transaction details
+          const transaction = await storage.getTransactionById(subscription.transaction_id);
+          if (!transaction) continue;
+
+          // Get recent tracker notes (last 7 days)
+          const recentNotes = await storage.getTrackerNotesByTransactionId(subscription.transaction_id);
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const recentNotesFiltered = recentNotes.filter(note => 
+            new Date(note.created_at) >= weekAgo
+          );
+
+          // Get document requests for this party's role
+          const docRequests = await storage.getDocumentRequestsByTransactionId(subscription.transaction_id, 1, 100);
+          const partyDocRequests = docRequests.data.filter(req => 
+            req.assigned_party_role === subscription.party_role
+          );
+          
+          const completedDocs = partyDocRequests.filter(req => req.status === 'complete').length;
+          const overdueDocs = partyDocRequests.filter(req => req.status === 'overdue').length;
+          const pendingDocs = partyDocRequests.filter(req => req.status === 'pending').length;
+
+          // Create tracker URL with magic link token
+          const trackerUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/${subscription.transaction_id}?token=${subscription.magic_link_token}`;
+          const unsubscribeUrl = `${process.env.APP_URL || 'http://localhost:5000'}/tracker/unsubscribe?token=${subscription.magic_link_token}`;
+
+          // Send weekly digest email
+          const msg = {
+            to: subscription.email,
+            from: 'noreply@realign.app',
+            subject: `[Tracker Update] Your Short Sale Status - ${transaction.property_address}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+                  Weekly Transaction Update
+                </h2>
+                
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #333;">Transaction: ${transaction.title}</h3>
+                  <p style="margin-bottom: 5px; color: #666;"><strong>Property:</strong> ${transaction.property_address}</p>
+                  <p style="margin-bottom: 0; color: #666;"><strong>Current Phase:</strong> ${transaction.current_phase_key}</p>
+                </div>
+
+                <h3 style="color: #333;">Your Document Status Summary</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                  <div style="background-color: #d4edda; padding: 10px; border-radius: 5px; text-align: center; flex: 1;">
+                    <div style="font-size: 24px; font-weight: bold; color: #155724;">${completedDocs}</div>
+                    <div style="color: #155724; font-size: 12px;">Completed</div>
+                  </div>
+                  <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; text-align: center; flex: 1;">
+                    <div style="font-size: 24px; font-weight: bold; color: #856404;">${pendingDocs}</div>
+                    <div style="color: #856404; font-size: 12px;">Pending</div>
+                  </div>
+                  <div style="background-color: #f8d7da; padding: 10px; border-radius: 5px; text-align: center; flex: 1;">
+                    <div style="font-size: 24px; font-weight: bold; color: #721c24;">${overdueDocs}</div>
+                    <div style="color: #721c24; font-size: 12px;">Overdue</div>
+                  </div>
+                </div>
+
+                ${recentNotesFiltered.length > 0 ? `
+                  <h3 style="color: #333;">Recent Activity</h3>
+                  <div style="margin-bottom: 20px;">
+                    ${recentNotesFiltered.slice(0, 3).map(note => `
+                      <div style="border-left: 3px solid #007bff; padding-left: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #666;">${new Date(note.created_at).toLocaleDateString()}</div>
+                        <div style="color: #333;">${note.note_text}</div>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${trackerUrl}" 
+                     style="display: inline-block; background-color: #007bff; color: white; 
+                            padding: 12px 24px; text-decoration: none; border-radius: 4px; 
+                            margin: 10px;">
+                    View Full Tracker
+                  </a>
+                </div>
+
+                <div style="border-top: 1px solid #ddd; padding-top: 20px; margin-top: 30px; font-size: 12px; color: #666;">
+                  <p>You're receiving this weekly update because you're subscribed to transaction notifications.</p>
+                  <p><a href="${unsubscribeUrl}" style="color: #007bff;">Unsubscribe from these updates</a></p>
+                </div>
+              </div>
+            `,
+          };
+
+          await sgMail.send(msg);
+          console.log(`Weekly digest sent to: ${subscription.email}`);
+          
+        } catch (error) {
+          console.error(`Failed to send weekly digest to ${subscription.email}:`, error);
+        }
+      }
+
+      console.log('Weekly digest job completed');
+      return true;
+    } catch (error) {
+      console.error('Weekly digest job failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Sends a document request notification
    */
   async sendDocumentRequest(
