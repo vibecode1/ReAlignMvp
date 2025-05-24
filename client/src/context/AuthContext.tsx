@@ -81,14 +81,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change event:', event);
+      
       if (event === 'SIGNED_IN' && session) {
+        console.log('SIGNED_IN event detected, storing access token...');
+        console.log('Session access token (first 10 chars):', session.access_token?.substring(0, 10) + '...');
+        
         // Store the access token for API requests
         localStorage.setItem('auth_token', session.access_token);
+        console.log('Access token stored in localStorage from auth state change');
         
         try {
+          console.log('Fetching user info from /api/v1/auth/me with new token...');
           const userData = await apiRequest('GET', '/api/v1/auth/me');
           const userInfo = await userData.json();
           
+          console.log('User info fetched successfully:', userInfo.email);
           setUser(userInfo);
           setIsAuthenticated(true);
         } catch (error) {
@@ -102,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('SIGNED_OUT event detected, clearing auth data...');
         localStorage.removeItem('auth_token');
         setUser(null);
         setIsAuthenticated(false);
@@ -134,15 +143,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const data = await response.json();
       
+      // Add console logs to trace token storage as specified in the plan
+      console.log('Login successful, storing token...');
+      console.log('Token received (first 10 chars):', data.token ? data.token.substring(0, 10) + '...' : 'No token');
+      
       // Store the token immediately for future API requests
       localStorage.setItem('auth_token', data.token);
+      console.log('Token stored in localStorage successfully');
       
-      // Also set the session in Supabase client if we have session data
+      // Also set the session in Supabase client if we have session data (optional but recommended)
       if (data.session) {
+        console.log('Setting session in Supabase client for robustness...');
         await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
+        console.log('Supabase session set successfully');
       }
       
       setUser(data.user);

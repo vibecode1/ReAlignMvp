@@ -15,6 +15,13 @@ export async function apiRequest(
   // Get the auth token from localStorage
   const authToken = localStorage.getItem('auth_token');
   
+  // Add log to see the token being sent (first few chars) as specified in the plan
+  if (authToken) {
+    console.log(`API Request ${method} ${url} - Token (first 10 chars):`, authToken.substring(0, 10) + '...');
+  } else {
+    console.log(`API Request ${method} ${url} - No auth token found`);
+  }
+  
   const headers: Record<string, string> = {};
   if (data) headers["Content-Type"] = "application/json";
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
@@ -38,6 +45,13 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     // Get the auth token from localStorage
     const authToken = localStorage.getItem('auth_token');
+    
+    // Add log for query requests as well
+    if (authToken) {
+      console.log(`Query Request ${queryKey[0]} - Token (first 10 chars):`, authToken.substring(0, 10) + '...');
+    } else {
+      console.log(`Query Request ${queryKey[0]} - No auth token found`);
+    }
     
     const headers: Record<string, string> = {};
     if (authToken) headers["Authorization"] = `Bearer ${authToken}`;

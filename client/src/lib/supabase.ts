@@ -5,6 +5,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Add console logs to verify VITE_ variables are correctly loaded in the browser
+console.log('Frontend Supabase configuration:');
+console.log('  VITE_SUPABASE_URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING!');
+console.log('  VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? supabaseAnonKey.substring(0, 10) + '...' : 'MISSING!');
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase credentials:', { 
     url: supabaseUrl ? 'Set' : 'Missing', 
