@@ -1,0 +1,84 @@
+Debug Express Routing to Find Intercepting Handler for GET /api/v1/transactions/:id
+
+Critical Observation:
+Logs confirm that the intended transactionController.getTransaction method is NEVER EXECUTED for GET /api/v1/transactions/:id requests, even though the route is matched, authentication passes, and a 200 OK response (with parties: null) is sent to the client. This strongly indicates that another middleware or route handler defined earlier in the Express.js stack for this path is intercepting the request and sending a response, thus preventing transactionController.getTransaction from running.
+
+Objective:
+Identify and analyze the specific middleware or route handler in server/routes.ts (or potentially server/index.ts if global middleware is involved) that is intercepting GET /api/v1/transactions/:id requests and preventing them from reaching transactionController.getTransaction. Once identified, we will determine why it's intercepting and how to fix it so that transactionController.getTransaction can correctly handle the request.
+
+Debugging Strategy: Systematic Middleware and Route Tracing
+
+The AI needs to meticulously examine server/routes.ts by adding targeted logging. The goal is to see which piece of code is the last one to touch the request before the incorrect 200 OK response is sent.
+
+Instructions for AI:
+
+Thorough Review and Logging in server/routes.ts:
+
+Starting Point: The logs indicate the request does hit the transactionRouter's initial middleware (the one logging --- transactionRouter received request... ---). This is a vital clue, meaning the interception happens within transactionRouter or by a piece of middleware that transactionRouter uses before the specific get('/:id', transactionController.getTransaction) definition.
+
+Add Detailed Tracing Logs:
+
+Inside transactionRouter: For every single middleware function (transactionRouter.use(...)) and every single route handler (transactionRouter.get(...), transactionRouter.post(...), etc.) defined before the line transactionRouter.get('/:id', transactionController.getTransaction);, add a unique, identifiable console.log statement at its very beginning. Example:
+TypeScript
+
+// Example for a middleware in transactionRouter
+transactionRouter.use((req, res, next) => {
+  console.log('!!! TRACE: transactionRouter Middleware A --- Path:', req.path, 'Method:', req.method);
+  // To test if this is the culprit for the specific route:
+  if (req.method === 'GET' && req.path.match(/^\/[0-9a-fA-F-]{36}$/)) { // Matches GET /:uuid pattern
+    console.log('!!! TRACE: transactionRouter Middleware A is processing GET /:id pattern');
+    // TEMPORARY TEST: return res.status(551).send('Intercepted by transactionRouter Middleware A');
+  }
+  next();
+});
+
+// Example for another GET route defined before the target one
+transactionRouter.get('/some-other-path/:param', (req, res) => {
+  console.log('!!! TRACE: transactionRouter GET /some-other-path/:param Handler --- Path:', req.path);
+  // TEMPORARY TEST: return res.status(552).send('Intercepted by /some-other-path/:param');
+  // Actual handler logic...
+});
+Ensure next() calls: For any middleware, verify it calls next() unless it's intentionally ending the request-response cycle. If a middleware sends a response, it must not call next(). If it doesn't send a response, it must call next() (or next(err)).
+Verify the Target Route Definition:
+
+Locate the exact line: transactionRouter.get('/:id', authenticateJWT, requireTransactionAccess, transactionController.getTransaction); (Note: I've added the typical middleware here, verify against your actual code).
+Add a log immediately before this line:
+TypeScript
+
+console.log('!!! TRACE: About to define transactionRouter.get("/:id", transactionController.getTransaction)');
+Confirm that transactionController.getTransaction is correctly referenced and that transactionController is properly imported and initialized.
+Examine Middleware in authenticateJWT and requireTransactionAccess:
+
+Files: server/middleware/auth.ts
+Action: While the logs say "Authentication: authenticateJWT: User authenticated", it's worth adding a log at the very end of authenticateJWT and requireTransactionAccess right before they would call next() to ensure they are indeed passing control as expected for this route. Example in authenticateJWT (just before next()):
+TypeScript
+
+console.log(`!!! TRACE: authenticateJWT SUCCESS for ${req.user?.email}, path ${req.path}. Calling next().`);
+next();
+Test and Analyze the New !!! TRACE: Logs:
+
+Run the scenario: Add a party, triggering the GET /api/v1/transactions/:id refetch.
+Collect all server console output.
+The sequence of !!! TRACE: logs will show how far the request gets. The last !!! TRACE: log seen before the (incorrect) 200 OK response is sent will point to the middleware or route handler that is either:
+Incorrectly sending a response and not calling next().
+Calling next() but a subsequent handler (still before transactionController.getTransaction) is doing the same.
+If a res.status(55X).send(...) test is hit, that's your culprit.
+Once the Intercepting Handler is Found:
+
+Analyze why it's intercepting the GET /:id request.
+Is its route pattern too broad?
+Is its logic flawed for this specific path?
+Is it an old piece of code that was meant to be removed or modified?
+Propose a fix. This might involve:
+Reordering route definitions in transactionRouter.
+Making the intercepting route's pattern more specific.
+Correcting the logic within the intercepting middleware/handler to properly call next() or to not handle requests it shouldn't.
+Removing the intercepting handler if it's redundant.
+Request to AI:
+
+"Please:
+
+Guide me to add the detailed !!! TRACE: console logs as described above throughout the server/routes.ts file, focusing on transactionRouter definitions that appear before transactionRouter.get('/:id', transactionController.getTransaction). Also, add trace logs to the end of authenticateJWT and requireTransactionAccess in server/middleware/auth.ts.
+After I add these logs and re-run the scenario, I will provide you with the full server log output.
+Based on that output, help me identify the exact middleware or route handler that is intercepting the request and preventing transactionController.getTransaction from executing.
+Then, help me formulate a fix for that intercepting handler."

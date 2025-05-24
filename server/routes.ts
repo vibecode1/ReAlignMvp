@@ -89,12 +89,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Transaction endpoints
-  transactionRouter.post('/', authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
-  transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
+  transactionRouter.post('/', (req, res, next) => {
+    console.log('!!! TRACE: transactionRouter POST / handler');
+    next();
+  }, authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
+  
+  transactionRouter.get('/', (req, res, next) => {
+    console.log('!!! TRACE: transactionRouter GET / handler');
+    next();
+  }, authenticateJWT, transactionController.getTransactions);
   
   // -- Add Parties to Transaction Route (NEW) --
   transactionRouter.post(
     '/:id/parties',
+    (req, res, next) => {
+      console.log('!!! TRACE: transactionRouter POST /:id/parties handler - path:', req.path);
+      next();
+    },
     authenticateJWT,         // Ensure user is authenticated
     requireNegotiatorRole,   // Ensure user is a negotiator
     requireTransactionAccess, // Ensure negotiator has access to this transaction :id
@@ -102,17 +113,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   
   transactionRouter.get('/:id/parties', (req, res, next) => {
-    console.log('🎯 HIT GET /:id/parties route - params:', req.params);
+    console.log('!!! TRACE: transactionRouter GET /:id/parties handler - path:', req.path);
     next();
   }, authenticateJWT, requireTransactionAccess, transactionController.getParties);
   
   transactionRouter.patch('/:transactionId/parties/:userId', (req, res, next) => {
-    console.log('🎯 HIT PATCH /:transactionId/parties/:userId route - params:', req.params);
+    console.log('!!! TRACE: transactionRouter PATCH /:transactionId/parties/:userId handler - path:', req.path);
     next();
   }, authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updatePartyStatus);
   
   // Generic transaction routes (must be after specific sub-routes)
-  transactionRouter.get('/:id', authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
+  console.log('!!! TRACE: About to define transactionRouter.get("/:id", transactionController.getTransaction)');
+  transactionRouter.get('/:id', (req, res, next) => {
+    console.log('!!! TRACE: transactionRouter GET /:id handler - path:', req.path, 'method:', req.method);
+    if (req.method === 'GET' && req.path.match(/^\/[0-9a-fA-F-]{36}$/)) {
+      console.log('!!! TRACE: transactionRouter GET /:id is processing GET /:uuid pattern');
+    }
+    next();
+  }, authenticateJWT, requireTransactionAccess, transactionController.getTransaction);
   transactionRouter.patch('/:id', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransaction);
   
   // -- Message Routes --

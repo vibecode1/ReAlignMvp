@@ -89,6 +89,7 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
       name: name
     };
     
+    console.log(`!!! TRACE: authenticateJWT SUCCESS for ${req.user?.email}, path ${req.path}. Calling next().`);
     next();
   } catch (error) {
     console.error('Authentication middleware error:', error);
@@ -187,6 +188,7 @@ export const requireTransactionAccess = async (req: AuthenticatedRequest, res: R
       }
     }
     
+    console.log(`!!! TRACE: requireTransactionAccess SUCCESS for ${req.user?.email}, transactionId ${transactionId}, path ${req.path}. Calling next().`);
     next();
   } catch (error) {
     return res.status(500).json({
