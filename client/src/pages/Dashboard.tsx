@@ -78,23 +78,23 @@ export default function Dashboard() {
         <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
       </div>
       
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Summary Stats - Mobile Responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-700">Total Transactions</h3>
-                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                  <FileText className="h-5 w-5" />
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm sm:text-base">Total Transactions</h3>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <p className="mt-2 text-3xl font-bold">{transactionsCount}</p>
-              <p className="text-gray-500 text-sm mt-1">All time transactions</p>
+              <p className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{transactionsCount}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">All time transactions</p>
             </CardContent>
           </Card>
         </motion.div>
