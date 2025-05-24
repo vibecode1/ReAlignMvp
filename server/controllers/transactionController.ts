@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { CreateTransactionSchema, UpdateTransactionSchema, UpdatePartyStatusSchema } from '@shared/types';
+import { UpdateTransactionSchema, UpdatePartyStatusSchema } from '@shared/types';
 import { storage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -9,6 +9,20 @@ import config from '../config';
 
 // Import Supabase admin client for database operations
 import { supabaseAdmin } from '../lib/supabase';
+
+// Tracker MVP specific schema for transaction creation (backend)
+const CreateTransactionSchemaTrackerMVP = z.object({
+  title: z.string().min(1, "Title is required"),
+  property_address: z.string().min(1, "Property address is required"),
+  parties: z.array(z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email"),
+    role: z.enum(['seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow'], {
+      errorMap: () => ({ message: "Invalid role" }),
+    }),
+  })).optional(),
+  welcome_email_body: z.string().optional(),
+});
 
 /**
  * Controller for transaction routes
@@ -28,9 +42,10 @@ export const transactionController = {
         });
       }
 
-      // Validate request body
-      const validation = CreateTransactionSchema.safeParse(req.body);
+      // Validate request body using Tracker MVP schema
+      const validation = CreateTransactionSchemaTrackerMVP.safeParse(req.body);
       if (!validation.success) {
+        console.error('VALIDATION_ERROR in createTransaction:', validation.error.errors);
         return res.status(400).json({
           error: {
             code: 'VALIDATION_ERROR',
@@ -40,7 +55,7 @@ export const transactionController = {
         });
       }
 
-      const { title, property_address, parties, initialMessage } = validation.data;
+      const { title, property_address, parties, welcome_email_body } = validation.data;
 
       // Create the transaction with email subscriptions for Tracker MVP
       const transaction = await storage.createTransaction(
@@ -51,8 +66,8 @@ export const transactionController = {
           negotiator_id: req.user.id,
         },
         req.user.id,
-        parties.map(p => ({ email: p.email, role: p.role })),
-        initialMessage
+        parties?.map(p => ({ email: p.email, role: p.role })) || [],
+        welcome_email_body
       );
 
       // Create negotiator as a participant
@@ -68,19 +83,19 @@ export const transactionController = {
       }
 
       // Process each party
-      for (const party of parties) {
-        // Check if user already exists
-        let user = await storage.getUserByEmail(party.email);
+      if (parties) {
+        for (const party of parties) {
+          // Check if user already exists
+          let user = await storage.getUserByEmail(party.email);
 
-        // Create user if it doesn't exist
-        if (!user) {
-          user = await storage.createUser({
-            email: party.email,
-            name: party.name,
-            role: party.role,
-            phone: party.phone,
-          });
-        }
+          // Create user if it doesn't exist
+          if (!user) {
+            user = await storage.createUser({
+              email: party.email,
+              name: party.name,
+              role: party.role,
+            });
+          }
 
         // Add as participant
         await storage.addParticipant({
@@ -102,11 +117,11 @@ export const transactionController = {
       }
 
       // Add initial welcome message if provided
-      if (initialMessage) {
+      if (welcome_email_body) {
         await storage.createMessage(
           {
             transaction_id: transaction.id,
-            text: initialMessage,
+            text: welcome_email_body,
             sender_id: req.user.id,
             is_seed_message: true,
           },
@@ -139,9 +154,9 @@ export const transactionController = {
             lastAction: participant.last_action,
           };
         })),
-        messages: initialMessage ? [{
+        messages: welcome_email_body ? [{
           id: 'seed', // Replace with actual ID once available
-          text: initialMessage,
+          text: welcome_email_body,
           sender: {
             id: req.user.id,
             name: negotiator?.name || 'Negotiator',
