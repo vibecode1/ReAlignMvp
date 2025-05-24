@@ -72,6 +72,24 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
+  // Initialize weekly digest cron job (Friday 5 PM)
+  const notificationService = new NotificationService();
+  
+  // Schedule weekly digest emails every Friday at 5 PM
+  cron.schedule('0 17 * * 5', async () => {
+    console.log('Running weekly digest email job...');
+    try {
+      await notificationService.sendWeeklyDigest();
+    } catch (error) {
+      console.error('Weekly digest job failed:', error);
+    }
+  }, {
+    scheduled: true,
+    timezone: "America/New_York" // Adjust timezone as needed
+  });
+
+  console.log('Weekly digest cron job scheduled for Fridays at 5 PM');
+
   server.listen({
     port,
     host: "0.0.0.0",

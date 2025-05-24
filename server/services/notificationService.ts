@@ -312,7 +312,7 @@ export class NotificationService {
 
           // Send weekly digest email
           const msg = {
-            to: subscription.email,
+            to: subscription.party_email,
             from: 'noreply@realign.app',
             subject: `[Tracker Update] Your Short Sale Status - ${transaction.property_address}`,
             html: `
@@ -324,7 +324,7 @@ export class NotificationService {
                 <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #333;">Transaction: ${transaction.title}</h3>
                   <p style="margin-bottom: 5px; color: #666;"><strong>Property:</strong> ${transaction.property_address}</p>
-                  <p style="margin-bottom: 0; color: #666;"><strong>Current Phase:</strong> ${transaction.current_phase_key}</p>
+                  <p style="margin-bottom: 0; color: #666;"><strong>Current Phase:</strong> ${transaction.current_phase}</p>
                 </div>
 
                 <h3 style="color: #333;">Your Document Status Summary</h3>
@@ -373,7 +373,7 @@ export class NotificationService {
           };
 
           await sgMail.send(msg);
-          console.log(`Weekly digest sent to: ${subscription.email}`);
+          console.log(`Weekly digest sent to: ${subscription.party_email}`);
           
         } catch (error) {
           console.error(`Failed to send weekly digest to ${subscription.email}:`, error);
