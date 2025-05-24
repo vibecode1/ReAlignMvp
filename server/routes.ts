@@ -77,6 +77,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`Base URL: ${req.baseUrl}`);
     console.log(`Route Parameters:`, req.params);
     console.log(`Query Parameters:`, req.query);
+    console.log(`Testing route match for POST /:id/parties:`);
+    console.log(`  Path matches /POST .*/parties pattern: ${req.method === 'POST' && req.path.includes('/parties')}`);
+    console.log(`  Path structure: ${req.path.split('/')}`);
     console.log('Authorization header present:', !!req.headers.authorization);
     if (req.headers.authorization) {
       console.log('Auth header (first 10 chars):', req.headers.authorization.substring(0, 20) + '...');
@@ -90,6 +93,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
   
   // -- Party Status Routes (move before generic :id routes) --
+  // Simple test route first
+  transactionRouter.post('/test-party-route', (req, res) => {
+    console.log('🚀 TEST ROUTE HIT!');
+    res.json({ success: true, message: 'Test route working' });
+  });
+  
   transactionRouter.get('/:id/parties', (req, res, next) => {
     console.log('🎯 HIT GET /:id/parties route - params:', req.params);
     next();
