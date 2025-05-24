@@ -1,0 +1,78 @@
+Objective:
+Fix the bug where parties added to a new or existing transaction do not appear on the TransactionView.tsx page. This involves ensuring that React Query's cache is correctly invalidated or updated after a party is successfully added via a mutation, so the TransactionView.tsx page refetches and displays the complete list of parties.
+
+Problem Description:
+When a user adds a party:
+
+During the creation of a new transaction (via client/src/pages/NewTransaction.tsx).
+To an existing transaction (likely via functionality within client/src/pages/TransactionView.tsx, possibly using a modal triggered by the "Add Party" button shown in Screenshot 2025-05-24 at 1.52.40 PM.png).
+The backend successfully processes these additions. However, the TransactionView.tsx page does not display these newly added parties. It continues to show only the parties that were present before the latest addition (or only the creating negotiator, as seen in the screenshot). This indicates a failure to update or refetch the transaction data in the frontend's React Query cache.
+
+Core Task for AI:
+Analyze the relevant frontend files and implement the correct React Query cache invalidation or update strategies in the onSuccess callbacks of the mutations responsible for:
+
+Creating a new transaction with parties.
+Adding parties to an existing transaction.
+Key Files and Areas to Investigate & Modify:
+
+client/src/pages/TransactionView.tsx
+
+Data Fetching:
+Locate the useQuery hook responsible for fetching the single transaction's details.
+Identify its queryKey. This is crucial (e.g., ['transaction', transactionId], ['getTransactionById', transactionId], or similar).
+Rendering Parties:
+Examine how the transaction.parties array (or equivalent) is accessed from the useQuery's result and rendered (e.g., mapped to PartyCard.tsx components or table rows).
+Adding Parties to an Existing Transaction (Triggered by "Add Party" button):
+Find the component/modal responsible for the "Add Party" form.
+Locate the useMutation hook that submits the new party data to the backend (likely calling POST /api/v1/transactions/:id/parties).
+CRITICAL FIX: In the onSuccess callback of this useMutation:
+Import useQueryClient from @tanstack/react-query.
+Get the queryClient instance: const queryClient = useQueryClient();
+Invalidate the query for the current transaction: queryClient.invalidateQueries({ queryKey: ['transaction', transactionId] }); (Replace ['transaction', transactionId] with the actual query key used by useQuery on this page).
+Consider if the API endpoint for adding parties returns the full updated transaction. If so, an alternative to invalidation is to use queryClient.setQueryData(['transaction', transactionId], updatedTransactionDataFromApi); for a more optimistic update, but invalidation is simpler and often sufficient.
+client/src/pages/NewTransaction.tsx
+
+Transaction Creation Mutation:
+Locate the useMutation hook responsible for submitting the new transaction data (including initial parties) to the backend (likely calling POST /api/v1/transactions).
+CRITICAL FIX: In the onSuccess callback of this useMutation:
+Import useQueryClient.
+Get the queryClient instance.
+Option A (Recommended for UX): If the backend createTransaction endpoint (in server/controllers/transactionController.ts) returns the complete newly created transaction object (including its ID and the list of parties):
+Use queryClient.setQueryData(['transaction', newTransactionData.id], newTransactionData); to pre-populate the cache for the TransactionView.tsx page before navigating.
+This ensures that when the user is redirected to TransactionView.tsx for the new transaction, the data is already fresh in the cache, avoiding a loading state or flash of incomplete data.
+Option B (Simpler Fallback): If not pre-populating or if you want to be absolutely sure TransactionView.tsx fetches:
+Rely on TransactionView.tsx fetching the data by its ID when it loads. No specific invalidation might be needed here for that specific new transaction's view if it always fetches on mount with a new ID.
+General Cache Hygiene: Regardless of the above, it's good practice to invalidate any queries that display lists of transactions, so the new transaction appears there:
+queryClient.invalidateQueries({ queryKey: ['transactions'] }); (or whatever query key is used for fetching the transaction list on TransactionList.tsx).
+API Service Functions (e.g., client/src/api.ts, client/src/services/api.ts, or hooks in client/src/hooks/)
+
+Review the functions that are called by the useMutation hooks for:
+createTransaction(transactionDataWithParties)
+addPartyToTransaction(transactionId, partyData)
+Ensure these functions correctly make the API calls and that the transactionDataWithParties and partyData payloads are structured as expected by the backend (server/controllers/transactionController.ts's createTransaction and addPartiesToTransaction methods).
+Verify what data these API endpoints return upon success, as this informs whether setQueryData (optimistic update/seeding) is viable.
+server/controllers/transactionController.ts
+
+createTransaction method: Confirm that after creating the transaction and its initial parties, the method returns a JSON response that includes the full transaction object, particularly the id and the parties array with all details (name, role, status, userId, etc.). The frontend NewTransaction.tsx's onSuccess handler can then use this full object.
+addPartiesToTransaction method (if separate, or logic within an update transaction method): Confirm this method returns either the full updated transaction object (with the complete new list of parties) or at least a success status that the frontend can use to trigger a refetch.
+client/src/components/transactions/PartyCard.tsx
+
+Review this component to ensure it correctly receives and displays party props. While likely not the source of the missing parties (that's a data fetching issue in the parent), ensure it's robust.
+Specific Instructions for the AI:
+
+Examine client/src/pages/TransactionView.tsx:
+
+Identify the useQuery hook fetching transaction details and its queryKey.
+If an "Add Party" feature exists here, find the useMutation hook for adding parties.
+Modify its onSuccess callback to include queryClient.invalidateQueries({ queryKey: ['<actualQueryKey>', transactionId] });. Provide the modified code block.
+Examine client/src/pages/NewTransaction.tsx:
+
+Identify the useMutation hook for creating transactions.
+Modify its onSuccess callback. Prioritize using queryClient.setQueryData(['<actualQueryKeyForSingleTransaction>', newTransactionData.id], newTransactionData); if the API returns the full object. Also, include queryClient.invalidateQueries({ queryKey: ['<actualQueryKeyForTransactionList>'] });. Provide the modified code block.
+Review API function definitions: Check the client-side functions that make the actual Workspace or axios calls for creating transactions and adding parties. Ensure they are correctly defined and match what the useMutation hooks expect.
+
+Check server/controllers/transactionController.ts return values: Briefly confirm that createTransaction and the method for adding parties to an existing transaction return the necessary data (ideally the full transaction object with the updated parties list) for the frontend to effectively update its state or cache.
+
+Provide complete, copy-pasteable code snippets for all suggested modifications.
+
+Emphasize the importance of using the correct queryKeys for invalidation and setQueryData.
