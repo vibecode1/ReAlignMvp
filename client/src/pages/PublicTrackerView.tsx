@@ -221,9 +221,12 @@ export default function PublicTrackerView() {
               <h2 className="text-lg font-semibold text-brand-primary mb-2">
                 {currentPhase?.name || trackerData.transaction.current_phase}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Days in current phase: <span className="font-medium">{daysInCurrentPhase}</span>
-              </p>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-3 space-y-1">
+                <p>Days in current phase: <span className="font-medium">{daysInCurrentPhase}</span></p>
+                {currentPhase?.estimatedDuration && (
+                  <p>Typical duration: <span className="font-medium">{currentPhase.estimatedDuration}</span></p>
+                )}
+              </div>
               
               {/* High-Level Action Summary */}
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border">

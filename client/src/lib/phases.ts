@@ -7,23 +7,27 @@ export interface TransactionPhase {
   key: string;
   name: string;
   description: string;
+  estimatedDuration?: string;
 }
 
 export const PHASE_CONFIG: TransactionPhase[] = [
   {
     key: 'Transaction Initiated',
     name: 'Transaction Initiated',
-    description: 'Initial contact and transaction setup'
+    description: 'Initial contact and transaction setup',
+    estimatedDuration: '1-2 days'
   },
   {
     key: 'Property Listing',
     name: 'Property Listing',
-    description: 'Property is listed and marketed'
+    description: 'Property is listed and marketed',
+    estimatedDuration: '1-2 weeks'
   },
   {
     key: 'Documentation Collection',
     name: 'Documentation Collection',
-    description: 'Gathering necessary paperwork and documents'
+    description: 'Gathering necessary paperwork and documents',
+    estimatedDuration: '2-3 weeks'
   },
   {
     key: 'Hardship Package Submitted',
@@ -53,7 +57,8 @@ export const PHASE_CONFIG: TransactionPhase[] = [
   {
     key: 'Lender Negotiations',
     name: 'Lender Negotiations',
-    description: 'Active negotiations with lender on terms'
+    description: 'Active negotiations with lender on terms',
+    estimatedDuration: '3-6 weeks'
   },
   {
     key: 'Final Approval Received',
