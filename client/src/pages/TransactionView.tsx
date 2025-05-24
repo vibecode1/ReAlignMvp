@@ -16,7 +16,9 @@ import {
   AlertCircle, 
   Pencil, 
   Save, 
-  X 
+  X,
+  ExternalLink,
+  Copy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -238,7 +240,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
             )}
           </div>
           
-          <div className="flex items-center mt-1">
+          <div className="flex items-center mt-1 flex-wrap gap-2">
             {isEditingAddress ? (
               <div className="flex items-center gap-2">
                 <Input 
@@ -268,19 +270,88 @@ export default function TransactionView({ id }: TransactionViewProps) {
                 </Button>
               </div>
             ) : (
-              <p className="text-gray-600">
-                {transactionDetails.property_address || 'Property Address'}
-                {isNegotiator && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-1"
-                    onClick={() => setIsEditingAddress(true)}
+              <>
+                <p className="text-gray-600 flex items-center">
+                  {transactionDetails.property_address || 'Property Address'}
+                  {isNegotiator && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="ml-1"
+                      onClick={() => setIsEditingAddress(true)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                </p>
+                {/* Transaction View Link and Copy Link Button */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/v1/transactions/${id}/tracker-link`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          const trackerUrl = `${window.location.origin}/tracker/${id}?token=${data.token}`;
+                          window.open(trackerUrl, '_blank');
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Could not get tracker link.",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Could not get tracker link.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="text-xs"
                   >
-                    <Pencil className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Transaction View
                   </Button>
-                )}
-              </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/v1/transactions/${id}/tracker-link`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          const trackerUrl = `${window.location.origin}/tracker/${id}?token=${data.token}`;
+                          await navigator.clipboard.writeText(trackerUrl);
+                          toast({
+                            title: "Link Copied",
+                            description: "Transaction view link copied to clipboard.",
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Could not get tracker link.",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Copy Failed",
+                          description: "Could not copy link to clipboard.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy Link
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </div>

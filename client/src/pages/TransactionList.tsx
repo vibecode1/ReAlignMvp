@@ -283,9 +283,21 @@ export default function TransactionList() {
                             </span>
                           </div>
                         </div>
-                        <Button size="sm" className="ml-4">
-                          View
-                        </Button>
+                        <div className="flex gap-2 ml-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=placeholder`;
+                              window.open(trackerUrl, '_blank');
+                            }}
+                          >
+                            Transaction View
+                          </Button>
+                          <Button size="sm">
+                            Edit
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -308,9 +320,20 @@ export default function TransactionList() {
                           </span>
                         </div>
                         
-                        <div className="pt-1">
-                          <Button size="sm" className="w-full sm:w-auto">
-                            View Transaction Details
+                        <div className="pt-1 flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 sm:flex-none"
+                            onClick={() => {
+                              const trackerUrl = `${window.location.origin}/tracker/${transaction.id}?token=placeholder`;
+                              window.open(trackerUrl, '_blank');
+                            }}
+                          >
+                            Transaction View
+                          </Button>
+                          <Button size="sm" className="flex-1 sm:flex-none">
+                            Edit
                           </Button>
                         </div>
                       </div>

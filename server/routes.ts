@@ -84,6 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.put('/:id/phase', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransactionPhase);
   transactionRouter.get('/:id/phase-history', authenticateJWT, requireTransactionAccess, transactionController.getTransactionPhaseHistory);
   
+  // -- Tracker Link Route --
+  transactionRouter.get('/:id/tracker-link', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.getTrackerLink);
+  
   // -- Upload Routes --
   apiRouter.post('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.uploadFile);
   apiRouter.get('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.getUploads);
