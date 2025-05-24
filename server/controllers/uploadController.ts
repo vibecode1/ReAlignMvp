@@ -285,7 +285,7 @@ export const uploadController = {
         contentType: upload.content_type,
         sizeBytes: upload.size_bytes,
         fileUrl: upload.file_url,
-        uploadedBy: upload.uploaded_by,
+        uploadedBy: upload.uploaded_by_user_id,
         visibility: upload.visibility,
         uploadedAt: upload.uploaded_at.toISOString(),
       }));
@@ -308,6 +308,60 @@ export const uploadController = {
         error: {
           code: 'SERVER_ERROR',
           message: 'Failed to retrieve uploads',
+        }
+      });
+    }
+  },
+
+  /**
+   * Update upload visibility (negotiator only)
+   */
+  async updateUploadVisibility(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      // Only negotiators can update visibility
+      if (req.user.role !== 'negotiator') {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Only negotiators can update upload visibility',
+          }
+        });
+      }
+
+      const { uploadId } = req.params;
+      const { visibility } = req.body;
+
+      if (!visibility || !['private', 'shared'].includes(visibility)) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Valid visibility value is required (private or shared)',
+          }
+        });
+      }
+
+      const updatedUpload = await storage.updateUploadVisibility(uploadId, visibility);
+      
+      return res.status(200).json({
+        id: updatedUpload.id,
+        visibility: updatedUpload.visibility,
+        message: `Upload visibility updated to ${visibility}`,
+      });
+    } catch (error) {
+      console.error('Update upload visibility error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to update upload visibility',
         }
       });
     }

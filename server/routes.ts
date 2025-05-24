@@ -81,13 +81,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.get('/:id/tracker-notes', authenticateJWT, requireTransactionAccess, trackerNoteController.getTrackerNotes);
   
   // -- Phase Management Routes (New for Tracker MVP) --
-  transactionRouter.put('/:id/phase', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, phaseController.updatePhase);
-  transactionRouter.get('/:id/phase-history', authenticateJWT, requireTransactionAccess, phaseController.getPhaseHistory);
+  transactionRouter.put('/:id/phase', authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.updateTransactionPhase);
+  transactionRouter.get('/:id/phase-history', authenticateJWT, requireTransactionAccess, transactionController.getTransactionPhaseHistory);
   
   // -- Upload Routes --
   apiRouter.post('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.uploadFile);
   apiRouter.get('/uploads/:transactionId', authenticateJWT, requireTransactionAccess, uploadController.getUploads);
-  apiRouter.patch('/uploads/:uploadId/visibility', authenticateJWT, requireNegotiatorRole, uploadController.updateVisibility);
+  apiRouter.patch('/uploads/:uploadId/visibility', authenticateJWT, requireNegotiatorRole, uploadController.updateUploadVisibility);
   
   // -- Notification Device Token Routes --
   const notificationRouter = express.Router();

@@ -299,6 +299,66 @@ export const transactionController = {
   },
 
   /**
+   * Update transaction phase
+   */
+  async updateTransactionPhase(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const { id } = req.params;
+      const { phase } = req.body;
+
+      if (!phase) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Phase is required',
+          }
+        });
+      }
+
+      const updatedTransaction = await storage.updateTransactionPhase(id, phase, req.user.id);
+      
+      return res.status(200).json(updatedTransaction);
+    } catch (error) {
+      console.error('Update transaction phase error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to update transaction phase',
+        }
+      });
+    }
+  },
+
+  /**
+   * Get transaction phase history
+   */
+  async getTransactionPhaseHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const phaseHistory = await storage.getPhaseHistoryByTransactionId(id);
+      
+      return res.status(200).json(phaseHistory);
+    } catch (error) {
+      console.error('Get phase history error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to retrieve phase history',
+        }
+      });
+    }
+  },
+
+  /**
    * Get parties for a transaction
    */
   async getParties(req: AuthenticatedRequest, res: Response) {
