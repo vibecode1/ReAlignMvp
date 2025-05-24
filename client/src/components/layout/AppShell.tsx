@@ -3,7 +3,6 @@ import {
   SidebarProvider,
   Sidebar,
   SidebarTrigger,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import { AppSidebarContent } from './AppSidebarContent';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,55 +16,80 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const isMobile = useIsMobile();
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = React.useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [desktopSidebarExpanded, setDesktopSidebarExpanded] = useState(false);
 
-  // Controls desktop sidebar expansion on hover
-  const handleDesktopSidebarOpen = (openState: boolean) => {
-    if (!isMobile) {
-      setDesktopSidebarOpen(openState);
-    }
+  const handleMobileSidebarToggle = () => {
+    setMobileSidebarOpen(!mobileSidebarOpen);
   };
 
   return (
-    <SidebarProvider 
-      open={isMobile ? undefined : desktopSidebarOpen}
-      onOpenChange={handleDesktopSidebarOpen}
-      defaultOpen={!isMobile}
-    >
-      <div className="flex flex-col lg:flex-row min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen bg-background">
+      {/* Desktop Fixed Sidebar - Always visible on desktop, overlays content */}
+      {!isMobile && (
         <div
-          onMouseEnter={() => { if (!isMobile) handleDesktopSidebarOpen(true); }}
-          onMouseLeave={() => { if (!isMobile) handleDesktopSidebarOpen(false); }}
-          className="relative"
+          className="fixed left-0 top-0 bottom-0 z-40 transition-all duration-200 ease-in-out"
+          onMouseEnter={() => setDesktopSidebarExpanded(true)}
+          onMouseLeave={() => setDesktopSidebarExpanded(false)}
+          style={{
+            width: desktopSidebarExpanded ? '16rem' : '3rem',
+          }}
         >
-          <Sidebar
-            variant="sidebar"
-            collapsible={isMobile ? "offcanvas" : "icon"}
-            side="left"
-            className="bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
-          >
-            <AppSidebarContent />
-          </Sidebar>
+          <div className="h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg">
+            <AppSidebarContent isExpanded={desktopSidebarExpanded} />
+          </div>
         </div>
+      )}
 
-        <SidebarInset className="flex-1 p-4 lg:p-8 transition-[margin-left] duration-200 ease-linear">
-          {isMobile && (
-            <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between lg:hidden">
-              <SidebarTrigger>
-                <Menu className="h-6 w-6" />
-              </SidebarTrigger>
-              <div className="flex-1 flex justify-center">
-                <Logo size="sm" />
-              </div>
-              <div className="w-10"></div>
-            </header>
-          )}
-          <main className={`${isMobile ? 'pt-20' : ''}`}>
-            {children}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && mobileSidebarOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={handleMobileSidebarToggle}
+          />
+          {/* Mobile Sidebar */}
+          <div className="fixed left-0 top-0 bottom-0 w-80 bg-background border-r border-border z-50 shadow-xl">
+            <AppSidebarContent isExpanded={true} />
+          </div>
+        </>
+      )}
+
+      {/* Mobile Header */}
+      {isMobile && (
+        <header className="fixed top-0 left-0 right-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleMobileSidebarToggle}
+            className="text-foreground hover:bg-accent"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+          <div className="flex-1 flex justify-center">
+            <Logo size="sm" />
+          </div>
+          <div className="w-10"></div>
+        </header>
+      )}
+
+      {/* Main Content - Fixed with scroll, no left margin on mobile */}
+      <main 
+        className="fixed top-0 right-0 bottom-0 overflow-y-auto"
+        style={{
+          left: isMobile ? '0' : '3rem',
+          paddingTop: isMobile ? '4rem' : '0',
+          paddingLeft: isMobile ? '1rem' : '1rem',
+          paddingRight: '1rem',
+          paddingBottom: '1rem',
+        }}
+      >
+        <div className="py-4 lg:py-8">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 
