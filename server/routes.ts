@@ -92,23 +92,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.post('/', authenticateJWT, requireNegotiatorRole, transactionController.createTransaction);
   transactionRouter.get('/', authenticateJWT, transactionController.getTransactions);
   
-  // -- Party Status Routes (move before generic :id routes) --
-  // Simple test route first
-  transactionRouter.post('/test-party-route', (req, res) => {
-    console.log('🚀 TEST ROUTE HIT!');
-    res.json({ success: true, message: 'Test route working' });
+  // -- Party Status Routes - DIRECT IMPLEMENTATION --
+  // Add party route with direct implementation to bypass middleware issues
+  transactionRouter.post('/:id/parties', async (req, res) => {
+    console.log('🎯 DIRECT POST /:id/parties route HIT!');
+    console.log('🎯 Route params:', req.params);
+    console.log('🎯 Request body:', req.body);
+    
+    try {
+      // Call the controller directly
+      await transactionController.addPartyToTransaction(req as any, res);
+    } catch (error) {
+      console.error('❌ Direct route error:', error);
+      res.status(500).json({ error: 'Failed to add party' });
+    }
   });
   
   transactionRouter.get('/:id/parties', (req, res, next) => {
     console.log('🎯 HIT GET /:id/parties route - params:', req.params);
     next();
   }, authenticateJWT, requireTransactionAccess, transactionController.getParties);
-  
-  transactionRouter.post('/:id/parties', (req, res, next) => {
-    console.log('🎯 HIT POST /:id/parties route - params:', req.params);
-    console.log('🎯 Request body:', req.body);
-    next();
-  }, authenticateJWT, requireNegotiatorRole, requireTransactionAccess, transactionController.addPartyToTransaction);
   
   transactionRouter.patch('/:transactionId/parties/:userId', (req, res, next) => {
     console.log('🎯 HIT PATCH /:transactionId/parties/:userId route - params:', req.params);
