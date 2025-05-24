@@ -121,7 +121,7 @@ export class NotificationService {
       // Send email via SendGrid
       const msg = {
         to: email,
-        from: 'help@realignapp.com', // Verified sender
+        from: process.env.SENDGRID_VERIFIED_SENDER || 'help@realignapp.com', // Verified sender
         subject: 'Your ReAlign Sign-In Link',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -176,7 +176,7 @@ export class NotificationService {
       // Send email via SendGrid
       const msg = {
         to: email,
-        from: 'help@realignapp.com', // Verified sender
+        from: process.env.SENDGRID_VERIFIED_SENDER || 'help@realignapp.com', // Verified sender
         subject: `Track Your Transaction: ${transactionTitle}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -317,7 +317,7 @@ export class NotificationService {
           // Send weekly digest email
           const msg = {
             to: subscription.party_email,
-            from: 'help@realignapp.com',
+            from: process.env.SENDGRID_VERIFIED_SENDER || 'help@realignapp.com',
             subject: `[Tracker Update] Your Short Sale Status - ${transaction.property_address}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
