@@ -62,6 +62,7 @@ export const transaction_participants = pgTable('transaction_participants', {
   role_in_transaction: userRoleEnum('role_in_transaction').notNull(),
   status: partyStatusEnum('status').notNull().default('pending'),
   last_action: text('last_action'),
+  welcome_email_sent: boolean('welcome_email_sent').notNull().default(false), // Track email sent status
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => {

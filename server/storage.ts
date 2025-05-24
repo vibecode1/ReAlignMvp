@@ -43,6 +43,7 @@ export interface IStorage {
   addParticipant(participant: schema.InsertTransactionParticipant): Promise<schema.TransactionParticipant>;
   getParticipantsByTransactionId(transactionId: string): Promise<schema.TransactionParticipant[]>;
   updateParticipantStatus(transactionId: string, userId: string, status: string, lastAction?: string): Promise<schema.TransactionParticipant>;
+  updateParticipantEmailSent(transactionId: string, userId: string, emailSent: boolean): Promise<schema.TransactionParticipant>;
 
   // Message methods
   createMessage(message: schema.InsertMessage, transactionId: string, senderId: string): Promise<schema.Message>;
@@ -215,6 +216,13 @@ class DrizzleStorage implements IStorage {
       .insert(schema.transaction_participants)
       .values(participant)
       .returning();
+    
+    // Update the transaction's updated_at timestamp to invalidate cache
+    await db
+      .update(schema.transactions)
+      .set({ updated_at: new Date() })
+      .where(eq(schema.transactions.id, participant.transaction_id));
+    
     return result[0];
   }
 
@@ -231,6 +239,7 @@ class DrizzleStorage implements IStorage {
       .set({
         status: status as any,
         last_action: lastAction,
+        updated_at: new Date(),
       })
       .where(
         and(
@@ -239,6 +248,37 @@ class DrizzleStorage implements IStorage {
         )
       )
       .returning();
+    
+    // Update the transaction's updated_at timestamp to invalidate cache
+    await db
+      .update(schema.transactions)
+      .set({ updated_at: new Date() })
+      .where(eq(schema.transactions.id, transactionId));
+    
+    return result[0];
+  }
+
+  async updateParticipantEmailSent(transactionId: string, userId: string, emailSent: boolean): Promise<schema.TransactionParticipant> {
+    const result = await db
+      .update(schema.transaction_participants)
+      .set({
+        welcome_email_sent: emailSent,
+        updated_at: new Date(),
+      })
+      .where(
+        and(
+          eq(schema.transaction_participants.transaction_id, transactionId),
+          eq(schema.transaction_participants.user_id, userId)
+        )
+      )
+      .returning();
+    
+    // Update the transaction's updated_at timestamp to invalidate cache
+    await db
+      .update(schema.transactions)
+      .set({ updated_at: new Date() })
+      .where(eq(schema.transactions.id, transactionId));
+    
     return result[0];
   }
 

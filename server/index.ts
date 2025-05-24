@@ -5,6 +5,8 @@ import * as cron from 'node-cron';
 import { NotificationService } from './services/notificationService';
 
 const app = express();
+// Disable ETags to prevent 304 Not Modified responses that cause stale party data
+app.disable('etag');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
