@@ -129,6 +129,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
+      console.log('=== FRONTEND LOGIN ATTEMPT ===');
+      console.log('Email:', email);
+      console.log('Current URL:', window.location.href);
+      console.log('Making request to: /api/v1/auth/login');
+      
       // Use our API for login
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -137,7 +142,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         credentials: 'include',
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response OK:', response.ok);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
+        const errorData = await response.text();
+        console.log('Error response body:', errorData);
         throw new Error('Login failed');
       }
 
