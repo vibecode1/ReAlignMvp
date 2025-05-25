@@ -75,16 +75,17 @@
 --card-foreground: 20 14.3% 4.1%;
 --border: 20 5.9% 90%;
 --input: 20 5.9% 90%;
-/* ReAlign 2.0 Primary Brand Colors */
---primary: 213 94% 68%;
+/* ReAlign 2.0 Primary Brand Colors - Deep Blue Primary */
+--primary: 221 83% 53%;
 --primary-foreground: 0 0% 100%;
---primary-hover: 213 94% 62%;
---primary-light: 213 94% 95%;
+--primary-hover: 221 83% 48%;
+--primary-light: 221 83% 95%;
 
---secondary: 215 20% 96%;
---secondary-foreground: 215 25% 25%;
---accent: 213 94% 95%;
---accent-foreground: 213 94% 20%;
+/* Teal/Green Secondary */
+--secondary: 158 64% 52%;
+--secondary-foreground: 0 0% 100%;
+--accent: 25 95% 53%;
+--accent-foreground: 0 0% 100%;
 
 /* Enhanced Semantic Colors */
 --destructive: 0 84% 60%;
@@ -97,17 +98,7 @@
 --ring: 213 94% 68%;
 --radius: 0.75rem;
 
-    /* ReAlign 2.0 Sidebar - Premium Dark Theme */
-    --sidebar-background: 215 28% 17%;
-    --sidebar-foreground: 215 20% 85%;
-    --sidebar-border: 215 25% 22%;
-    --sidebar-primary: 213 94% 68%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 20%;
-    --sidebar-accent-foreground: 215 20% 90%;
-    --sidebar-muted: 215 25% 25%;
-    --sidebar-muted-foreground: 215 15% 65%;
-    --sidebar-ring: 213 94% 68%;
+
 
     /* Overall page background */
     --background-light: 0 0% 100%;
@@ -127,15 +118,15 @@
     --input: 215 25% 20%;
 
     /* ReAlign 2.0 Dark Primary Colors */
-    --primary: 213 94% 68%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 213 94% 72%;
-    --primary-light: 213 94% 15%;
+    --primary-hover: 221 83% 58%;
+    --primary-light: 221 83% 15%;
 
-    --secondary: 215 25% 15%;
-    --secondary-foreground: 215 20% 85%;
-    --accent: 215 25% 15%;
-    --accent-foreground: 215 20% 85%;
+    --secondary: 158 64% 52%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
 
     /* Dark Mode Semantic Colors */
     --destructive: 0 75% 55%;
@@ -148,17 +139,7 @@
     --ring: 213 94% 68%;
     --radius: 0.75rem;
 
-    /* ReAlign 2.0 Enhanced Dark Sidebar */
-    --sidebar-background: 215 30% 12%;
-    --sidebar-foreground: 215 20% 88%;
-    --sidebar-border: 215 28% 18%;
-    --sidebar-primary: 213 94% 68%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 15%;
-    --sidebar-accent-foreground: 215 20% 92%;
-    --sidebar-muted: 215 28% 18%;
-    --sidebar-muted-foreground: 215 15% 68%;
-    --sidebar-ring: 213 94% 68%;
+
   }
 
 @layer base {
@@ -200,33 +181,21 @@
     @apply flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* Sidebar specific styles */
-  .sidebar-nav-item {
-    @apply flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  /* Top Navigation styles for authenticated app */
+  .auth-nav-item {
+    @apply flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
   }
 
-  .sidebar-nav-item.active {
-    @apply bg-sidebar-primary text-sidebar-primary-foreground shadow-md;
-  }
-
-  .sidebar-nav-icon {
-    @apply h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110;
-  }
-
-  .sidebar-brand {
-    @apply flex items-center gap-3 px-3 py-4 border-b border-sidebar-border;
-  }
-
-  .sidebar-logo {
-    @apply h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg;
+  .auth-nav-item.active {
+    @apply bg-primary text-primary-foreground shadow-sm;
   }
 
   /* Enhanced animations */
-  .sidebar-transition {
+  .nav-transition {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .sidebar-backdrop {
+  .nav-backdrop {
     backdrop-filter: blur(8px);
     background: rgba(0, 0, 0, 0.4);
   }
