@@ -25,27 +25,30 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Fixed Sidebar - Always visible on desktop, overlays content */}
+      {/* Enhanced Desktop Fixed Sidebar with ReAlign 2.0 styling */}
       {!isMobile && (
         <div
-          className="fixed left-0 top-0 bottom-0 z-40 transition-all duration-200 ease-in-out"
+          className="fixed left-0 top-0 bottom-0 z-40 sidebar-transition"
           onMouseEnter={() => setDesktopSidebarExpanded(true)}
           onMouseLeave={() => setDesktopSidebarExpanded(false)}
           style={{
-            width: desktopSidebarExpanded ? '16rem' : '3rem',
+            width: desktopSidebarExpanded ? '16rem' : '4rem',
           }}
         >
-          <div className="h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg">
+          <div className="h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-realign-lg">
             <AppSidebarContent isExpanded={desktopSidebarExpanded} isMobile={false} />
           </div>
         </div>
       )}
 
-      {/* Mobile Full Screen Navigation */}
+      {/* Enhanced Mobile Full Screen Navigation with backdrop */}
       {isMobile && mobileSidebarOpen && (
-        <div className="fixed inset-0 bg-white z-50">
-          <AppSidebarContent isExpanded={true} isMobile={true} onClose={handleMobileSidebarToggle} />
-        </div>
+        <>
+          <div className="fixed inset-0 sidebar-backdrop z-40" onClick={handleMobileSidebarToggle} />
+          <div className="fixed inset-0 bg-background z-50 sidebar-transition">
+            <AppSidebarContent isExpanded={true} isMobile={true} onClose={handleMobileSidebarToggle} />
+          </div>
+        </>
       )}
 
       {/* Mobile Header */}
