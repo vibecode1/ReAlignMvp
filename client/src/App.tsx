@@ -24,6 +24,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { HomePage } from "@/pages/HomePage";
 import { AboutPage } from "@/pages/AboutPage";
 import { SolutionsPage } from "@/pages/SolutionsPage";
+import { PricingPage } from "@/pages/PricingPage";
 import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
 import { AdvisorDashboardPage } from "@/pages/AdvisorDashboardPage";
 import { Loader2 } from "lucide-react";
@@ -35,7 +36,22 @@ import { useEffect } from "react";
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
-// Protected route component
+// Public route component (for marketing pages)
+const PublicRoute = ({ 
+  component: Component,
+  ...rest 
+}: { 
+  component: React.ComponentType<any>,
+  path?: string 
+}) => {
+  return (
+    <PublicLayout>
+      <Component />
+    </PublicLayout>
+  );
+};
+
+// Protected route component (for authenticated app pages)
 const ProtectedRoute = ({ 
   component: Component, 
   allowedRoles = [], 
@@ -87,24 +103,68 @@ const ProtectedRoute = ({
 
 // Router component
 function Router() {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <Switch>
-      <Route path="/login" component={Login}/>
-      <Route path="/reset-password" component={ResetPassword}/>
-      <Route path="/update-password" component={UpdatePassword}/>
-      <Route path="/register/negotiator" component={RegisterNegotiator}/>
-      <Route path="/magic-link" component={MagicLink}/>
-      <Route path="/auth/callback" component={MagicLinkCallback}/>
+      {/* Public Marketing Pages */}
+      <Route path="/about">
+        <PublicRoute component={AboutPage} />
+      </Route>
+      <Route path="/solutions">
+        <PublicRoute component={SolutionsPage} />
+      </Route>
+      <Route path="/pricing">
+        <PublicRoute component={PricingPage} />
+      </Route>
+      <Route path="/">
+        {isAuthenticated ? <Redirect to="/dashboard" /> : <PublicRoute component={HomePage} />}
+      </Route>
+      
+      {/* Auth Pages (with PublicLayout) */}
+      <Route path="/login">
+        <PublicLayout><Login /></PublicLayout>
+      </Route>
+      <Route path="/reset-password">
+        <PublicLayout><ResetPassword /></PublicLayout>
+      </Route>
+      <Route path="/update-password">
+        <PublicLayout><UpdatePassword /></PublicLayout>
+      </Route>
+      <Route path="/register">
+        <PublicLayout><RegisterNegotiator /></PublicLayout>
+      </Route>
+      <Route path="/register/negotiator">
+        <PublicLayout><RegisterNegotiator /></PublicLayout>
+      </Route>
+      <Route path="/magic-link">
+        <PublicLayout><MagicLink /></PublicLayout>
+      </Route>
+      <Route path="/auth/callback">
+        <PublicLayout><MagicLinkCallback /></PublicLayout>
+      </Route>
       
       {/* Public Tracker Route (New for Tracker MVP) */}
       <Route path="/tracker/:transactionId" component={PublicTrackerView}/>
       
-      {/* Protected routes */}
-      <Route path="/">
-        <Redirect to="/dashboard" />
-      </Route>
+      {/* Protected App Routes */}
       <Route path="/dashboard">
-        <ProtectedRoute component={Dashboard} />
+        {() => {
+          const { user } = useAuth();
+          // Route to role-specific dashboard
+          if (user?.role === 'negotiator') {
+            return <ProtectedRoute component={Dashboard} />;
+          } else {
+            // For other roles, show a simplified dashboard or redirect to their main view
+            return <ProtectedRoute component={Dashboard} />;
+          }
+        }}
+      </Route>
+      <Route path="/app/maker">
+        <ProtectedRoute component={MakerDashboardPage} allowedRoles={['negotiator']} />
+      </Route>
+      <Route path="/app/advisor">
+        <ProtectedRoute component={AdvisorDashboardPage} allowedRoles={['negotiator']} />
       </Route>
       <Route path="/transactions">
         <ProtectedRoute component={TransactionList} />
