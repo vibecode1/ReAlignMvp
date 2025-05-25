@@ -27,6 +27,8 @@ import { SolutionsPage } from "@/pages/SolutionsPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { ContactPage } from "@/pages/ContactPage";
 import { FeaturesPage } from "@/pages/FeaturesPage";
+import { IntegrationsPage } from "@/pages/IntegrationsPage";
+import { HelpPage } from "@/pages/HelpPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
@@ -126,6 +128,12 @@ function Router() {
       </Route>
       <Route path="/features">
         <PublicRoute component={FeaturesPage} />
+      </Route>
+      <Route path="/integrations">
+        <PublicRoute component={IntegrationsPage} />
+      </Route>
+      <Route path="/help">
+        <PublicRoute component={HelpPage} />
       </Route>
       <Route path="/privacy">
         <PublicRoute component={PrivacyPage} />
