@@ -141,7 +141,28 @@ function Router() {
         <PublicRoute component={IntegrationsPage} />
       </Route>
       <Route path="/help">
-        <PublicRoute component={HelpPage} />
+        <PublicRoute component={HelpCenterPage} />
+      </Route>
+      <Route path="/docs">
+        <PublicRoute component={DocumentationPage} />
+      </Route>
+      <Route path="/guides">
+        <PublicRoute component={GuidesPage} />
+      </Route>
+      <Route path="/api">
+        <PublicRoute component={ApiReferencePage} />
+      </Route>
+      <Route path="/security">
+        <PublicRoute component={SecurityPage} />
+      </Route>
+      <Route path="/compliance">
+        <PublicRoute component={CompliancePage} />
+      </Route>
+      <Route path="/careers">
+        <PublicRoute component={CareersPage} />
+      </Route>
+      <Route path="/blog">
+        <PublicRoute component={BlogPage} />
       </Route>
       <Route path="/privacy">
         <PublicRoute component={PrivacyPage} />
