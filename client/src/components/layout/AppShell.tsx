@@ -1,25 +1,100 @@
-import React from 'react';
-import { AuthenticatedAppHeader } from './AuthenticatedAppHeader';
+import { ReactNode, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Bell } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CollapsibleSidebar } from "./CollapsibleSidebar";
 import { Toaster } from "@/components/ui/toaster";
 
 interface AppShellProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+const AppShell = ({ children }: AppShellProps) => {
+  const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {/* New Top Navigation Header */}
-      <AuthenticatedAppHeader />
+    <div className="h-screen flex bg-background">
+      {/* Sidebar */}
+      <CollapsibleSidebar 
+        isMobileMenuOpen={mobileMenuOpen}
+        setIsMobileMenuOpen={setMobileMenuOpen}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar */}
+        <header className="bg-card border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="md:hidden"
+                >
+                  {/* Menu icon is handled in CollapsibleSidebar */}
+                </Button>
+              )}
+              <h1 className="text-lg font-semibold text-foreground">
+                ReAlign 2.0
+              </h1>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm">
+                <Bell size={20} />
+                <Badge variant="destructive" className="ml-1 px-1 min-w-[1.25rem] h-5">
+                  3
+                </Badge>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link href="/account">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={signOut}>
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
+      </div>
       
-      {/* Main Content Area */}
-      <main className="flex-1 pt-0">
-        <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          {children}
-        </div>
-      </main>
-      
-      {/* Toast Notifications */}
       <Toaster />
     </div>
   );

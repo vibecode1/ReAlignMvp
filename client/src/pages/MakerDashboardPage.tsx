@@ -1,121 +1,260 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Wrench, FileText, Calculator, Package, Bot, Folder, CheckCircle, Zap } from 'lucide-react';
 import { Link } from 'wouter';
-import { Plus, FileText, Users, TrendingUp, Calendar } from 'lucide-react';
 
 export const MakerDashboardPage: React.FC = () => {
+  const toolCategories = [
+    {
+      title: "Preparatory Tools",
+      description: "Get organized before starting your loss mitigation process",
+      icon: <CheckCircle className="h-6 w-6" />,
+      color: "bg-green-500",
+      tools: [
+        { 
+          name: "Document Checklist Generator", 
+          href: "/app/maker/checklist", 
+          description: "Generate personalized document checklists",
+          badge: "Smart"
+        }
+      ]
+    },
+    {
+      title: "Form Makers",
+      description: "Create and fill standardized forms with AI assistance",
+      icon: <FileText className="h-6 w-6" />,
+      color: "bg-blue-500",
+      tools: [
+        { 
+          name: "IRS Form 4506-C Maker", 
+          href: "/app/maker/form/4506c",
+          description: "Digital IRS tax transcript request form",
+          badge: "AI Help"
+        },
+        { 
+          name: "Borrower Financial Statement", 
+          href: "/app/maker/form/bfs",
+          description: "Comprehensive financial intake form",
+          badge: "AI Help"
+        },
+        { 
+          name: "HUD-1 / CD Estimator", 
+          href: "/app/maker/form/hud1",
+          description: "Closing disclosure estimate tool",
+          badge: "AI Help"
+        },
+        { 
+          name: "Lender Form Templates", 
+          href: "/app/maker/templates",
+          description: "Access common lender-specific forms",
+          badge: "Library"
+        }
+      ]
+    },
+    {
+      title: "Document Drafters", 
+      description: "Generate professional documents with guided templates",
+      icon: <FileText className="h-6 w-6" />,
+      color: "bg-purple-500",
+      tools: [
+        { 
+          name: "Letter of Explanation Drafter", 
+          href: "/app/maker/draft/loe",
+          description: "Create compelling hardship letters",
+          badge: "AI Assist"
+        },
+        { 
+          name: "Borrower Contribution Letter", 
+          href: "/app/maker/draft/contribution",
+          description: "Draft contribution and offer letters",
+          badge: "Templates"
+        },
+        { 
+          name: "Common Document Templates", 
+          href: "/app/maker/draft/templates",
+          description: "Authorization forms and certifications",
+          badge: "Templates"
+        }
+      ]
+    },
+    {
+      title: "Financial Calculators",
+      description: "Calculate key financial metrics for loss mitigation",
+      icon: <Calculator className="h-6 w-6" />,
+      color: "bg-orange-500",
+      tools: [
+        { 
+          name: "DTI Calculator", 
+          href: "/app/maker/calculator/dti",
+          description: "Debt-to-income ratio calculator",
+          badge: "Essential"
+        },
+        { 
+          name: "Insolvency Calculator", 
+          href: "/app/maker/calculator/insolvency",
+          description: "Determine net worth and insolvency status",
+          badge: "Analysis"
+        },
+        { 
+          name: "Pro-Rated Property Tax Calculator", 
+          href: "/app/maker/calculator/property-tax",
+          description: "Calculate property tax proration",
+          badge: "Closing"
+        },
+        { 
+          name: "Net Proceeds Calculator", 
+          href: "/app/maker/calculator/net-proceeds",
+          description: "Estimate short sale net proceeds",
+          badge: "Short Sale"
+        }
+      ]
+    }
+  ];
+
+  const recentActivity = [
+    { name: "Johnson Family BFS", type: "Financial Statement", date: "2 hours ago", status: "Draft" },
+    { name: "Smith Hardship LOE", type: "Letter of Explanation", date: "1 day ago", status: "Complete" },
+    { name: "Package #1247", type: "Document Package", date: "3 days ago", status: "Downloaded" }
+  ];
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Maker Dashboard</h1>
-          <p className="text-muted-foreground">Manage your active transactions and track progress</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Wrench className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Maker Dashboard</h1>
+            <p className="text-muted-foreground">
+              Document creation and calculation tools for loss mitigation
+            </p>
+          </div>
         </div>
-        <Link href="/new-transaction">
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            New Transaction
-          </Button>
-        </Link>
+        <div className="flex space-x-2">
+          <Link href="/app/maker/package">
+            <Button variant="outline">
+              <Package className="mr-2 h-4 w-4" />
+              Package Center
+            </Button>
+          </Link>
+          <Link href="/app/maker/vault">
+            <Button>
+              <Folder className="mr-2 h-4 w-4" />
+              Document Vault
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">Awaiting review</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Close Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45 days</div>
-            <p className="text-xs text-muted-foreground">-5 days improvement</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">89%</div>
-            <p className="text-xs text-muted-foreground">+3% from last quarter</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
+      {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks to manage your transactions</CardDescription>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardDescription>Your latest document work</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/new-transaction">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 w-full">
-                <Plus className="h-6 w-6" />
-                Create Transaction
-              </Button>
-            </Link>
-            <Link href="/transactions">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 w-full">
-                <FileText className="h-6 w-6" />
-                View All Transactions
-              </Button>
-            </Link>
-            <Link href="/notifications">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 w-full">
-                <Users className="h-6 w-6" />
-                Manage Notifications
-              </Button>
-            </Link>
+          <div className="space-y-3">
+            {recentActivity.map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">{item.type}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant={item.status === 'Complete' ? 'default' : item.status === 'Draft' ? 'secondary' : 'outline'}>
+                    {item.status}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">{item.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Your latest transaction activity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Transaction #{item}23456</p>
-                    <p className="text-sm text-muted-foreground">123 Main St, City, State</p>
-                  </div>
+      {/* Tool Categories */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {toolCategories.map((category) => (
+          <Card key={category.title} className="hover:shadow-lg transition-all duration-200">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 ${category.color} text-white rounded-lg`}>
+                  {category.icon}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">In Progress</p>
-                  <p className="text-xs text-muted-foreground">Updated 2 hours ago</p>
+                <div>
+                  <CardTitle className="text-lg">{category.title}</CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
                 </div>
               </div>
-            ))}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {category.tools.map((tool) => (
+                <Link key={tool.name} href={tool.href}>
+                  <div className="p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium">{tool.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {tool.badge}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{tool.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* AI Assistant Feature */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex items-center justify-between py-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Bot className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">AI-Powered Assistance</h3>
+              <p className="text-muted-foreground">
+                Get contextual help and guidance on any form field or document section
+              </p>
+            </div>
+          </div>
+          <Button variant="outline">
+            <Zap className="mr-2 h-4 w-4" />
+            Learn More
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Document Packaging CTA */}
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Package className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Ready to Package Your Documents?</h3>
+          <p className="text-muted-foreground text-center mb-6 max-w-md">
+            Combine your completed forms and documents into organized, professional packages ready for lender submission
+          </p>
+          <div className="flex space-x-3">
+            <Link href="/app/maker/package">
+              <Button size="lg">
+                <Package className="mr-2 h-5 w-5" />
+                Package Documents
+              </Button>
+            </Link>
+            <Link href="/app/maker/vault">
+              <Button variant="outline" size="lg">
+                <Folder className="mr-2 h-5 w-5" />
+                View Document Vault
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
