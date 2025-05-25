@@ -46,14 +46,16 @@ const NavItem: React.FC<NavItemProps> = ({
     <Link href={to}>
       <a
         onClick={onClick}
-        className={`flex items-center p-3 rounded-lg hover:bg-primary-foreground/20 transition-colors ${
-          isActive ? 'bg-primary-foreground/10 font-semibold' : ''
-        }`}
+        className={`flex items-center py-3 px-3 mx-2 rounded-xl transition-all duration-200 group ${
+          isActive 
+            ? 'bg-white/10 text-white shadow-lg backdrop-blur-sm border border-white/20' 
+            : 'hover:bg-white/5 text-slate-300 hover:text-white hover:shadow-md'
+        } ${!isExpanded ? 'justify-center' : ''}`}
       >
         <span className={`flex-shrink-0 ${isExpanded ? 'mr-3' : 'mx-auto'}`}>
           {icon}
         </span>
-        {isExpanded && <span className="truncate">{label}</span>}
+        {isExpanded && <span className="truncate font-medium">{label}</span>}
       </a>
     </Link>
   </li>
@@ -76,19 +78,19 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const handleMouseLeave = () => !isMobileMenuOpen && setIsExpanded(false);
   const handleLogout = () => signOut();
 
-  const sidebarWidth = isExpanded ? 'w-60' : 'w-16';
+  const sidebarWidth = isExpanded ? 'w-64' : 'w-16';
 
   const SidebarContent = ({ isSheet = false, closeSheet }: { isSheet?: boolean; closeSheet?: () => void }) => (
     <div className={`flex flex-col h-full ${isSheet ? 'bg-primary text-primary-foreground p-4' : ''}`}>
       {/* Logo Section */}
-      <div className={`${isSheet ? 'mb-6 text-center' : 'px-4 mb-4'}`}>
+      <div className={`${isSheet ? 'mb-6 text-center' : 'px-3 mb-6 mt-4'}`}>
         <Link href="/dashboard">
-          <a onClick={closeSheet} className="flex items-center">
-            <div className={`w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-2 ${!isExpanded && !isSheet ? 'mx-auto mr-0' : ''}`}>
+          <a onClick={closeSheet} className="flex items-center justify-center">
+            <div className={`w-8 h-8 bg-white rounded-lg flex items-center justify-center ${isExpanded && !isSheet ? 'mr-3' : ''}`}>
               <span className="text-primary font-bold text-sm">R</span>
             </div>
             {(isExpanded || isSheet) && (
-              <span className="font-bold text-xl">ReAlign</span>
+              <span className="font-bold text-xl text-white">ReAlign</span>
             )}
           </a>
         </Link>
@@ -220,7 +222,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
     <TooltipProvider delayDuration={0}>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex flex-col ${sidebarWidth} bg-primary text-primary-foreground transition-all duration-300 ease-in-out`}
+        className={`hidden md:flex flex-col ${sidebarWidth} bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-in-out border-r border-slate-700/50 shadow-2xl`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -234,7 +236,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             <Menu size={20} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-80 p-0 bg-primary text-primary-foreground">
+        <SheetContent side="left" className="w-80 p-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
           <SidebarContent isSheet={true} closeSheet={() => setIsMobileMenuOpen?.(false)} />
         </SheetContent>
       </Sheet>
