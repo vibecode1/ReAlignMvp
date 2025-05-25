@@ -39,6 +39,7 @@ import { SecurityPage } from "@/pages/SecurityPage";
 import { CompliancePage } from "@/pages/CompliancePage";
 import { CareersPage } from "@/pages/CareersPage";
 import { BlogPage } from "@/pages/BlogPage";
+import { BlogPostFuture } from "@/pages/BlogPostFuture";
 import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
 import { AdvisorDashboardPage } from "@/pages/AdvisorDashboardPage";
 import { Loader2 } from "lucide-react";
@@ -163,6 +164,9 @@ function Router() {
       </Route>
       <Route path="/blog">
         <PublicRoute component={BlogPage} />
+      </Route>
+      <Route path="/blog/future-of-short-sale-coordination">
+        <PublicRoute component={BlogPostFuture} />
       </Route>
       <Route path="/privacy">
         <PublicRoute component={PrivacyPage} />

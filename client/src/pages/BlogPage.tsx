@@ -17,10 +17,12 @@ import {
   Eye,
   Tag
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export const BlogPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [, setLocation] = useLocation();
 
   const featuredPost = {
     title: 'The Future of Short Sale Coordination: AI and Automation in Real Estate',
@@ -157,7 +159,7 @@ export const BlogPage: React.FC = () => {
           <div className="container max-w-6xl mx-auto px-4">
             <h2 className="text-2xl font-bold mb-8">Featured Article</h2>
             
-            <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden">
+            <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden" onClick={() => setLocation('/blog/future-of-short-sale-coordination')}>
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 <div className={`${featuredPost.image} h-64 lg:h-auto relative`}>
                   <Badge className="absolute top-4 left-4 bg-white/20 text-white border-white/30">
