@@ -44,6 +44,9 @@ import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
 import { AdvisorDashboardPage } from "@/pages/AdvisorDashboardPage";
 import { MakerToolPage } from "@/pages/MakerToolPage";
 import { AdvisorToolPage } from "@/pages/AdvisorToolPage";
+import { TrackerLandingPage } from "@/pages/TrackerLandingPage";
+import { MakerLandingPage } from "@/pages/MakerLandingPage";
+import { AdvisorLandingPage } from "@/pages/AdvisorLandingPage";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRoleAccess } from "@/hooks/use-role-access";
@@ -139,6 +142,15 @@ function Router() {
       </Route>
       <Route path="/features">
         <PublicRoute component={FeaturesPage} />
+      </Route>
+      <Route path="/solutions/tracker">
+        <PublicRoute component={TrackerLandingPage} />
+      </Route>
+      <Route path="/solutions/maker">
+        <PublicRoute component={MakerLandingPage} />
+      </Route>
+      <Route path="/solutions/advisor">
+        <PublicRoute component={AdvisorLandingPage} />
       </Route>
       <Route path="/integrations">
         <PublicRoute component={IntegrationsPage} />
