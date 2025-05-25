@@ -184,7 +184,7 @@ export const DocumentationPage: React.FC = () => {
                     <div className="text-blue-600">curl -X POST \</div>
                     <div className="text-purple-600 ml-2">https://api.realign.com/v1/transactions \</div>
                     <div className="text-orange-600 ml-2">-H "Authorization: Bearer YOUR_TOKEN" \</div>
-                    <div className="text-gray-600 ml-2">-d '{"property_address": "123 Main St"}'</div>
+                    <div className="text-gray-600 ml-2">-d '&#123;"property_address": "123 Main St"&#125;'</div>
                   </CardContent>
                 </Card>
               </div>
