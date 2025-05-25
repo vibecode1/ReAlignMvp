@@ -1,0 +1,69 @@
+You're creating a new responsive blog post page for ReAlign's public website using Tailwind CSS and React with the ReAlign 2.0 design system.
+
+🔹 Page Title: "The Future of Short Sale Coordination: AI and Automation in Real Estate"
+🔹 URL: /blog/future-of-short-sale-coordination
+
+Design Guidelines:
+
+Use ReAlign 2.0 typography (Inter, 16px body, 32px–40px headers)
+
+Use Tailwind-based grid and spacing (4pt grid)
+
+Colors: Deep Blue for headings, Teal for highlights, Orange for CTAs
+
+Layout: Max width 800px for article content
+
+Include semantic HTML (<article>, <section>, <aside>)
+
+Add schema.org BlogPosting structured data via JSON-LD in the <head>
+
+Include a sticky "Back to Blog" CTA at the top right on desktop
+
+Content to Display (Write this in the component):
+
+The Future of Short Sale Coordination: AI and Automation in Real Estate
+Short answer: AI and automation are removing bottlenecks from the short sale process—making it faster, clearer, and less stressful for homeowners, agents, and negotiators alike.
+
+Why Short Sales Are Ripe for Automation
+The short sale process is notoriously messy—manual document collection, unclear timelines, and miscommunication between parties. But AI changes that.
+
+With platforms like ReAlign, AI can:
+
+Help homeowners complete complex forms (like IRS 4506-C or lender-specific documents)
+
+Identify bottlenecks in real-time and alert parties before deals fall apart
+
+Automatically generate missing documents like hardship letters or borrower contribution letters
+
+How ReAlign Uses AI in the Real World
+Tracker: Provides a shared view of short sale status for all parties—color-coded and phase-based.
+
+Maker: Instantly generates documents, including HUD-1 estimators, borrower financial statements, and more.
+
+Advisor: Offers AI-guided education, eligibility screeners, and even a chatbot that answers loss mitigation questions with legal-backed guidance.
+
+Benefits for Each Party
+Homeowners: Feel in control with clear visual guidance and AI help completing paperwork.
+
+Agents: No more chasing documents—automated alerts and status views reduce back-and-forth.
+
+Negotiators: Work faster, get approvals sooner, and maintain professionalism through automation.
+
+What’s Next?
+We’re actively exploring integrations with AI avatars, proactive phone agents, and real-time deal checklists that pull live servicer data.
+
+The future isn’t just automation—it’s clarity and collaboration.
+
+TL;DR
+AI is bringing speed, transparency, and control to short sale coordination. ReAlign is leading that shift. If you’re a negotiator, agent, or homeowner: you’ll never go back to spreadsheets again.
+
+Include a CTA block (below content):
+
+jsx
+Copy
+Edit
+<div className="mt-12 bg-muted rounded-xl p-6 text-center">
+  <h3 className="text-xl font-bold mb-2 text-brand-deep-blue">Get Started with ReAlign</h3>
+  <p className="text-muted-foreground mb-4">Experience the new way to manage short sales—powered by automation, built by experts.</p>
+  <a href="/register" className="inline-block bg-brand-orange text-white font-bold py-3 px-6 rounded-lg hover:bg-brand-gold transition">Create Your Account</a>
+</div>
