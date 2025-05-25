@@ -25,6 +25,10 @@ import { HomePage } from "@/pages/HomePage";
 import { AboutPage } from "@/pages/AboutPage";
 import { SolutionsPage } from "@/pages/SolutionsPage";
 import { PricingPage } from "@/pages/PricingPage";
+import { ContactPage } from "@/pages/ContactPage";
+import { FeaturesPage } from "@/pages/FeaturesPage";
+import { PrivacyPage } from "@/pages/PrivacyPage";
+import { TermsPage } from "@/pages/TermsPage";
 import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
 import { AdvisorDashboardPage } from "@/pages/AdvisorDashboardPage";
 import { Loader2 } from "lucide-react";
@@ -116,6 +120,18 @@ function Router() {
       </Route>
       <Route path="/pricing">
         <PublicRoute component={PricingPage} />
+      </Route>
+      <Route path="/contact">
+        <PublicRoute component={ContactPage} />
+      </Route>
+      <Route path="/features">
+        <PublicRoute component={FeaturesPage} />
+      </Route>
+      <Route path="/privacy">
+        <PublicRoute component={PrivacyPage} />
+      </Route>
+      <Route path="/terms">
+        <PublicRoute component={TermsPage} />
       </Route>
       <Route path="/">
         {isAuthenticated ? <Redirect to="/dashboard" /> : <PublicRoute component={HomePage} />}
