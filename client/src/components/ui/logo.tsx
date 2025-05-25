@@ -1,6 +1,7 @@
 
 import React from 'react';
 import realignLogoFull from '@assets/realign logo.png';
+import realignLogoIcon from '@assets/realign icon logo (64 x 64 px).png';
 
 type LogoProps = {
   className?: string;
@@ -15,9 +16,11 @@ export const Logo: React.FC<LogoProps> = ({ className, size = 'md', variant = 'f
     lg: 'h-12'
   };
   
+  const logoSrc = variant === 'icon' ? realignLogoIcon : realignLogoFull;
+  
   return (
     <img 
-      src={realignLogoFull} 
+      src={logoSrc} 
       alt="ReAlign Logo" 
       className={`${sizeClasses[size]} ${className || ''}`} 
     />
