@@ -31,8 +31,7 @@ export const AuthenticatedAppHeader: React.FC = () => {
   const navigationItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/transactions', label: 'Tracker' },
-    { href: '/maker', label: 'Maker' },
-    { href: '/advisor', label: 'Advisor' },
+    { href: '/analytics', label: 'Analytics' },
   ];
 
   const isActiveLink = (href: string) => {
