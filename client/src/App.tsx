@@ -42,6 +42,8 @@ import { BlogPage } from "@/pages/BlogPage";
 import { BlogPostFuture } from "@/pages/BlogPostFuture";
 import { MakerDashboardPage } from "@/pages/MakerDashboardPage";
 import { AdvisorDashboardPage } from "@/pages/AdvisorDashboardPage";
+import { MakerToolPage } from "@/pages/MakerToolPage";
+import { AdvisorToolPage } from "@/pages/AdvisorToolPage";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRoleAccess } from "@/hooks/use-role-access";
@@ -220,8 +222,14 @@ function Router() {
       <Route path="/app/maker">
         <ProtectedRoute component={MakerDashboardPage} allowedRoles={['negotiator']} />
       </Route>
+      <Route path="/app/maker/:tool/:subTool?">
+        {params => <ProtectedRoute component={() => <MakerToolPage tool={params.tool} subTool={params.subTool} />} allowedRoles={['negotiator']} />}
+      </Route>
       <Route path="/app/advisor">
         <ProtectedRoute component={AdvisorDashboardPage} allowedRoles={['negotiator']} />
+      </Route>
+      <Route path="/app/advisor/:tool/:subTool?">
+        {params => <ProtectedRoute component={() => <AdvisorToolPage tool={params.tool} subTool={params.subTool} />} allowedRoles={['negotiator']} />}
       </Route>
       <Route path="/transactions">
         <ProtectedRoute component={TransactionList} />
