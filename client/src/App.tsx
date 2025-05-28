@@ -53,6 +53,7 @@ import { useRoleAccess } from "@/hooks/use-role-access";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { setupFCMHandler } from "@/lib/notifications";
 import { useEffect } from "react";
+import UBAFormMaker from './pages/UBAFormMaker';
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -83,7 +84,7 @@ const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const { hasAccess } = useRoleAccess(allowedRoles);
-  
+
   // Loading state
   if (isLoading) {
     return (
@@ -92,12 +93,12 @@ const ProtectedRoute = ({
       </div>
     );
   }
-  
+
   // Not authenticated
   if (!isAuthenticated) {
     return <Redirect to="/login" />;
   }
-  
+
   // Authenticated but not authorized (wrong role)
   if (allowedRoles.length > 0 && !hasAccess) {
     return (
@@ -112,7 +113,7 @@ const ProtectedRoute = ({
       </div>
     );
   }
-  
+
   // All checks passed
   return (
     <AppShell>
@@ -124,7 +125,7 @@ const ProtectedRoute = ({
 // Router component
 function Router() {
   const { isAuthenticated } = useAuth();
-  
+
   return (
     <Switch>
       {/* Public Marketing Pages */}
@@ -191,7 +192,7 @@ function Router() {
       <Route path="/">
         {isAuthenticated ? <Redirect to="/dashboard" /> : <PublicRoute component={HomePage} />}
       </Route>
-      
+
       {/* Auth Pages (with PublicLayout) */}
       <Route path="/login">
         <PublicLayout><Login /></PublicLayout>
@@ -214,10 +215,10 @@ function Router() {
       <Route path="/auth/callback">
         <PublicLayout><MagicLinkCallback /></PublicLayout>
       </Route>
-      
+
       {/* Public Tracker Route (New for Tracker MVP) */}
       <Route path="/tracker/:transactionId" component={PublicTrackerView}/>
-      
+
       {/* Protected App Routes */}
       <Route path="/dashboard">
         {() => {
@@ -258,7 +259,7 @@ function Router() {
           const PartyViewWrapper = () => {
             const { user } = useAuth();
             const isMobile = useIsMobile();
-            
+
             if (user?.role === 'negotiator') {
               return <TransactionView id={params.id} />;
             } else {
@@ -266,7 +267,7 @@ function Router() {
               return <PartyTransactionView id={params.id} />;
             }
           };
-          
+
           return <ProtectedRoute component={PartyViewWrapper} />;
         }}
       </Route>
@@ -284,9 +285,16 @@ function Router() {
       <Route path="/account">
         <ProtectedRoute component={Account} />
       </Route>
-      
+
       {/* Fallback to 404 */}
       <Route component={NotFound} />
+    
+          <Route path="/tracker-landing" component={TrackerLandingPage} />
+          <Route path="/public-tracker/:id" component={PublicTrackerView} />
+          <Route path="/party/:token" component={PartyTransactionView} />
+          <Route path="/uba-form-maker">
+             <ProtectedRoute component={UBAFormMaker} allowedRoles={['negotiator']} />
+           </Route>
     </Switch>
   );
 }

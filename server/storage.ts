@@ -107,6 +107,24 @@ export interface IStorage {
 
   // Get parties for a transaction
   getParties(transactionId: string): Promise<any>;
+
+    // UBA Form Methods
+  createUBAForm(data: {
+    user_id: string;
+    form_data: string;
+    completion_percentage: number;
+    status: string;
+  }): Promise<any>;
+  getUBAFormById(id: string): Promise<any | null>;
+  getUBAFormsByUserId(userId: string): Promise<any[]>;
+  updateUBAForm(id: string, data: {
+    form_data?: string;
+    completion_percentage?: number;
+    status?: string;
+  }): Promise<any | null>;
+
+  // TODO: Add other storage methods as needed
+  healthCheck(): Promise<{ status: string; timestamp: string }>;
 }
 
 class DrizzleStorage implements IStorage {
@@ -856,6 +874,97 @@ class DrizzleStorage implements IStorage {
     // Implementation for getParties method
     return null;
   }
+
+    // UBA Form Methods
+    async createUBAForm(data: {
+        user_id: string;
+        form_data: string;
+        completion_percentage: number;
+        status: string;
+    }) {
+        try {
+            const [result] = await db
+                .insert(schema.uba_forms)
+                .values({
+                    user_id: data.user_id,
+                    form_data: data.form_data,
+                    completion_percentage: data.completion_percentage,
+                    status: data.status,
+                    created_at: new Date(),
+                    updated_at: new Date()
+                })
+                .returning({ id: schema.uba_forms.id });
+
+            return result.id;
+        } catch (error) {
+            console.error('Create UBA form error:', error);
+            throw new Error('Failed to create UBA form');
+        }
+    }
+
+    async getUBAFormById(id: string) {
+        try {
+            const [form] = await db
+                .select()
+                .from(schema.uba_forms)
+                .where(eq(schema.uba_forms.id, id));
+
+            return form || null;
+        } catch (error) {
+            console.error('Get UBA form by ID error:', error);
+            throw new Error('Failed to get UBA form');
+        }
+    }
+
+    async getUBAFormsByUserId(userId: string) {
+        try {
+            const forms = await db
+                .select()
+                .from(schema.uba_forms)
+                .where(eq(schema.uba_forms.user_id, userId))
+                .orderBy(desc(schema.uba_forms.updated_at));
+
+            return forms;
+        } catch (error) {
+            console.error('Get UBA forms by user ID error:', error);
+            throw new Error('Failed to get UBA forms');
+        }
+    }
+
+    async updateUBAForm(id: string, data: {
+        form_data?: string;
+        completion_percentage?: number;
+        status?: string;
+    }) {
+        try {
+            const [result] = await db
+                .update(schema.uba_forms)
+                .set({
+                    ...data,
+                    updated_at: new Date()
+                })
+                .where(eq(schema.uba_forms.id, id))
+                .returning({ id: schema.uba_forms.id });
+
+            return result?.id || null;
+        } catch (error) {
+            console.error('Update UBA form error:', error);
+            throw new Error('Failed to update UBA form');
+        }
+    }
+
+    async healthCheck(): Promise<{ status: string; timestamp: string }> {
+        try {
+            await db.execute(sql`SELECT 1`);
+            return {
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+            };
+        } catch (error) {
+            console.error('Health check failed:', error);
+            throw new Error('Database health check failed');
+        }
+    }
 }
 
 export const storage = new DrizzleStorage();
