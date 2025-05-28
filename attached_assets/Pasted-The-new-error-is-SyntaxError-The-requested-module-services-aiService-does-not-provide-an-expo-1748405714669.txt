@@ -1,0 +1,63 @@
+The new error is:
+SyntaxError: The requested module '../services/aiService' does not provide an export named 'aiService'
+
+This occurs because in ubaFormController.ts, you have:
+import { aiService } from '../services/aiService';
+
+This import statement is looking for a named export called aiService (lowercase 'a') from the aiService.ts file.
+
+Now, looking at the server/services/aiService.ts file you provided, it defines and exports a class like this:
+
+TypeScript
+
+export class AiService {
+  // static methods like generateRecommendation, validateUbaField, etc.
+}
+This exports the class AiService (uppercase 'A'), but it does not export an object or instance named aiService (lowercase 'a').
+
+Here's how to fix this:
+
+In your server/services/aiService.ts file, after the AiService class definition, add the following lines to create and export an object that exposes the static methods of your class:
+
+TypeScript
+
+// This is your existing class definition
+export class AiService {
+  static async generateRecommendation(request: AiRequest): Promise<AiResponse> {
+    // ... your existing code ...
+  }
+
+  static async validateUbaField(request: { /* ... */ }): Promise<{ /* ... */ }> {
+    // ... your existing code ...
+  }
+
+  private static interpolateTemplate(template: string, context: any): string {
+    // ... your existing code ...
+  }
+
+  private static getNestedValue(obj: any, path: string): any {
+    // ... your existing code ...
+  }
+
+  private static extractSuggestions(content: string): string[] {
+    // ... your existing code ...
+  }
+}
+
+// Add this export:
+export const aiService = {
+  generateRecommendation: AiService.generateRecommendation,
+  validateUbaField: AiService.validateUbaField,
+};
+By adding this export const aiService = { ... };, you are now correctly providing the named export aiService that ubaFormController.ts is expecting.
+
+Important Note for the Next Step:
+Once you fix this export issue, please be aware of a potential next error. In the ubaFormController.ts code you shared in a previous turn (after merging the two controller definitions), there was a call like this within the processConversation method:
+const aiResponse = await aiService.processText(systemPrompt, { ... });
+
+The aiService.ts file you just provided has a method generateRecommendation but not processText. You'll likely need to update the call in ubaFormController.ts from aiService.processText(...) to aiService.generateRecommendation(...), ensuring you pass the parameters according to the AiRequest interface defined in aiService.ts.
+
+For now, make the change to aiService.ts to correctly export the aiService object, and let's see if the server starts!
+
+
+Sources
