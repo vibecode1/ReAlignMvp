@@ -292,7 +292,9 @@ function Router() {
       </Route>
       <Route path="/tracker-landing" component={TrackerLandingPage} />
       <Route path="/public-tracker/:id" component={PublicTrackerView} />
-      <Route path="/party/:token" component={PartyTransactionView} />
+      <Route path="/party/:token">
+        {params => <PartyTransactionView id={params.token} />}
+      </Route>
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />

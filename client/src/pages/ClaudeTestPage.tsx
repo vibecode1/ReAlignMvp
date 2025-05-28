@@ -23,11 +23,9 @@ export const ClaudeTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await apiRequest('/api/v1/claude/analyze-document', {
-        method: 'POST',
-        body: { documentText }
-      });
-      setResult(response.data);
+      const response = await apiRequest('POST', '/api/v1/claude/analyze-document', { documentText });
+      const data = await response.json();
+      setResult(data);
       toast({ title: "Success", description: "Document analysis completed!" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to analyze document" });
@@ -44,14 +42,12 @@ export const ClaudeTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await apiRequest('/api/v1/claude/generate-education', {
-        method: 'POST',
-        body: { topic, userLevel: 'intermediate' }
-      });
-      setResult(response.data);
+      const response = await apiRequest('POST', '/api/v1/claude/generate-education', { topic, userLevel: 'intermediate' });
+      const data = await response.json();
+      setResult(data);
       toast({ title: "Success", description: "Educational content generated!" });
     } catch (error) {
-      toast({ title: "Error", description: "Failed to generate content" });
+      toast({ title: "Error", description: "Failed to generate education content" });
     } finally {
       setLoading(false);
     }
@@ -66,11 +62,9 @@ export const ClaudeTestPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await apiRequest('/api/v1/claude/analyze-sentiment', {
-        method: 'POST',
-        body: { messages: validMessages }
-      });
-      setResult(response.data);
+      const response = await apiRequest('POST', '/api/v1/claude/analyze-sentiment', { messages: validMessages });
+      const data = await response.json();
+      setResult(data);
       toast({ title: "Success", description: "Sentiment analysis completed!" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to analyze sentiment" });
@@ -82,18 +76,16 @@ export const ClaudeTestPage: React.FC = () => {
   const testTemplateGeneration = async () => {
     setLoading(true);
     try {
-      const response = await apiRequest('/api/v1/claude/generate-template', {
-        method: 'POST',
-        body: { 
-          documentType: 'Purchase Agreement',
-          transactionContext: {
-            propertyAddress: '123 Main St, Los Angeles, CA',
-            parties: ['Buyer', 'Seller', 'Agent'],
-            transactionStage: 'Initial Offer'
-          }
+      const response = await apiRequest('POST', '/api/v1/claude/generate-template', {
+        documentType: 'Purchase Agreement',
+        transactionContext: {
+          propertyAddress: '123 Main St, Los Angeles, CA',
+          parties: ['Buyer', 'Seller', 'Agent'],
+          transactionStage: 'Initial Offer'
         }
       });
-      setResult(response.data);
+      const data = await response.json();
+      setResult(data);
       toast({ title: "Success", description: "Template generated!" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to generate template" });
@@ -105,20 +97,18 @@ export const ClaudeTestPage: React.FC = () => {
   const testRecommendations = async () => {
     setLoading(true);
     try {
-      const response = await apiRequest('/api/v1/claude/get-recommendations', {
-        method: 'POST',
-        body: { 
-          transactionData: {
-            status: 'pending_bank_approval',
-            daysActive: 45,
-            completedTasks: ['Initial Documentation', 'Property Valuation'],
-            pendingTasks: ['Bank Approval', 'Final Inspection'],
-            parties: ['Buyer', 'Seller', 'Bank Representative', 'Agent'],
-            lastActivity: 'Bank requested additional documentation'
-          }
+      const response = await apiRequest('POST', '/api/v1/claude/get-recommendations', {
+        transactionData: {
+          status: 'pending_bank_approval',
+          daysActive: 45,
+          completedTasks: ['Initial Documentation', 'Property Valuation'],
+          pendingTasks: ['Bank Approval', 'Final Inspection'],
+          parties: ['Buyer', 'Seller', 'Bank Representative', 'Agent'],
+          lastActivity: 'Bank requested additional documentation'
         }
       });
-      setResult(response.data);
+      const data = await response.json();
+      setResult(data);
       toast({ title: "Success", description: "Recommendations generated!" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to get recommendations" });
@@ -159,7 +149,11 @@ export const ClaudeTestPage: React.FC = () => {
                 onChange={(e) => setDocumentText(e.target.value)}
                 rows={4}
               />
-              <Button onClick={testDocumentAnalysis} disabled={loading}>
+              <Button 
+                onClick={testDocumentAnalysis} 
+                disabled={loading}
+                className="w-full"
+              >
                 Analyze Document
               </Button>
             </CardContent>
@@ -169,7 +163,7 @@ export const ClaudeTestPage: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lightbulb className="h-5 w-5" />
-                Educational Content
+                Education Generation
               </CardTitle>
               <CardDescription>
                 Generate educational content on real estate topics
@@ -177,13 +171,17 @@ export const ClaudeTestPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea 
-                placeholder="Enter topic (e.g., 'short sale negotiation strategies')"
+                placeholder="Enter a topic (e.g., 'short sale process')"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 rows={2}
               />
-              <Button onClick={testEducationGeneration} disabled={loading}>
-                Generate Content
+              <Button 
+                onClick={testEducationGeneration} 
+                disabled={loading}
+                className="w-full"
+              >
+                Generate Education
               </Button>
             </CardContent>
           </Card>
@@ -195,7 +193,7 @@ export const ClaudeTestPage: React.FC = () => {
                 Sentiment Analysis
               </CardTitle>
               <CardDescription>
-                Analyze communication sentiment between parties
+                Analyze communication sentiment and tone
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -216,10 +214,15 @@ export const ClaudeTestPage: React.FC = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => setMessages([...messages, ''])}
+                  className="flex-1"
                 >
                   Add Message
                 </Button>
-                <Button onClick={testSentimentAnalysis} disabled={loading}>
+                <Button 
+                  onClick={testSentimentAnalysis} 
+                  disabled={loading}
+                  className="flex-1"
+                >
                   Analyze Sentiment
                 </Button>
               </div>
@@ -230,135 +233,70 @@ export const ClaudeTestPage: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <File className="h-5 w-5" />
-                Quick Tests
+                Template Generation
               </CardTitle>
               <CardDescription>
-                Test other Claude AI features with sample data
+                Generate document templates for transactions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={testTemplateGeneration} disabled={loading}>
-                  Generate Template
-                </Button>
-                <Button variant="outline" onClick={testRecommendations} disabled={loading}>
-                  Get Recommendations
-                </Button>
-              </div>
+            <CardContent>
+              <Button 
+                onClick={testTemplateGeneration} 
+                disabled={loading}
+                className="w-full"
+              >
+                Generate Purchase Agreement Template
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Recommendations
+              </CardTitle>
+              <CardDescription>
+                Get AI-powered recommendations for transaction progress
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={testRecommendations} 
+                disabled={loading}
+                className="w-full"
+              >
+                Get Recommendations
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Results */}
+        {/* Results Panel */}
         <div>
           <Card className="h-full">
             <CardHeader>
               <CardTitle>Results</CardTitle>
               <CardDescription>
-                Claude AI analysis results will appear here
+                Output from Claude AI operations
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading && (
-                <div className="flex items-center justify-center p-8">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Processing with Claude AI...</span>
                 </div>
-              )}
-              
-              {result && !loading && (
+              ) : result ? (
                 <div className="space-y-4">
-                  {result.summary && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Summary</h4>
-                      <p className="text-sm text-muted-foreground">{result.summary}</p>
-                    </div>
-                  )}
-
-                  {result.title && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Title</h4>
-                      <p className="text-sm text-muted-foreground">{result.title}</p>
-                    </div>
-                  )}
-
-                  {result.content && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Content</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.content}</p>
-                    </div>
-                  )}
-
-                  {result.overallSentiment && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Sentiment Analysis</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant={result.overallSentiment === 'positive' ? 'default' : 
-                                result.overallSentiment === 'negative' ? 'destructive' : 'secondary'}>
-                          {result.overallSentiment}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          Confidence: {Math.round(result.confidence * 100)}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {result.keyPoints && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Key Points</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {result.keyPoints.map((point: string, index: number) => (
-                          <li key={index} className="text-sm text-muted-foreground">{point}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {result.keyTakeaways && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Key Takeaways</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {result.keyTakeaways.map((takeaway: string, index: number) => (
-                          <li key={index} className="text-sm text-muted-foreground">{takeaway}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {result.recommendations && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Recommendations</h4>
-                      {Array.isArray(result.recommendations) ? (
-                        <ul className="list-disc pl-5 space-y-1">
-                          {result.recommendations.map((rec: any, index: number) => (
-                            <li key={index} className="text-sm text-muted-foreground">
-                              {typeof rec === 'string' ? rec : rec.action}
-                              {rec.timeframe && <span className="text-xs ml-2">({rec.timeframe})</span>}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded">
-                          {JSON.stringify(result, null, 2)}
-                        </pre>
-                      )}
-                    </div>
-                  )}
-
-                  {result.template && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Generated Template</h4>
-                      <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded max-h-64 overflow-y-auto">
-                        {result.template}
-                      </pre>
-                    </div>
-                  )}
+                  <Badge variant="outline" className="mb-2">
+                    Response Received
+                  </Badge>
+                  <pre className="bg-muted p-4 rounded-lg text-sm whitespace-pre-wrap overflow-auto max-h-96">
+                    {JSON.stringify(result, null, 2)}
+                  </pre>
                 </div>
-              )}
-
-              {!result && !loading && (
-                <div className="text-center text-muted-foreground p-8">
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
                   Run a test to see Claude AI results here
                 </div>
               )}

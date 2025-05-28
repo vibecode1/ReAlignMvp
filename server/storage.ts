@@ -719,11 +719,16 @@ class DrizzleStorage implements IStorage {
 
   // Phase 0 - Workflow Logging Methods
   async logWorkflowEvent(data: any) {
-    const [event] = await db
-      .insert(schema.workflow_events)
-      .values(data)
-      .returning();
-    return event;
+    try {
+      const [event] = await db
+        .insert(schema.workflow_events)
+        .values(data)
+        .returning();
+      return event;
+    } catch (error) {
+      console.error('Workflow logging failed (table may not exist):', error.message);
+      return null;
+    }
   }
 
   async getWorkflowEvents(filters: any) {

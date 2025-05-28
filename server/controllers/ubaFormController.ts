@@ -415,8 +415,13 @@ export const ubaFormController = {
    */
   async processConversation(req: AuthenticatedRequest, res: Response) {
     try {
+      console.log('=== UBA PROCESS CONVERSATION DEBUG ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User:', req.user?.id);
+      
       const validation = ProcessConversationSchema.safeParse(req.body);
       if (!validation.success) {
+        console.log('Validation failed:', validation.error.errors);
         return res.status(400).json({
           error: {
             code: 'VALIDATION_ERROR',
@@ -427,6 +432,7 @@ export const ubaFormController = {
       }
 
       const { message, currentFormData = {}, activeSection, caseType, ubaGuideRules } = validation.data;
+      console.log('Parsed data:', { message, currentFormData, activeSection, caseType });
 
       // Create UBA-specific prompt for AI with UBA Guide rules
       const systemPrompt = `You are an expert assistant helping users complete a Borrower Financial Statement (UBA form) for mortgage assistance. You MUST follow UBA Guide rules strictly.
@@ -490,6 +496,7 @@ Let's start with your basic information. What's your full legal name?`,
       }
       
       // Process with AI
+      console.log('About to call AI service...');
       const aiResponse = await aiService.generateRecommendation({
         userId: req.user!.id,
         contextRecipeId: 'uba_form_completion_v1',
@@ -502,6 +509,7 @@ Let's start with your basic information. What's your full legal name?`,
           systemPrompt
         }
       });
+      console.log('AI service completed successfully');
 
       const executionTime = Date.now() - startTime;
 
@@ -556,41 +564,49 @@ Let's start with your basic information. What's your full legal name?`,
         }
       }
 
-      // Log the AI interaction
-      await storage.logWorkflowEvent({
-        user_id: req.user!.id,
-        event_type: 'ai_recommendation_generated',
-        event_category: 'uba_form',
-        event_name: 'conversation_processed',
-        event_description: 'AI processed user input for UBA form completion',
-        success_indicator: true,
-        ai_model_used: 'gpt-4',
-        ai_prompt_tokens: aiResponse.prompt_tokens,
-        ai_completion_tokens: aiResponse.completion_tokens,
-        execution_time_ms: executionTime,
-        uba_form_section: activeSection,
-        event_metadata: JSON.stringify({ 
-          user_message_length: message.length,
-          extracted_fields: Object.keys(parsedResponse.extracted_data || {}).length,
-          case_type: caseType
-        })
-      });
+      // Log the AI interaction (with error handling)
+      try {
+        await storage.logWorkflowEvent({
+          user_id: req.user!.id,
+          event_type: 'ai_recommendation_generated',
+          event_category: 'uba_form',
+          event_name: 'conversation_processed',
+          event_description: 'AI processed user input for UBA form completion',
+          success_indicator: true,
+          ai_model_used: 'gpt-4',
+          ai_prompt_tokens: aiResponse.prompt_tokens,
+          ai_completion_tokens: aiResponse.completion_tokens,
+          execution_time_ms: executionTime,
+          uba_form_section: activeSection,
+          event_metadata: JSON.stringify({ 
+            user_message_length: message.length,
+            extracted_fields: Object.keys(parsedResponse.extracted_data || {}).length,
+            case_type: caseType
+          })
+        });
+      } catch (logError) {
+        console.warn('Failed to log workflow event:', logError);
+      }
 
       return res.status(200).json(parsedResponse);
     } catch (error) {
       console.error('Process conversation error:', error);
       
-      // Log the error
-      await storage.logWorkflowEvent({
-        user_id: req.user!.id,
-        event_type: 'ai_recommendation_generated',
-        event_category: 'uba_form',
-        event_name: 'conversation_processing_failed',
-        event_description: 'Failed to process conversation with AI',
-        success_indicator: false,
-        error_details: JSON.stringify({ message: error instanceof Error ? error.message : 'Unknown error' }),
-        event_severity: 'error'
-      });
+      // Log the error (with error handling)
+      try {
+        await storage.logWorkflowEvent({
+          user_id: req.user!.id,
+          event_type: 'ai_recommendation_generated',
+          event_category: 'uba_form',
+          event_name: 'conversation_processing_failed',
+          event_description: 'Failed to process conversation with AI',
+          success_indicator: false,
+          error_details: JSON.stringify({ message: error instanceof Error ? error.message : 'Unknown error' }),
+          event_severity: 'error'
+        });
+      } catch (logError) {
+        console.warn('Failed to log error event:', logError);
+      }
 
       return res.status(500).json({
         error: {

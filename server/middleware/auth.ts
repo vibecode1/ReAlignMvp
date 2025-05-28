@@ -116,6 +116,10 @@ const ROLE_PERMISSIONS = {
     'tracker_note:update',
     'user_context:admin',
     'workflow_log:admin',
+    'uba_form:create',
+    'uba_form:update',
+    'uba_form:view',
+    'uba_form:view_own',
   ],
   homeowner: [
     'transaction:view',
@@ -125,6 +129,7 @@ const ROLE_PERMISSIONS = {
     'uba_form:create',
     'uba_form:update',
     'uba_form:view',
+    'uba_form:view_own',
     'user_context:manage_own',
     'workflow_log:own',
   ],

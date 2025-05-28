@@ -1034,7 +1034,7 @@ This will help me tailor the form to your specific needs.`,
                             <div key={doc.id} className="flex items-center justify-between text-sm">
                               <span className="truncate">{doc.fileName}</span>
                               <Badge variant={
-                                doc.processingStatus === 'completed' ? 'success' :
+                                doc.processingStatus === 'completed' ? 'default' :
                                 doc.processingStatus === 'processing' ? 'secondary' :
                                 'outline'
                               }>

@@ -51,15 +51,15 @@ export default function PublicTrackerView() {
 
   const { data: trackerData, isLoading, error } = useQuery<PublicTrackerData>({
     queryKey: ['/api/v1/tracker', transactionId],
-    queryFn: () => apiRequest(`/api/v1/tracker/${transactionId}?token=${token}`),
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/v1/tracker/${transactionId}?token=${token}`);
+      return response.json();
+    },
     enabled: !!transactionId && !!token,
   });
 
   const unsubscribeMutation = useMutation({
-    mutationFn: () => apiRequest(`/api/v1/tracker/${transactionId}/unsubscribe`, {
-      method: 'POST',
-      body: JSON.stringify({ token })
-    }),
+    mutationFn: () => apiRequest('POST', `/api/v1/tracker/${transactionId}/unsubscribe`, { token }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/tracker', transactionId] });
     }

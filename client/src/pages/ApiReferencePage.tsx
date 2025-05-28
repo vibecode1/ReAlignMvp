@@ -460,13 +460,13 @@ curl -X POST https://api.realign.com/v1/transactions \\
                             
                             <p className="text-sm text-muted-foreground">{endpoint.description}</p>
                             
-                            {endpoint.parameters && (
+                            {'parameters' in endpoint && endpoint.parameters && (
                               <div>
                                 <h5 className="font-semibold mb-2">Parameters</h5>
                                 <div className="bg-muted/30 p-3 rounded text-sm font-mono">
                                   {Object.entries(endpoint.parameters).map(([key, value]) => (
                                     <div key={key}>
-                                      <span className="text-blue-600">{key}</span>: <span className="text-green-600">{value}</span>
+                                      <span className="text-blue-600">{key}</span>: <span className="text-green-600">{String(value)}</span>
                                     </div>
                                   ))}
                                 </div>

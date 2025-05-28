@@ -67,12 +67,12 @@ export class AiService {
       // Prepare prompt with context
       // Use custom system prompt if provided in additionalContext, otherwise use recipe template
       const systemPrompt = request.additionalContext?.systemPrompt || 
-        this.interpolateTemplate(
+        AiService.interpolateTemplate(
           recipe.ai_config.system_prompt_template,
           contextData
         );
 
-      const userPrompt = this.interpolateTemplate(
+      const userPrompt = AiService.interpolateTemplate(
         recipe.ai_config.user_prompt_template,
         { user_input: request.userInput, ...contextData }
       );
@@ -163,7 +163,7 @@ export class AiService {
       const isValid = !aiResponse.content.toLowerCase().includes('error') && 
                      !aiResponse.content.toLowerCase().includes('invalid');
       
-      const suggestions = this.extractSuggestions(aiResponse.content);
+      const suggestions = AiService.extractSuggestions(aiResponse.content);
       
       // Log validation event
       await WorkflowLogger.logValidation(request.userId, {
@@ -195,7 +195,7 @@ export class AiService {
    */
   private static interpolateTemplate(template: string, context: any): string {
     return template.replace(/\{([^}]+)\}/g, (match, key) => {
-      const value = this.getNestedValue(context, key);
+      const value = AiService.getNestedValue(context, key);
       return value !== undefined ? String(value) : match;
     });
   }
