@@ -18,10 +18,6 @@ if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === "") {
 console.log('--- End of OPENAI_API_KEY debug ---');
 // ---- END OF DEBUGGING ----
 
-// This is the line that's currently throwing the error
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
