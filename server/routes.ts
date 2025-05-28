@@ -18,6 +18,7 @@ import { workflowLogController } from "./controllers/workflowLogController";
 import { ubaFormController } from "./controllers/ubaFormController";
 import { onboardingController } from "./controllers/onboardingController";
 import ClaudeController from "./controllers/claudeController.js";
+import OpenAIController from "./controllers/openaiController.js";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -226,6 +227,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   claudeRouter.post('/generate-template', authenticateJWT, ClaudeController.generateTemplate);
   claudeRouter.post('/get-recommendations', authenticateJWT, ClaudeController.getRecommendations);
 
+  // -- OpenAI Routes --
+  const openaiRouter = express.Router();
+  openaiRouter.post('/generate-property-description', authenticateJWT, OpenAIController.generatePropertyDescription);
+  openaiRouter.post('/analyze-market-trends', authenticateJWT, OpenAIController.analyzeMarketTrends);
+  openaiRouter.post('/generate-email-template', authenticateJWT, OpenAIController.generateEmailTemplate);
+  openaiRouter.post('/generate-property-image', authenticateJWT, OpenAIController.generatePropertyImage);
+  openaiRouter.post('/compare-options', authenticateJWT, OpenAIController.compareOptions);
+  openaiRouter.post('/transcribe-audio', authenticateJWT, OpenAIController.transcribeAudio);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -254,6 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/onboarding', onboardingRouter);
   console.log('Registering Claude AI router at /claude');
   apiRouter.use('/claude', claudeRouter);
+  console.log('Registering OpenAI router at /openai');
+  apiRouter.use('/openai', openaiRouter);
 
   // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');
