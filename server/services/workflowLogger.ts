@@ -170,12 +170,3 @@ export class WorkflowLogger {
     }
   }
 }
-
-// Export workflowLogger instance for controller imports
-export const workflowLogger = {
-  logUserInteraction: WorkflowLogger.logUserInteraction,
-  logUbaFormField: WorkflowLogger.logUbaFormField,
-  logDocumentUpload: WorkflowLogger.logDocumentUpload,
-  logAiRecommendation: WorkflowLogger.logAiRecommendation,
-  logValidation: WorkflowLogger.logValidation,
-};
