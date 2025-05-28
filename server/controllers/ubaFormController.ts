@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
+import { aiService } from '../services/aiService';
+import { workflowLogger } from '../services/workflowLogger';
 
 // Schema for UBA form data
 const CreateUbaFormDataSchema = z.object({
@@ -45,9 +47,33 @@ const UbaDocumentAttachmentSchema = z.object({
   meets_uba_requirements: z.boolean().optional(),
 });
 
+// Schema for UBA form creation
+const CreateUBAFormSchema = z.object({
+  form_data: z.record(z.any()),
+  completion_percentage: z.number().min(0).max(100),
+  sections: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    completed: z.boolean(),
+    fields: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      value: z.string(),
+      required: z.boolean()
+    }))
+  }))
+});
+
+// Schema for conversation processing
+const ProcessConversationSchema = z.object({
+  message: z.string().min(1),
+  currentFormData: z.record(z.any()).optional(),
+  activeSection: z.string().optional()
+});
+
 export const ubaFormController = {
   /**
-   * Create new UBA form data
+   * Create new UBA form data (legacy method)
    */
   async createUbaForm(req: AuthenticatedRequest, res: Response) {
     try {
@@ -91,7 +117,7 @@ export const ubaFormController = {
   },
 
   /**
-   * Get UBA form data by transaction
+   * Get UBA form data by transaction (legacy method)
    */
   async getUbaForm(req: AuthenticatedRequest, res: Response) {
     try {
@@ -130,7 +156,7 @@ export const ubaFormController = {
   },
 
   /**
-   * Update UBA form data
+   * Update UBA form data (legacy method)
    */
   async updateUbaForm(req: AuthenticatedRequest, res: Response) {
     try {
@@ -267,44 +293,9 @@ export const ubaFormController = {
       });
     }
   },
-};
-import { Request, Response } from 'express';
-import { storage } from '../storage';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { z } from 'zod';
-import { aiService } from '../services/aiService';
-import { workflowLogger } from '../services/workflowLogger';
 
-// Schema for UBA form creation
-const CreateUBAFormSchema = z.object({
-  form_data: z.record(z.any()),
-  completion_percentage: z.number().min(0).max(100),
-  sections: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
-    completed: z.boolean(),
-    fields: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      value: z.string(),
-      required: z.boolean()
-    }))
-  }))
-});
-
-// Schema for conversation processing
-const ProcessConversationSchema = z.object({
-  message: z.string().min(1),
-  currentFormData: z.record(z.any()).optional(),
-  activeSection: z.string().optional()
-});
-
-/**
- * Controller for UBA form operations
- */
-export const ubaFormController = {
   /**
-   * Create or update a UBA form
+   * Create or update a UBA form (new method)
    */
   async createForm(req: AuthenticatedRequest, res: Response) {
     try {
