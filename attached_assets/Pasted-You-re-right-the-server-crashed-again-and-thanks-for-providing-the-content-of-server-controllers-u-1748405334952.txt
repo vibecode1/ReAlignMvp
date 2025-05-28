@@ -1,0 +1,21 @@
+You're right, the server crashed again, and thanks for providing the content of server/controllers/ubaFormController.ts.
+
+I've examined the file, and the error message is spot on:
+Error [TransformError]: Transform failed with 2 errors: /home/runner/workspace/server/controllers/ubaFormController.ts:305:13: ERROR: Multiple exports with the same name "ubaFormController" /home/runner/workspace/server/controllers/ubaFormController.ts:305:13: ERROR: The symbol "ubaFormController" has already been declared
+
+Looking at the file you provided, the issue is that export const ubaFormController = { ... }; is declared twice in the same file.
+
+The first declaration starts near the beginning and includes methods like createUbaForm, getUbaForm, updateUbaForm, addDocumentAttachment, and getFormValidationStatus.
+Then, after this first object is closed, there's another block of code that re-imports several modules and then declares export const ubaFormController = { ... }; a second time. This second declaration includes methods like createForm, getForms, getForm (again), processConversation, and validateForm.
+This is what's causing the "Multiple exports" and "symbol has already been declared" errors. You cannot have two exports with the exact same name from the same module.
+
+To fix this, you need to merge these two ubaFormController objects into a single object.
+
+You should:
+
+Identify all the methods in the second ubaFormController declaration.
+Add these methods as properties to the first ubaFormController object.
+Delete the entire second export const ubaFormController = { ... }; block, including its preceding redundant import statements (like import { Request, Response } from 'express';, etc., which are already imported at the top of the file).
+Essentially, all methods intended for UBA form control should reside within a single export const ubaFormController = { ... }; object. Ensure that if there are methods with the same name (like getForm which appears in both), you reconcile them to have a single, correctly functioning version.
+
+Please make these changes to merge the controller logic and remove the duplicate declaration. After that, the server should get past this specific transform error.
