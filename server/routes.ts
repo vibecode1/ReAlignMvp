@@ -13,6 +13,9 @@ import { notificationController } from "./controllers/notificationController";
 import { trackerNoteController } from "./controllers/trackerNoteController";
 import { phaseController } from "./controllers/phaseController";
 import { publicTrackerController } from "./controllers/publicTrackerController";
+import { userContextController } from "./controllers/userContextController";
+import { workflowLogController } from "./controllers/workflowLogController";
+import { ubaFormController } from "./controllers/ubaFormController";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -182,6 +185,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get('/tracker/:transactionId', publicTrackerController.getTrackerByToken);
   apiRouter.post('/tracker/unsubscribe', publicTrackerController.updateSubscription);
 
+  // -- Phase 0 - User Context Profile Routes --
+  const userContextRouter = express.Router();
+  userContextRouter.post('/', authenticateJWT, userContextController.createProfile);
+  userContextRouter.get('/', authenticateJWT, userContextController.getProfile);
+  userContextRouter.get('/all', authenticateJWT, userContextController.getUserProfiles);
+  userContextRouter.put('/:profileId', authenticateJWT, userContextController.updateProfile);
+
+  // -- Phase 0 - Workflow Logging Routes --
+  const workflowLogRouter = express.Router();
+  workflowLogRouter.post('/events', authenticateJWT, workflowLogController.logEvent);
+  workflowLogRouter.get('/events', authenticateJWT, workflowLogController.getEvents);
+  workflowLogRouter.get('/events/summary', authenticateJWT, workflowLogController.getEventsSummary);
+
+  // -- Phase 0 - UBA Form Data Routes --
+  const ubaFormRouter = express.Router();
+  ubaFormRouter.post('/', authenticateJWT, ubaFormController.createUbaForm);
+  ubaFormRouter.get('/:transactionId', authenticateJWT, requireTransactionAccess, ubaFormController.getUbaForm);
+  ubaFormRouter.put('/:formId', authenticateJWT, ubaFormController.updateUbaForm);
+  ubaFormRouter.post('/:formId/attachments', authenticateJWT, ubaFormController.addDocumentAttachment);
+  ubaFormRouter.get('/:formId/validation', authenticateJWT, ubaFormController.getFormValidationStatus);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -200,6 +224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/transactions', transactionRouter);
   console.log('Registering notification router at /notifications');
   apiRouter.use('/notifications', notificationRouter);
+  console.log('Registering user context router at /user-context');
+  apiRouter.use('/user-context', userContextRouter);
+  console.log('Registering workflow log router at /workflow-log');
+  apiRouter.use('/workflow-log', workflowLogRouter);
+  console.log('Registering UBA form router at /uba-forms');
+  apiRouter.use('/uba-forms', ubaFormRouter);
   
   // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');
