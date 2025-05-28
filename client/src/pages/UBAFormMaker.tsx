@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle, MessageSquare, FileText, Save, Send } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 interface UBAFormSection {
@@ -44,7 +44,7 @@ interface ConversationMessage {
 }
 
 export const UBAFormMaker: React.FC = () => {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<string>('borrower-info');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [conversationMode, setConversationMode] = useState<boolean>(true);
