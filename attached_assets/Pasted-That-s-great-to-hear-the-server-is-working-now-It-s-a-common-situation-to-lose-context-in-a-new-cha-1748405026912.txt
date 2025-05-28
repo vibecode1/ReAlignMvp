@@ -1,0 +1,34 @@
+That's great to hear the server is working now! It's a common situation to lose context in a new chat window.
+
+To get the Replit AI back up to speed quickly, here's a suggestion for a comprehensive prompt you can give it:
+
+Suggested Prompt for Replit AI:
+
+"Hello! We are continuing work on the ReAlign project, version 2.1.
+
+Current Status:
+
+We have just successfully completed all tasks for Phase 0: Foundation & Core AI Scaffolding. This includes:
+Database schema implementation based on "ReAlign 2.1 - Enhanced Data Model 1.0.docx" (15 tables, migration file migrations/0000_large_cardiac.sql created).
+Backend services for User Authentication (with RBAC), User Context Profiles, Structured Workflow Logging, and Normalized BFS/UBA Data APIs.
+The Context Recipe Framework has been defined.
+OpenAPI specifications have been created.
+AI service integration (OpenAI) is configured.
+The server is now starting correctly after we resolved issues with transactionController.ts and authController.ts.
+We confirmed that the UBA Guide rules are to be used as annotated in the core 2.1 documents.
+Next Step:
+We are ready to begin Phase 1: Maker Module - Core Tools with Premium AI Integration.
+Specifically, we need to start with Task 1.1: Maker Module - BFS/UBA Form Maker as detailed in the "ReAlign 2.1 - Phased Implementation Plan_.docx". This involves implementing the conversational intake experience and the frontend UI for the BFS/UBA Form Maker, adhering strictly to UBA Guide rules.
+
+Key Project Documents you should be aware of (I have uploaded these previously):
+
+ReAlign 2.1 - Phased Implementation Plan_.docx (This is our primary guide for phases and tasks)
+ReAlign 2.1 - Master Guide for AI Agent.docx (Overall guidance for you as the AI agent)
+ReAlign PRD 2.1.2.docx (Product requirements)
+ReAlign 2.1 - Enhanced Data Model 1.0.docx (Database schema)
+ReAlign 2.1 - UBA.pdf (The UBA form structure)
+Annotations and details from the "how to fill out borrower assistance form.docx" (UBA Guide) are embedded within the PRD, Phased Plan, and Data Model.
+ReAlign 2.0 - Unified Design & Structure Guide.docx (UI/UX)
+ReAlign 2.0 UI & Navigation - Implementation Guide.docx (UI/UX)
+The full GitHub repository realignmvp code that was previously uploaded.
+Please confirm you have this context, and let's proceed with developing the BFS/UBA Form Maker (Task 1.1)."
