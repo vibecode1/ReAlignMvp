@@ -65,10 +65,12 @@ export class AiService {
       );
 
       // Prepare prompt with context
-      const systemPrompt = this.interpolateTemplate(
-        recipe.ai_config.system_prompt_template,
-        contextData
-      );
+      // Use custom system prompt if provided in additionalContext, otherwise use recipe template
+      const systemPrompt = request.additionalContext?.systemPrompt || 
+        this.interpolateTemplate(
+          recipe.ai_config.system_prompt_template,
+          contextData
+        );
 
       const userPrompt = this.interpolateTemplate(
         recipe.ai_config.user_prompt_template,
@@ -76,6 +78,7 @@ export class AiService {
       );
 
       // Call AI model
+      console.log('Calling OpenAI with model:', recipe.ai_config.preferred_model);
       const completion = await openai.chat.completions.create({
         model: recipe.ai_config.preferred_model,
         messages: [
@@ -111,6 +114,7 @@ export class AiService {
 
     } catch (error) {
       const executionTime = Date.now() - startTime;
+      console.error('AI Service Error:', error);
       
       // Log failed AI interaction
       await WorkflowLogger.logAiRecommendation(request.userId, {

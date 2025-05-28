@@ -20,7 +20,7 @@ const ContextRecipeSchema = z.object({
   
   // AI Model Configuration
   ai_config: z.object({
-    preferred_model: z.enum(['gpt-4-turbo', 'claude-sonnet', 'gpt-3.5-turbo']),
+    preferred_model: z.enum(['gpt-4', 'gpt-4-turbo', 'claude-sonnet', 'gpt-3.5-turbo']),
     fallback_models: z.array(z.string()).optional(),
     max_tokens: z.number().int().positive(),
     temperature: z.number().min(0).max(2),
@@ -70,7 +70,7 @@ export class ContextRecipeService {
         workflow_history: true,
       },
       ai_config: {
-        preferred_model: 'gpt-4-turbo',
+        preferred_model: 'gpt-4',
         fallback_models: ['claude-sonnet'],
         max_tokens: 2000,
         temperature: 0.3,

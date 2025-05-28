@@ -40,6 +40,12 @@ export const MakerDashboardPage: React.FC = () => {
           badge: "AI Help"
         },
         { 
+          name: "BFS/UBA Form Maker (Enhanced)", 
+          href: "/uba-form-maker",
+          description: "AI-powered conversational UBA form completion",
+          badge: "NEW - AI Chat"
+        },
+        { 
           name: "HUD-1 / CD Estimator", 
           href: "/app/maker/form/hud1",
           description: "Closing disclosure estimate tool",

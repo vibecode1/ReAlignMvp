@@ -54,6 +54,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { setupFCMHandler } from "@/lib/notifications";
 import { useEffect } from "react";
 import UBAFormMaker from './pages/UBAFormMaker';
+import UBAFormMakerEnhanced from './pages/UBAFormMakerEnhanced';
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -285,16 +286,15 @@ function Router() {
       <Route path="/account">
         <ProtectedRoute component={Account} />
       </Route>
+      <Route path="/uba-form-maker">
+        <ProtectedRoute component={UBAFormMakerEnhanced} allowedRoles={['negotiator']} />
+      </Route>
+      <Route path="/tracker-landing" component={TrackerLandingPage} />
+      <Route path="/public-tracker/:id" component={PublicTrackerView} />
+      <Route path="/party/:token" component={PartyTransactionView} />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />
-    
-          <Route path="/tracker-landing" component={TrackerLandingPage} />
-          <Route path="/public-tracker/:id" component={PublicTrackerView} />
-          <Route path="/party/:token" component={PartyTransactionView} />
-          <Route path="/uba-form-maker">
-             <ProtectedRoute component={UBAFormMaker} allowedRoles={['negotiator']} />
-           </Route>
     </Switch>
   );
 }

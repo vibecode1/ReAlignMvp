@@ -67,7 +67,9 @@ const CreateUBAFormSchema = z.object({
 const ProcessConversationSchema = z.object({
   message: z.string().min(1),
   currentFormData: z.record(z.any()).optional(),
-  activeSection: z.string().optional()
+  activeSection: z.string().optional(),
+  caseType: z.enum(['short_sale', 'retention']).nullable().optional(),
+  ubaGuideRules: z.record(z.any()).optional()
 });
 
 export const ubaFormController = {
@@ -424,41 +426,68 @@ export const ubaFormController = {
         });
       }
 
-      const { message, currentFormData = {}, activeSection } = validation.data;
+      const { message, currentFormData = {}, activeSection, caseType, ubaGuideRules } = validation.data;
 
-      // Create UBA-specific prompt for AI
-      const systemPrompt = `You are an expert assistant helping users complete a Borrower Financial Statement (UBA form) for mortgage assistance. Your role is to:
+      // Create UBA-specific prompt for AI with UBA Guide rules
+      const systemPrompt = `You are an expert assistant helping users complete a Borrower Financial Statement (UBA form) for mortgage assistance. You MUST follow UBA Guide rules strictly.
 
+CRITICAL UBA GUIDE RULES:
+${JSON.stringify(ubaGuideRules, null, 2)}
+
+Your role is to:
 1. Guide users through form completion in a conversational manner
 2. Extract structured data from their responses
-3. Provide helpful suggestions and clarifications
-4. Ensure all required fields are properly filled according to UBA guidelines
+3. Apply UBA Guide rules automatically (e.g., default values, N/A fields)
+4. Provide helpful suggestions and clarifications
+5. Ensure all required fields are properly filled according to UBA guidelines
 
-Current form sections:
-- Borrower Information: Name, SSN, contact details
-- Property Information: Address, value, mortgage details  
-- Financial Hardship: Type, description, timeline
-- Income & Expenses: Monthly income/expenses, sources
-
+Current case type: ${caseType || 'not determined'}
 Current form data: ${JSON.stringify(currentFormData)}
 Active section: ${activeSection || 'none'}
 
+IMPORTANT BEHAVIORS:
+- When user indicates they want to keep their home, set intent="Keep" and case_type="retention"
+- When user indicates they want to sell their home, set intent="Sell" and case_type="short_sale"
+- Apply appropriate income reporting rules based on case type
+- Set hardship duration based on case type (short sale = Long-term, retention = Short-term)
+- Default property_type to "My Primary Residence" unless user specifies otherwise
+- Default owner_occupied to "Yes" unless user mentions renting/leasing
+- Use "N/A" for all blank fields, never leave empty
+- For email, always use "Attorney Only"
+- For home phone, always use "N/A"
+- If no co-borrower, set all co-borrower fields to "N/A"
+
 User message: "${message}"
 
-Please respond with:
-1. A conversational response to guide the user
-2. Any data you can extract in structured format
-3. Suggestions for completing related fields
-4. Next steps or questions to ask
-
-Format your response as JSON with:
-- response: conversational text
-- extracted_data: object with field names and values
+Respond with JSON containing:
+- response: conversational text that guides the user naturally
+- extracted_data: object with field names and values (apply UBA rules)
 - suggestions: object with field suggestions
 - confidence: object with confidence scores (0-1)
-- next_questions: array of follow-up questions`;
+- next_step: what section or field to focus on next
+- document_request: if documents would help (e.g., "recent pay stubs", "tax returns")
+
+Keep responses natural and conversational while ensuring UBA compliance.`;
 
       const startTime = Date.now();
+      
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        console.error('OpenAI API key is not configured');
+        
+        // Return a helpful response without AI
+        return res.status(200).json({
+          response: `I understand you're trying to ${caseType === 'short_sale' ? 'sell' : 'keep'} your home. While I can't process your request with AI assistance right now due to missing configuration, I can guide you through the form manually.
+
+Let's start with your basic information. What's your full legal name?`,
+          extracted_data: {},
+          suggestions: {},
+          confidence: {},
+          next_step: 'borrower-info',
+          document_request: null,
+          ai_available: false
+        });
+      }
       
       // Process with AI
       const aiResponse = await aiService.generateRecommendation({
@@ -468,6 +497,8 @@ Format your response as JSON with:
         additionalContext: {
           currentFormData,
           activeSection,
+          caseType,
+          ubaGuideRules,
           systemPrompt
         }
       });
@@ -485,8 +516,44 @@ Format your response as JSON with:
           extracted_data: {},
           suggestions: {},
           confidence: {},
-          next_questions: []
+          next_step: null,
+          document_request: null
         };
+      }
+
+      // Apply UBA Guide rules to extracted data
+      if (parsedResponse.extracted_data) {
+        // Apply email rule
+        if ('borrower_email' in parsedResponse.extracted_data) {
+          parsedResponse.extracted_data.borrower_email = 'Attorney Only';
+        }
+        
+        // Apply home phone rule
+        if ('borrower_home_phone' in parsedResponse.extracted_data) {
+          parsedResponse.extracted_data.borrower_home_phone = 'N/A';
+        }
+        
+        // Apply co-borrower rules if no co-borrower
+        if (parsedResponse.extracted_data.has_coborrower === 'No') {
+          parsedResponse.extracted_data.coborrower_name = 'N/A';
+          parsedResponse.extracted_data.coborrower_ssn = 'N/A';
+        }
+        
+        // Apply case type specific rules
+        if (caseType === 'retention') {
+          parsedResponse.extracted_data.monthly_net_income = 'N/A';
+          parsedResponse.extracted_data.hardship_duration = 'Short-term';
+        } else if (caseType === 'short_sale') {
+          parsedResponse.extracted_data.hardship_duration = 'Long-term';
+        }
+        
+        // Apply default assets rule
+        if (!currentFormData.checking_account_balance) {
+          parsedResponse.extracted_data.checking_account_balance = '500';
+        }
+        if (!currentFormData.total_assets) {
+          parsedResponse.extracted_data.total_assets = '500';
+        }
       }
 
       // Log the AI interaction
@@ -504,7 +571,8 @@ Format your response as JSON with:
         uba_form_section: activeSection,
         event_metadata: JSON.stringify({ 
           user_message_length: message.length,
-          extracted_fields: Object.keys(parsedResponse.extracted_data || {}).length
+          extracted_fields: Object.keys(parsedResponse.extracted_data || {}).length,
+          case_type: caseType
         })
       });
 
