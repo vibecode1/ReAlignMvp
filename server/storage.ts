@@ -101,6 +101,12 @@ export interface IStorage {
   updateUbaFormData(formId: string, userId: string, data: any): Promise<any>;
   createUbaDocumentAttachment(data: any): Promise<any>;
   getUbaFormValidationStatus(formId: string, userId: string): Promise<any | undefined>;
+
+  // Add parties to a transaction
+  addPartiesToTransaction(transactionId: string, parties: Array<{email: string, name: string, role: string}>): Promise<any>;
+
+  // Get parties for a transaction
+  getParties(transactionId: string): Promise<any>;
 }
 
 class DrizzleStorage implements IStorage {
@@ -796,6 +802,59 @@ class DrizzleStorage implements IStorage {
         eq(schema.uba_form_data.user_id, userId)
       ));
     return form;
+  }
+
+  // Add parties to a transaction
+  async addPartiesToTransaction(transactionId: string, parties: Array<{email: string, name: string, role: string}>) {
+    try {
+      const addedParties = [];
+
+      for (const party of parties) {
+        // Check if user exists by email
+        let existingUser = await this.getUserByEmail(party.email);
+
+        let userId: string;
+
+        if (existingUser) {
+          userId = existingUser.id;
+        } else {
+          // Create new user with party role
+          const newUser = await this.createUser({
+            id: crypto.randomUUID(),
+            email: party.email,
+            name: party.name,
+            role: party.role as 'buyer' | 'seller' | 'agent' | 'negotiator',
+          });
+
+          userId = newUser.id;
+          existingUser = newUser;
+        }
+
+        // Add party to transaction
+        const transactionParty = await this.addParticipant({
+          transaction_id: transactionId,
+          user_id: userId,
+          role_in_transaction: party.role,
+          status: 'invited',
+        });
+
+        addedParties.push({
+          ...transactionParty,
+          user: existingUser
+        });
+      }
+
+      return addedParties;
+    } catch (error) {
+      console.error('Error adding parties to transaction:', error);
+      throw error;
+    }
+  }
+
+  // Get parties for a transaction
+  async getParties(transactionId: string) {
+    // Implementation for getParties method
+    return null;
   }
 }
 

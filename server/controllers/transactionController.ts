@@ -168,7 +168,7 @@ export const transactionController = {
 
       // Return the new transaction along with its participants
       const participants = await storage.getParticipantsByTransactionId(transaction.id);
-      
+
       // Format the response to match GET /transactions/:id
       const response = {
         id: transaction.id,
@@ -274,9 +274,9 @@ export const transactionController = {
 
       // ---- NEW DIAGNOSTIC LOGS ----
       console.log('>>> CONTROLLER: Attempting to call storage layer to fetch transaction.');
-      
+
       let transactionDataFromStorage;
-      
+
       const storageMethodBeingCalled = 'storage.getTransactionById';
       console.log(`>>> CONTROLLER: About to call storage method: ${storageMethodBeingCalled} with ID: ${id}`);
 
@@ -316,7 +316,7 @@ export const transactionController = {
     try {
       const { id } = req.params;
       const updatedTransaction = await storage.updateTransaction(id, req.body);
-      
+
       return res.status(200).json(updatedTransaction);
     } catch (error) {
       console.error('Update transaction error:', error);
@@ -356,7 +356,7 @@ export const transactionController = {
       }
 
       const updatedTransaction = await storage.updateTransactionPhase(id, phase, req.user.id);
-      
+
       return res.status(200).json(updatedTransaction);
     } catch (error) {
       console.error('Update transaction phase error:', error);
@@ -376,7 +376,7 @@ export const transactionController = {
     try {
       const { id } = req.params;
       const phaseHistory = await storage.getPhaseHistoryByTransactionId(id);
-      
+
       return res.status(200).json(phaseHistory);
     } catch (error) {
       console.error('Get phase history error:', error);
@@ -390,17 +390,11 @@ export const transactionController = {
   },
 
   /**
-   * Add multiple parties to an existing transaction
+   * Add parties to a transaction
    */
-  async addPartiesToTransaction(req: AuthenticatedRequest, res: Response) {
+  addPartiesToTransaction: async (req: AuthenticatedRequest, res: Response) => {
     try {
-      console.log('=== ADD PARTIES TO TRANSACTION REQUEST ===');
-      console.log('Transaction ID:', req.params.id);
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-      console.log('User:', req.user?.email, req.user?.id);
-
       if (!req.user) {
-        console.log('ERROR: No authenticated user');
         return res.status(401).json({
           error: {
             code: 'UNAUTHENTICATED',
@@ -410,189 +404,42 @@ export const transactionController = {
       }
 
       const transactionId = req.params.id;
+      const { parties } = req.body;
 
-      // Validate request body - handle single party or multiple parties
-      let parties: any[];
-      if (req.body.parties) {
-        // Multiple parties format
-        const validation = AddPartiesToTransactionSchema.safeParse(req.body);
-        if (!validation.success) {
-          console.error('VALIDATION_ERROR in addPartiesToTransaction:', validation.error.errors);
-          return res.status(400).json({
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Invalid request data',
-              details: validation.error.errors,
-            }
-          });
-        }
-        parties = validation.data.parties;
-      } else {
-        // Single party format (backwards compatibility)
-        const validation = AddPartyToTransactionSchema.safeParse(req.body);
-        if (!validation.success) {
-          console.error('VALIDATION_ERROR in addPartiesToTransaction:', validation.error.errors);
-          return res.status(400).json({
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Invalid request data',
-              details: validation.error.errors,
-            }
-          });
-        }
-        parties = [validation.data];
-      }
-
-      // Fetch the transaction to ensure it exists
-      const transaction = await storage.getTransactionById(transactionId);
-      if (!transaction) {
-        console.log('ERROR: Transaction not found:', transactionId);
-        return res.status(404).json({
+      if (!Array.isArray(parties) || parties.length === 0) {
+        return res.status(400).json({
           error: {
-            code: 'NOT_FOUND',
-            message: 'Transaction not found',
+            code: 'BAD_REQUEST',
+            message: 'Parties array is required and must not be empty',
           }
         });
       }
 
-      // Get current negotiator details
-      const negotiator = await storage.getUserById(req.user.id);
-      const addedParties = [];
-
-      // Process each party
-      for (const partyData of parties) {
-        const { name, email, role } = partyData;
-        
-        console.log(`Processing party: ${name} (${email}) as ${role}`);
-
-        // Check if user already exists
-        let user = await storage.getUserByEmail(email);
-        
-        if (!user) {
-          console.log(`Creating new user for ${email}`);
-          // Create new user
-          user = await storage.createUser({
-            name: name,
-            email: email,
-            role: 'buyer', // Use valid role from enum
+      // Validate each party has required fields
+      for (const party of parties) {
+        if (!party.email || !party.name || !party.role) {
+          return res.status(400).json({
+            error: {
+              code: 'BAD_REQUEST',
+              message: 'Each party must have email, name, and role',
+            }
           });
-          console.log(`✅ User created: ${user.id}`);
-        } else {
-          console.log(`User already exists: ${user.id}`);
         }
-
-        // Check if participant already exists in this transaction WITH THE SAME ROLE
-        const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
-        console.log(`=== PARTICIPANT CHECK DEBUG ===`);
-        console.log(`Checking for user ${user.id} with role ${role}`);
-        console.log(`Existing participants:`, existingParticipants.map(p => ({ userId: p.user_id, role: p.role_in_transaction })));
-        
-        const existingParticipant = existingParticipants.find(p => p.user_id === user.id && p.role_in_transaction === role);
-        console.log(`Found existing participant with same role?`, !!existingParticipant);
-
-        let participant;
-        if (existingParticipant) {
-          console.log(`❌ Participant already exists with same role (${role}), skipping duplicate`);
-          participant = existingParticipant;
-        } else {
-          // Check if user has ANY role in this transaction (for logging purposes)
-          const userInTransaction = existingParticipants.filter(p => p.user_id === user.id);
-          if (userInTransaction.length > 0) {
-            console.log(`✅ User already has roles: [${userInTransaction.map(p => p.role_in_transaction).join(', ')}]. Adding additional role: ${role}`);
-          } else {
-            console.log(`✅ Adding new participant with role: ${role}`);
-          }
-          
-          // Add new participant (allows multiple roles for same user)
-          console.log(`>>> CALLING storage.addParticipant with:`, {
-            transaction_id: transactionId,
-            user_id: user.id,
-            role_in_transaction: role,
-            status: 'pending',
-            last_action: 'Added to transaction',
-          });
-          
-          participant = await storage.addParticipant({
-            transaction_id: transactionId,
-            user_id: user.id,
-            role_in_transaction: role,
-            status: 'pending',
-            last_action: 'Added to transaction',
-          });
-          
-          console.log(`✅ NEW PARTICIPANT CREATED:`, participant);
-        }
-
-        // Generate magic link token for email subscription
-        const magicLinkToken = Math.random().toString(36).substring(2, 15) + 
-                              Math.random().toString(36).substring(2, 15);
-
-        // Create email subscription
-        const emailSubscription = await storage.createEmailSubscription({
-          transaction_id: transactionId,
-          party_email: email,
-          party_role: role,
-          magic_link_token: magicLinkToken,
-          is_subscribed: true,
-        });
-
-        console.log(`✅ Email subscription created for ${email} with token: ${magicLinkToken.substring(0, 10)}...`);
-
-        // Send notification email
-        let emailSent = false;
-        try {
-          console.log(`📧 Sending notification email to ${email}...`);
-          emailSent = await notificationService.sendTrackerMagicLink(
-            email,
-            name,
-            role,
-            transaction.title,
-            transaction.property_address,
-            negotiator?.name || 'Your Negotiator',
-            magicLinkToken,
-            transactionId
-          );
-          
-          if (emailSent) {
-            console.log('✅ EMAIL SENT SUCCESSFULLY to', email);
-            // Update participant to mark email as sent
-            await storage.updateParticipantEmailSent(transactionId, user.id, true);
-          } else {
-            console.log('⚠️ EMAIL SENDING RETURNED FALSE for', email);
-          }
-        } catch (emailError) {
-          console.error('❌ EMAIL SENDING FAILED:', emailError);
-          // Continue processing - don't fail the entire request for email issues
-        }
-
-        addedParties.push({
-          userId: user.id,
-          name: user.name,
-          email: user.email,
-          role: participant.role_in_transaction,
-          status: participant.status,
-          lastAction: participant.last_action,
-        });
       }
 
-      console.log('=== ADD PARTIES OPERATION COMPLETED ===');
-      console.log(`Successfully processed ${addedParties.length} parties`);
+      const addedParties = await storage.addPartiesToTransaction(transactionId, parties);
 
-      return res.status(201).json({
-        message: `Successfully added ${addedParties.length} ${addedParties.length === 1 ? 'party' : 'parties'}`,
-        data: addedParties,
+      res.json({
+        success: true,
+        data: {
+          parties: addedParties
+        }
       });
-
     } catch (error) {
-      console.error('❌ ADD PARTIES TO TRANSACTION ERROR:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        code: (error as any)?.code || 'Unknown code',
-      });
-      return res.status(500).json({
+      console.error('Error adding parties to transaction:', error);
+      res.status(500).json({
         error: {
-          code: 'SERVER_ERROR',
+          code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to add parties to transaction',
         }
       });
@@ -602,11 +449,11 @@ export const transactionController = {
   /**
    * Get parties for a transaction
    */
-  async getParties(req: AuthenticatedRequest, res: Response) {
+  getParties: async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { transactionId } = req.params;
       const participants = await storage.getParticipantsByTransactionId(transactionId);
-      
+
       return res.status(200).json({ data: participants });
     } catch (error) {
       console.error('Get parties error:', error);
@@ -626,14 +473,14 @@ export const transactionController = {
     try {
       const { transactionId, userId } = req.params;
       const { status, lastAction } = req.body;
-      
+
       const updatedParticipant = await storage.updateParticipantStatus(
         transactionId,
         userId,
         status,
         lastAction
       );
-      
+
       return res.status(200).json(updatedParticipant);
     } catch (error) {
       console.error('Update party status error:', error);
@@ -720,7 +567,7 @@ export const transactionController = {
       // Check if user is already a participant in this transaction WITH THE SAME ROLE
       const existingParticipants = await storage.getParticipantsByTransactionId(transactionId);
       const existingParticipantWithSameRole = existingParticipants.find(p => p.user_id === user!.id && p.role_in_transaction === role);
-      
+
       if (existingParticipantWithSameRole) {
         console.log('ERROR: User already has this exact role in this transaction');
         return res.status(400).json({
@@ -786,7 +633,7 @@ export const transactionController = {
           magicLinkToken,
           transactionId
         );
-        
+
         if (emailSent) {
           console.log('✅ EMAIL SENT SUCCESSFULLY to', email);
         } else {
@@ -821,8 +668,8 @@ export const transactionController = {
       console.error('❌ ADD PARTY TO TRANSACTION ERROR:', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        code: (error as any)?.code || 'Unknown code',
+        stack: error instanceof Error ? emailError.stack : 'No stack trace',
+        code: (emailError as any)?.code || 'Unknown code',
       });
       return res.status(500).json({
         error: {
@@ -851,7 +698,7 @@ export const transactionController = {
 
       // Get the first available magic link token for this transaction
       const subscriptions = await storage.getEmailSubscriptionsByTransactionId(transactionId);
-      
+
       if (subscriptions.length === 0) {
         return res.status(404).json({
           error: {
