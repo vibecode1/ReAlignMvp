@@ -4,7 +4,6 @@ import { storage } from '../storage';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
 import { aiService } from '../services/aiService';
-import { workflowLogger } from '../services/workflowLogger';
 
 // Schema for UBA form data
 const CreateUbaFormDataSchema = z.object({
@@ -321,7 +320,7 @@ export const ubaFormController = {
       });
 
       // Log the workflow event
-      await workflowLogger.logEvent({
+      await storage.logWorkflowEvent({
         user_id: req.user!.id,
         event_type: 'form_field_filled',
         event_category: 'uba_form',
@@ -491,7 +490,7 @@ Format your response as JSON with:
       }
 
       // Log the AI interaction
-      await workflowLogger.logEvent({
+      await storage.logWorkflowEvent({
         user_id: req.user!.id,
         event_type: 'ai_recommendation_generated',
         event_category: 'uba_form',
@@ -499,8 +498,8 @@ Format your response as JSON with:
         event_description: 'AI processed user input for UBA form completion',
         success_indicator: true,
         ai_model_used: 'gpt-4',
-        ai_prompt_tokens: aiResponse.usage?.prompt_tokens,
-        ai_completion_tokens: aiResponse.usage?.completion_tokens,
+        ai_prompt_tokens: aiResponse.prompt_tokens,
+        ai_completion_tokens: aiResponse.completion_tokens,
         execution_time_ms: executionTime,
         uba_form_section: activeSection,
         event_metadata: JSON.stringify({ 
@@ -514,7 +513,7 @@ Format your response as JSON with:
       console.error('Process conversation error:', error);
       
       // Log the error
-      await workflowLogger.logEvent({
+      await storage.logWorkflowEvent({
         user_id: req.user!.id,
         event_type: 'ai_recommendation_generated',
         event_category: 'uba_form',
@@ -592,7 +591,7 @@ Format your response as JSON with:
       }
 
       // Log validation event
-      await workflowLogger.logEvent({
+      await storage.logWorkflowEvent({
         user_id: req.user!.id,
         event_type: 'validation_performed',
         event_category: 'uba_form',
