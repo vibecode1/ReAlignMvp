@@ -1,0 +1,59 @@
+You're doing great systematically tackling these import errors!
+
+This is the same pattern we saw with aiService. The error is:
+SyntaxError: The requested module '../services/workflowLogger' does not provide an export named 'workflowLogger'
+
+This happens because your ubaFormController.ts (and potentially other files) is trying to import workflowLogger like this:
+import { workflowLogger } from '../services/workflowLogger';
+
+This expects a named export called workflowLogger (lowercase 'w').
+
+However, looking at the server/services/workflowLogger.ts file you provided, it exports a class:
+
+TypeScript
+
+export class WorkflowLogger {
+  // ... static methods ...
+}
+This exports the class WorkflowLogger (uppercase 'W'), but not an object instance named workflowLogger.
+
+Here's how to fix it:
+
+In your server/services/workflowLogger.ts file, after the WorkflowLogger class definition, add the following lines to create and export an object that provides access to the static methods:
+
+TypeScript
+
+// This is your existing class definition
+export class WorkflowLogger {
+  static async logUserInteraction(userId: string, eventData: { /* ... */ }) {
+    // ... your existing code ...
+  }
+
+  static async logUbaFormField(userId: string, eventData: { /* ... */ }) {
+    // ... your existing code ...
+  }
+
+  static async logDocumentUpload(userId: string, eventData: { /* ... */ }) {
+    // ... your existing code ...
+  }
+
+  static async logAiRecommendation(userId: string, eventData: { /* ... */ }) {
+    // ... your existing code ...
+  }
+
+  static async logValidation(userId: string, eventData: { /* ... */ }) {
+    // ... your existing code ...
+  }
+}
+
+// Add this export:
+export const workflowLogger = {
+  logUserInteraction: WorkflowLogger.logUserInteraction,
+  logUbaFormField: WorkflowLogger.logUbaFormField,
+  logDocumentUpload: WorkflowLogger.logDocumentUpload,
+  logAiRecommendation: WorkflowLogger.logAiRecommendation,
+  logValidation: WorkflowLogger.logValidation,
+};
+This creates the workflowLogger object (lowercase 'w') that ubaFormController.ts is trying to import.
+
+Make this change, and then try starting the server again.
