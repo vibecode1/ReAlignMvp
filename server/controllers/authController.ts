@@ -20,7 +20,7 @@ export const authController = {
       console.log('Request body keys:', Object.keys(req.body));
       console.log('Environment check - Supabase URL exists:', !!config.supabaseUrl);
       console.log('Environment check - Supabase Anon Key exists:', !!config.supabaseAnonKey);
-      
+
       // Validate request body
       const validation = LoginSchema.safeParse(req.body);
       if (!validation.success) {
@@ -93,7 +93,7 @@ export const authController = {
       // Return user info and session data with proper token
       console.log('Login successful for:', email, 'with role:', user.role);
       console.log('Access token generated (first 10 chars):', data.session?.access_token?.substring(0, 10) + '...');
-      
+
       return res.status(200).json({
         user: {
           id: user.id,
@@ -125,7 +125,7 @@ export const authController = {
   async resetPassword(req: Request, res: Response) {
     try {
       console.log('=== PASSWORD RESET REQUEST ===');
-      
+
       const { email } = req.body;
       if (!email) {
         return res.status(400).json({
@@ -165,7 +165,7 @@ export const authController = {
       }
 
       console.log('Password reset email sent successfully to:', email);
-      
+
       return res.status(200).json({
         message: 'Password reset email sent successfully',
       });
@@ -186,7 +186,7 @@ export const authController = {
   async updatePassword(req: Request, res: Response) {
     try {
       console.log('=== PASSWORD UPDATE REQUEST ===');
-      
+
       const { token, password } = req.body;
       if (!token || !password) {
         return res.status(400).json({
@@ -215,7 +215,7 @@ export const authController = {
       }
 
       console.log('Password updated successfully');
-      
+
       return res.status(200).json({
         message: 'Password updated successfully',
       });
@@ -525,3 +525,4 @@ export const authController = {
   }
 };
 
+export { authController };

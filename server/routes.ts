@@ -60,15 +60,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: 'Auth router is working!', timestamp: new Date().toISOString() });
   });
 
+  // Validate auth controller methods exist
+  console.log('Auth controller methods:', Object.keys(authController));
+  
   // Auth endpoints
-  authRouter.post('/register', authController.register);
-  authRouter.post('/login', authController.login);
-  authRouter.post('/reset-password', authController.resetPassword);
-  authRouter.post('/update-password', authController.updatePassword);
-  authRouter.post('/magic-link', magicLinkLimiter, authController.sendMagicLink);
-  authRouter.post('/magic-link/resend', magicLinkLimiter, authController.resendMagicLink);
-  authRouter.post('/register/negotiator', authController.registerNegotiator);
-  authRouter.get('/me', authenticateJWT, authController.getCurrentUser);
+  if (authController.register) authRouter.post('/register', authController.register);
+  if (authController.login) authRouter.post('/login', authController.login);
+  if (authController.resetPassword) authRouter.post('/reset-password', authController.resetPassword);
+  if (authController.updatePassword) authRouter.post('/update-password', authController.updatePassword);
+  if (authController.sendMagicLink) authRouter.post('/magic-link', magicLinkLimiter, authController.sendMagicLink);
+  if (authController.resendMagicLink) authRouter.post('/magic-link/resend', magicLinkLimiter, authController.resendMagicLink);
+  if (authController.registerNegotiator) authRouter.post('/register/negotiator', authController.registerNegotiator);
+  if (authController.getCurrentUser) authRouter.get('/me', authenticateJWT, authController.getCurrentUser);
   
   // -- Transaction Routes --
   const transactionRouter = express.Router();
