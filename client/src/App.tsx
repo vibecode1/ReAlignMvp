@@ -47,6 +47,7 @@ import { AdvisorToolPage } from "@/pages/AdvisorToolPage";
 import { TrackerLandingPage } from "@/pages/TrackerLandingPage";
 import { MakerLandingPage } from "@/pages/MakerLandingPage";
 import { AdvisorLandingPage } from "@/pages/AdvisorLandingPage";
+import { ClaudeTestPage } from "@/pages/ClaudeTestPage";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRoleAccess } from "@/hooks/use-role-access";

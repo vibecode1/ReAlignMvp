@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Brain, FileText, MessageSquare, Template, Lightbulb } from 'lucide-react';
+import { Brain, FileText, MessageSquare, File, Lightbulb } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -229,7 +229,7 @@ export const ClaudeTestPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Template className="h-5 w-5" />
+                <File className="h-5 w-5" />
                 Quick Tests
               </CardTitle>
               <CardDescription>
