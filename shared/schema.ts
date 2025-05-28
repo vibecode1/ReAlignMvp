@@ -1,9 +1,17 @@
-import { pgTable, uuid, text, timestamp, integer, boolean, pgEnum, foreignKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, boolean, pgEnum, foreignKey, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums for database constraints
 export const userRoleEnum = pgEnum('user_role', ['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']);
+
+// Phase 0 - Enhanced Data Model 1.0 Enums
+export const contextRecipeTypeEnum = pgEnum('context_recipe_type', ['uba_form_completion', 'bfs_document_review', 'hardship_analysis', 'property_valuation']);
+export const workflowEventTypeEnum = pgEnum('workflow_event_type', ['form_field_filled', 'document_uploaded', 'ai_recommendation_generated', 'validation_performed', 'user_interaction']);
+export const workflowEventSeverityEnum = pgEnum('workflow_event_severity', ['info', 'warning', 'error', 'critical']);
+export const ubaFieldStatusEnum = pgEnum('uba_field_status', ['empty', 'in_progress', 'completed', 'validated', 'requires_review']);
+export const ubaDocumentTypeEnum = pgEnum('uba_document_type', ['income_verification', 'hardship_letter', 'financial_statement', 'property_documents', 'correspondence']);
+export const conversationalIntakeStatusEnum = pgEnum('conversational_intake_status', ['not_started', 'in_progress', 'completed', 'validated']);
 // Updated transaction phases for Tracker MVP
 export const transactionPhaseEnum = pgEnum('transaction_phase', [
   'Transaction Initiated',
@@ -32,6 +40,41 @@ export const users = pgTable('users', {
   role: userRoleEnum('role').notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Phase 0 - Task 0.2: User Context Profile MVP
+export const user_context_profiles = pgTable('user_context_profiles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  transaction_id: uuid('transaction_id').references(() => transactions.id, { onDelete: 'cascade' }),
+  
+  // AI Preference Settings
+  preferred_ai_communication_style: text('preferred_ai_communication_style').default('professional'), // professional, friendly, technical
+  ai_assistance_level: text('ai_assistance_level').default('balanced'), // minimal, balanced, comprehensive
+  
+  // Context Recipe Preferences 
+  active_context_recipes: text('active_context_recipes').array().default([]), // Array of recipe IDs
+  context_recipe_customizations: text('context_recipe_customizations'), // JSON string for custom settings
+  
+  // UBA Form Interaction Patterns
+  uba_completion_patterns: text('uba_completion_patterns'), // JSON: tracks user's completion behaviors
+  frequent_form_sections: text('frequent_form_sections').array().default([]), // Sections user works with most
+  
+  // Workflow Preferences
+  notification_preferences: text('notification_preferences'), // JSON: email, push, in-app settings
+  workflow_step_preferences: text('workflow_step_preferences'), // JSON: preferred order/skipping patterns
+  
+  // Learning & Adaptation Data
+  ai_interaction_history: text('ai_interaction_history'), // JSON: successful interactions, feedback
+  form_completion_velocity: integer('form_completion_velocity').default(0), // Fields per session average
+  error_patterns: text('error_patterns'), // JSON: common mistakes for AI to prevent
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    user_transaction_idx: uniqueIndex('user_context_profile_user_transaction_idx').on(table.user_id, table.transaction_id),
+  };
 });
 
 // Transactions table - updated for Tracker MVP
@@ -139,6 +182,152 @@ export const user_device_tokens = pgTable('user_device_tokens', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Phase 0 - Task 0.3: Structured Workflow Logging Engine MVP
+export const workflow_events = pgTable('workflow_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  
+  // Event Classification
+  event_type: workflowEventTypeEnum('event_type').notNull(),
+  event_severity: workflowEventSeverityEnum('event_severity').notNull().default('info'),
+  event_category: text('event_category').notNull(), // 'uba_form', 'bfs_processing', 'ai_interaction', 'user_workflow'
+  
+  // Context Information
+  user_id: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  transaction_id: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  session_id: text('session_id'), // For grouping related events
+  
+  // Event Details
+  event_name: text('event_name').notNull(), // Specific action: 'uba_income_field_filled', 'ai_suggestion_accepted'
+  event_description: text('event_description'), // Human-readable description
+  event_metadata: text('event_metadata'), // JSON: detailed context, field names, values, etc.
+  
+  // AI & Context Recipe Tracking
+  context_recipe_id: text('context_recipe_id'), // Which recipe was active
+  ai_model_used: text('ai_model_used'), // 'gpt-4-turbo', 'claude-sonnet', etc.
+  ai_prompt_tokens: integer('ai_prompt_tokens'),
+  ai_completion_tokens: integer('ai_completion_tokens'),
+  
+  // Performance & Error Tracking
+  execution_time_ms: integer('execution_time_ms'),
+  error_details: text('error_details'), // JSON: error messages, stack traces
+  success_indicator: boolean('success_indicator').default(true),
+  
+  // UBA-Specific Tracking
+  uba_form_section: text('uba_form_section'), // Which UBA section was affected
+  uba_field_id: text('uba_field_id'), // Specific UBA field identifier
+  uba_validation_result: text('uba_validation_result'), // JSON: validation outcomes
+  
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  
+  // Indexing for performance
+}, (table) => {
+  return {
+    user_timestamp_idx: index('workflow_events_user_timestamp_idx').on(table.user_id, table.timestamp),
+    transaction_timestamp_idx: index('workflow_events_transaction_timestamp_idx').on(table.transaction_id, table.timestamp),
+    event_type_timestamp_idx: index('workflow_events_type_timestamp_idx').on(table.event_type, table.timestamp),
+    session_timestamp_idx: index('workflow_events_session_timestamp_idx').on(table.session_id, table.timestamp),
+  };
+});
+
+// Phase 0 - Task 0.4: Data Normalization Layer - BFS/UBA Data Structure
+export const uba_form_data = pgTable('uba_form_data', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // UBA Form Structure (Based on UBA Guide annotations)
+  // Section 1: Borrower Information
+  borrower_name: text('borrower_name'),
+  borrower_ssn: text('borrower_ssn'), // Encrypted in production
+  property_address: text('property_address'),
+  loan_number: text('loan_number'),
+  
+  // Section 2: Financial Information (UBA Guide conventions)
+  monthly_gross_income: integer('monthly_gross_income'), // In cents
+  monthly_expenses: integer('monthly_expenses'), // In cents
+  liquid_assets: integer('liquid_assets'), // In cents
+  total_debt: integer('total_debt'), // In cents
+  
+  // Section 3: Hardship Details (UBA procedural requirements)
+  hardship_type: text('hardship_type'), // unemployment, medical, divorce, etc.
+  hardship_date: timestamp('hardship_date'),
+  hardship_description: text('hardship_description'),
+  hardship_duration_expected: text('hardship_duration_expected'), // temporary, permanent, unknown
+  
+  // Section 4: Assistance Request (UBA Guide specific options)
+  assistance_type_requested: text('assistance_type_requested').array().default([]), // modification, forbearance, short_sale
+  preferred_payment_amount: integer('preferred_payment_amount'), // In cents
+  
+  // Form Completion Tracking
+  form_completion_percentage: integer('form_completion_percentage').default(0),
+  last_section_completed: text('last_section_completed'),
+  validation_errors: text('validation_errors'), // JSON array of field validation issues
+  
+  // AI Enhancement Fields
+  ai_generated_suggestions: text('ai_generated_suggestions'), // JSON: AI recommendations for form completion
+  ai_confidence_scores: text('ai_confidence_scores'), // JSON: field-by-field confidence ratings
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    transaction_user_idx: uniqueIndex('uba_form_data_transaction_user_idx').on(table.transaction_id, table.user_id),
+  };
+});
+
+export const uba_document_attachments = pgTable('uba_document_attachments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  uba_form_data_id: uuid('uba_form_data_id').notNull().references(() => uba_form_data.id, { onDelete: 'cascade' }),
+  
+  // Document Classification (UBA Guide requirements)
+  document_type: ubaDocumentTypeEnum('document_type').notNull(),
+  required_by_uba: boolean('required_by_uba').default(false),
+  document_title: text('document_title').notNull(),
+  
+  // File Information
+  file_url: text('file_url').notNull(),
+  file_name: text('file_name').notNull(),
+  file_size_bytes: integer('file_size_bytes').notNull(),
+  content_type: text('content_type').notNull(),
+  
+  // Processing Status
+  processing_status: text('processing_status').default('pending'), // pending, processed, failed
+  extraction_confidence: integer('extraction_confidence'), // 0-100 for AI extraction confidence
+  extracted_data: text('extracted_data'), // JSON: AI-extracted key information
+  
+  // UBA Compliance Validation
+  uba_compliance_check: text('uba_compliance_check'), // JSON: compliance validation results
+  meets_uba_requirements: boolean('meets_uba_requirements'),
+  
+  uploaded_at: timestamp('uploaded_at').defaultNow().notNull(),
+});
+
+export const conversational_intake_sessions = pgTable('conversational_intake_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  transaction_id: uuid('transaction_id').references(() => transactions.id, { onDelete: 'cascade' }),
+  
+  // Session Management
+  session_status: conversationalIntakeStatusEnum('session_status').notNull().default('not_started'),
+  current_step: text('current_step'), // Which part of UBA form is being discussed
+  
+  // Conversation Data
+  conversation_history: text('conversation_history'), // JSON: complete chat history
+  extracted_form_data: text('extracted_form_data'), // JSON: data extracted from conversation
+  confidence_scores: text('confidence_scores'), // JSON: confidence in extracted data
+  
+  // AI Context
+  context_recipe_used: text('context_recipe_used'),
+  ai_personality_settings: text('ai_personality_settings'), // JSON: how AI should communicate
+  
+  // Progress Tracking
+  uba_fields_completed: text('uba_fields_completed').array().default([]),
+  validation_pending: text('validation_pending').array().default([]),
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
@@ -199,6 +388,32 @@ export const insertUserDeviceTokenSchema = createInsertSchema(user_device_tokens
   token_type: z.enum(['fcm', 'apn', 'web']),
 }).omit({ id: true, created_at: true });
 
+// Phase 0 Insert Schemas
+export const insertUserContextProfileSchema = createInsertSchema(user_context_profiles, {
+  ai_assistance_level: z.enum(['minimal', 'balanced', 'comprehensive']).optional(),
+  preferred_ai_communication_style: z.enum(['professional', 'friendly', 'technical']).optional(),
+}).omit({ id: true, created_at: true, updated_at: true });
+
+export const insertWorkflowEventSchema = createInsertSchema(workflow_events, {
+  event_type: z.enum(['form_field_filled', 'document_uploaded', 'ai_recommendation_generated', 'validation_performed', 'user_interaction']),
+  event_severity: z.enum(['info', 'warning', 'error', 'critical']),
+}).omit({ id: true, timestamp: true });
+
+export const insertUbaFormDataSchema = createInsertSchema(uba_form_data, {
+  assistance_type_requested: z.array(z.string()).optional(),
+  uba_fields_completed: z.array(z.string()).optional(),
+}).omit({ id: true, created_at: true, updated_at: true });
+
+export const insertUbaDocumentAttachmentSchema = createInsertSchema(uba_document_attachments, {
+  document_type: z.enum(['income_verification', 'hardship_letter', 'financial_statement', 'property_documents', 'correspondence']),
+}).omit({ id: true, uploaded_at: true });
+
+export const insertConversationalIntakeSessionSchema = createInsertSchema(conversational_intake_sessions, {
+  session_status: z.enum(['not_started', 'in_progress', 'completed', 'validated']),
+  uba_fields_completed: z.array(z.string()).optional(),
+  validation_pending: z.array(z.string()).optional(),
+}).omit({ id: true, created_at: true, updated_at: true });
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -230,3 +445,19 @@ export type InsertTrackerNote = z.infer<typeof insertTrackerNoteSchema>;
 
 export type EmailSubscription = typeof email_subscriptions.$inferSelect;
 export type InsertEmailSubscription = z.infer<typeof insertEmailSubscriptionSchema>;
+
+// Phase 0 - Enhanced Data Model 1.0 Types
+export type UserContextProfile = typeof user_context_profiles.$inferSelect;
+export type InsertUserContextProfile = z.infer<typeof insertUserContextProfileSchema>;
+
+export type WorkflowEvent = typeof workflow_events.$inferSelect;
+export type InsertWorkflowEvent = z.infer<typeof insertWorkflowEventSchema>;
+
+export type UbaFormData = typeof uba_form_data.$inferSelect;
+export type InsertUbaFormData = z.infer<typeof insertUbaFormDataSchema>;
+
+export type UbaDocumentAttachment = typeof uba_document_attachments.$inferSelect;
+export type InsertUbaDocumentAttachment = z.infer<typeof insertUbaDocumentAttachmentSchema>;
+
+export type ConversationalIntakeSession = typeof conversational_intake_sessions.$inferSelect;
+export type InsertConversationalIntakeSession = z.infer<typeof insertConversationalIntakeSessionSchema>;
