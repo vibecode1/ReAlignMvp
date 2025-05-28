@@ -201,3 +201,9 @@ export class AiService {
     ).slice(0, 5); // Limit to 5 suggestions
   }
 }
+
+// Export aiService instance for controller imports
+export const aiService = {
+  generateRecommendation: AiService.generateRecommendation,
+  validateUbaField: AiService.validateUbaField,
+};

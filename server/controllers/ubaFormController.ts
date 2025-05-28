@@ -462,10 +462,15 @@ Format your response as JSON with:
       const startTime = Date.now();
       
       // Process with AI
-      const aiResponse = await aiService.processText(systemPrompt, {
-        model: 'gpt-4',
-        temperature: 0.7,
-        max_tokens: 1000
+      const aiResponse = await aiService.generateRecommendation({
+        userId: req.user!.id,
+        contextRecipeId: 'uba_form_completion_v1',
+        userInput: message,
+        additionalContext: {
+          currentFormData,
+          activeSection,
+          systemPrompt
+        }
       });
 
       const executionTime = Date.now() - startTime;
