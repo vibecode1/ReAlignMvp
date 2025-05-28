@@ -17,6 +17,7 @@ import { userContextController } from "./controllers/userContextController";
 import { workflowLogController } from "./controllers/workflowLogController";
 import { ubaFormController } from "./controllers/ubaFormController";
 import { onboardingController } from "./controllers/onboardingController";
+import ClaudeController from "./controllers/claudeController.js";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -217,6 +218,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   onboardingRouter.get('/status', authenticateJWT, onboardingController.getOnboardingStatus);
   onboardingRouter.put('/preferences', authenticateJWT, onboardingController.updateOnboardingPreferences);
 
+  // -- Claude AI Routes --
+  const claudeRouter = express.Router();
+  claudeRouter.post('/analyze-document', authenticateJWT, ClaudeController.analyzeDocument);
+  claudeRouter.post('/generate-education', authenticateJWT, ClaudeController.generateEducation);
+  claudeRouter.post('/analyze-sentiment', authenticateJWT, ClaudeController.analyzeSentiment);
+  claudeRouter.post('/generate-template', authenticateJWT, ClaudeController.generateTemplate);
+  claudeRouter.post('/get-recommendations', authenticateJWT, ClaudeController.getRecommendations);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -243,6 +252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/uba-forms', ubaFormRouter);
   console.log('Registering onboarding router at /onboarding');
   apiRouter.use('/onboarding', onboardingRouter);
+  console.log('Registering Claude AI router at /claude');
+  apiRouter.use('/claude', claudeRouter);
 
   // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');

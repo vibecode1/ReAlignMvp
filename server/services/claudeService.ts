@@ -132,7 +132,8 @@ Format as JSON:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const result = JSON.parse(response.content[0].text);
+      const textContent = response.content.find(block => block.type === 'text') as any;
+      const result = JSON.parse(textContent.text);
       return {
         ...result,
         confidence: Math.max(0, Math.min(1, result.confidence))
@@ -188,7 +189,8 @@ Format as JSON:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const result = JSON.parse(response.content[0].text);
+      const textContent = response.content.find(block => block.type === 'text') as any;
+      const result = JSON.parse(textContent.text);
       return result;
     } catch (error) {
       console.error('Claude template generation error:', error);
@@ -253,7 +255,8 @@ Format as JSON:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const result = JSON.parse(response.content[0].text);
+      const textContent = response.content.find(block => block.type === 'text') as any;
+      const result = JSON.parse(textContent.text);
       return result;
     } catch (error) {
       console.error('Claude recommendations error:', error);
