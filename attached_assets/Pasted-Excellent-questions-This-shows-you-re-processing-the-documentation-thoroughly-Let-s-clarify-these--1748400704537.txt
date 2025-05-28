@@ -1,0 +1,41 @@
+Excellent questions! This shows you're processing the documentation thoroughly. Let's clarify these points to get you started effectively on ReAlign 2.1:
+
+Current Phase Priority:
+You should start with Phase 0: Foundation & Core AI Scaffolding (MVP) as outlined in the "ReAlign 2.1 - Phased Implementation Plan". The primary goal here is to establish the minimum viable backend services and data structures, including the User Context Profile, Structured Workflow Logging, and Data Normalization. Please follow the tasks outlined for Phase 0 in that document.
+
+
+UBA Guide Document:
+You are correct, the specific document "how to fill out borrower assistance form.docx" (UBA Guide) has not been directly uploaded. However, its critical procedural rules, data entry conventions, and field-specific logic have been extensively incorporated and annotated within the "ReAlign Product Requirements Document (PRD) 2.1.2 (Updated with UBA Guide Insights)", the "ReAlign 2.1 - Phased Implementation Plan (v1.3, Updated with UBA Guide Insights)", and the "ReAlign 2.1 - Enhanced Data Model 1.0 (Updated with UBA Guide Annotations)".
+For now, you should work with these comprehensive annotations as they represent the source of truth for UBA Guide integration. This approach is highlighted as critical in the Master Guide.
+
+
+
+
+
+Premium AI Services:
+Yes, we will be using premium AI models (e.g., OpenAI GPT-4 Turbo, Claude Sonnet). API keys for these services need to be configured. As per the "ReAlign 2.1 - Master Guide for AI Agent"  and "Developer Kickoff Checklist", these keys should be managed using Replit Secrets. Task 0.5 of the Phased Implementation Plan includes configuring access to these services and performing basic connectivity tests. I will ensure you have the necessary keys.
+
+
+
+
+
+Database Schema Migration vs. UI/Navigation:
+Prioritize updating the database schema first, as per the "ReAlign 2.1 - Enhanced Data Model 1.0.docx". This is a foundational part of Phase 0 (Tasks 0.2, 0.3, 0.4)  and a key deliverable. You must use Drizzle ORM for schema definition and migrations.
+While the UI/navigation overhaul is important, the "ReAlign 2.1 - Phased Implementation Plan" indicates that establishing the data foundation is the immediate priority in Phase 0. "Navigation stubs" are part of the basic application shell setup in Task 0.5 of Phase 0, but the full UI transformation detailed in the "ReAlign 2.0 UI & Navigation - Implementation Guide" will follow once the core backend and schema foundations are underway.
+
+
+
+
+
+Existing Codebase Approach (Sidebar):
+Yes, you should replace the existing Sidebar.tsx and AppSidebarContent.tsx with the new CollapsibleSidebar.tsx. Please follow the detailed instructions provided in the "ReAlign 2.0 UI & Navigation - Implementation Guide.docx" for this task. While the full UI overhaul is sequenced after initial Phase 0 backend tasks, development of this new sidebar component can begin as it's a key part of the "navigation stubs" mentioned for the initial app shell in Phase 0.
+
+
+Context Recipe Framework:
+Yes, absolutely. Establishing the Context Recipe Framework is a critical deliverable of Phase 0. This framework needs to be created (Task 0.2) before you begin implementing any AI-powered features in later phases, as it's fundamental to how our AI features will function. The "Developer Kickoff Checklist" also confirms this as a live infrastructure piece for Phase 0.
+
+
+
+
+
+This detailed planning should set a clear path forward. Focus on the Phase 0 tasks as laid out in the "ReAlign 2.1 - Phased Implementation Plan," starting with the foundational data schemas and the Context Recipe Framework.
