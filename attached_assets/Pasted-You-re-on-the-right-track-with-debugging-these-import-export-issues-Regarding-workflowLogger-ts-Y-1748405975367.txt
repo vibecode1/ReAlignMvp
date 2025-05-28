@@ -1,0 +1,30 @@
+You're on the right track with debugging these import/export issues!
+
+Regarding workflowLogger.ts:
+You are correct. The issue was the same pattern: ubaFormController.ts was trying to import workflowLogger (lowercase 'w') as a named export, but workflowLogger.ts was only exporting the class WorkflowLogger (uppercase 'W').
+Your fix to add the named export to workflowLogger.ts (presumably export const workflowLogger = { ...mapping static methods... }; as we discussed for aiService) is the correct approach to resolve the SyntaxError: The requested module '../services/workflowLogger' does not provide an export named 'workflowLogger'.
+
+Regarding the method calls in ubaFormController.ts:
+You've also correctly identified that ubaFormController.ts was trying to call a generic workflowLogger.logEvent() method, which doesn't exist on the WorkflowLogger class (or the workflowLogger object we just defined).
+
+However, instead of changing ubaFormController.ts to call the storage.logWorkflowEvent() layer directly and removing the workflowLogger import, we should refactor ubaFormController.ts to use the specific, appropriate methods that are available on the workflowLogger service object.
+
+The WorkflowLogger class (and thus the workflowLogger object) provides specific methods for different types of events, such as:
+
+workflowLogger.logAiRecommendation(...)
+workflowLogger.logValidation(...)
+workflowLogger.logUbaFormField(...)
+workflowLogger.logUserInteraction(...)
+workflowLogger.logDocumentUpload(...)
+These methods in WorkflowLogger are designed to encapsulate the logic for formatting and sending specific log events to the storage.logWorkflowEvent function. Bypassing workflowLogger would lose this abstraction and the consistency it provides.
+
+So, the next step should be:
+
+Ensure workflowLogger.ts correctly exports the workflowLogger object with its methods (e.g., logAiRecommendation, logValidation, etc.), as we discussed.
+Then, in ubaFormController.ts, please modify the logging calls:
+Where you had workflowLogger.logEvent({ event_type: 'ai_recommendation_generated', ... }) or similar for AI interactions, change it to use await workflowLogger.logAiRecommendation(userId, { ...details... });
+Where you had workflowLogger.logEvent({ event_type: 'validation_performed', ... }), change it to use await workflowLogger.logValidation(userId, { ...details... });
+For the event related to 'form_field_filled' or 'uba_form_saved', consider if workflowLogger.logUbaFormField(...) is appropriate, or if it represents a more general form save, it might be workflowLogger.logUserInteraction(...) with a specific event name. Let's clarify the exact mapping based on the context of each call in ubaFormController.ts. If a perfectly matching method doesn't exist in WorkflowLogger for a specific "generic" logEvent call, we might need to add a new specific method to WorkflowLogger or see if logUserInteraction fits.
+Please do not remove the workflowLogger import from ubaFormController.ts yet. Instead, let's adjust the calls within ubaFormController.ts to correctly use the methods provided by the workflowLogger service.
+
+Could you show me the parts of ubaFormController.ts where workflowLogger.logEvent() was being called, so we can determine the best workflowLogger method to substitute for each? Or, if you've already made the changes, can you show me how you've refactored those calls?
