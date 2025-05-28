@@ -1,0 +1,624 @@
+
+openapi: 3.0.0
+info:
+  title: ReAlign 2.1 API
+  description: Phase 0 - Foundation & Core AI Scaffolding APIs
+  version: 2.1.0
+  contact:
+    name: ReAlign API Support
+    email: api-support@realign.com
+
+servers:
+  - url: https://api.realign.com/v1
+    description: Production server
+  - url: http://localhost:5000/api/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [homeowner, negotiator, agent]
+        created_at:
+          type: string
+          format: date-time
+
+    UserContextProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+          format: uuid
+          nullable: true
+        preferred_ai_communication_style:
+          type: string
+          enum: [professional, friendly, technical]
+        ai_assistance_level:
+          type: string
+          enum: [minimal, balanced, comprehensive]
+        active_context_recipes:
+          type: array
+          items:
+            type: string
+        context_recipe_customizations:
+          type: string
+          nullable: true
+        uba_completion_patterns:
+          type: string
+          nullable: true
+        frequent_form_sections:
+          type: array
+          items:
+            type: string
+        notification_preferences:
+          type: string
+          nullable: true
+        workflow_step_preferences:
+          type: string
+          nullable: true
+        ai_interaction_history:
+          type: string
+          nullable: true
+        form_completion_velocity:
+          type: number
+          nullable: true
+        error_patterns:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkflowEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [form_field_filled, document_uploaded, ai_recommendation_generated, validation_performed, user_interaction]
+        event_severity:
+          type: string
+          enum: [info, warning, error, critical]
+        event_category:
+          type: string
+        transaction_id:
+          type: string
+          format: uuid
+          nullable: true
+        session_id:
+          type: string
+          nullable: true
+        event_name:
+          type: string
+        event_description:
+          type: string
+          nullable: true
+        event_metadata:
+          type: string
+          nullable: true
+        context_recipe_id:
+          type: string
+          nullable: true
+        ai_model_used:
+          type: string
+          nullable: true
+        ai_prompt_tokens:
+          type: integer
+          nullable: true
+        ai_completion_tokens:
+          type: integer
+          nullable: true
+        execution_time_ms:
+          type: integer
+          nullable: true
+        error_details:
+          type: string
+          nullable: true
+        success_indicator:
+          type: boolean
+        uba_form_section:
+          type: string
+          nullable: true
+        uba_field_id:
+          type: string
+          nullable: true
+        uba_validation_result:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    UbaFormData:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+          format: uuid
+        borrower_name:
+          type: string
+          nullable: true
+        borrower_ssn:
+          type: string
+          nullable: true
+        property_address:
+          type: string
+          nullable: true
+        loan_number:
+          type: string
+          nullable: true
+        monthly_gross_income:
+          type: integer
+          nullable: true
+        monthly_expenses:
+          type: integer
+          nullable: true
+        liquid_assets:
+          type: integer
+          nullable: true
+        total_debt:
+          type: integer
+          nullable: true
+        hardship_type:
+          type: string
+          nullable: true
+        hardship_date:
+          type: string
+          nullable: true
+        hardship_description:
+          type: string
+          nullable: true
+        hardship_duration_expected:
+          type: string
+          nullable: true
+        assistance_type_requested:
+          type: array
+          items:
+            type: string
+        preferred_payment_amount:
+          type: integer
+          nullable: true
+        form_completion_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        last_section_completed:
+          type: string
+          nullable: true
+        validation_errors:
+          type: string
+          nullable: true
+        ai_generated_suggestions:
+          type: string
+          nullable: true
+        ai_confidence_scores:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [homeowner, negotiator, agent]
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # User Context Profile Endpoints
+  /user-context:
+    post:
+      tags:
+        - User Context
+      summary: Create user context profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_id:
+                  type: string
+                  format: uuid
+                preferred_ai_communication_style:
+                  type: string
+                  enum: [professional, friendly, technical]
+                ai_assistance_level:
+                  type: string
+                  enum: [minimal, balanced, comprehensive]
+                active_context_recipes:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContextProfile'
+
+    get:
+      tags:
+        - User Context
+      summary: Get user context profile
+      parameters:
+        - name: transactionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User context profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContextProfile'
+
+  /user-context/{profileId}:
+    put:
+      tags:
+        - User Context
+      summary: Update user context profile
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Profile updated successfully
+
+  # Workflow Logging Endpoints
+  /workflow-log/events:
+    post:
+      tags:
+        - Workflow Logging
+      summary: Log a workflow event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_type
+                - event_category
+                - event_name
+              properties:
+                event_type:
+                  type: string
+                  enum: [form_field_filled, document_uploaded, ai_recommendation_generated, validation_performed, user_interaction]
+                event_severity:
+                  type: string
+                  enum: [info, warning, error, critical]
+                event_category:
+                  type: string
+                transaction_id:
+                  type: string
+                  format: uuid
+                session_id:
+                  type: string
+                event_name:
+                  type: string
+                event_description:
+                  type: string
+                success_indicator:
+                  type: boolean
+      responses:
+        '201':
+          description: Event logged successfully
+
+    get:
+      tags:
+        - Workflow Logging
+      summary: Get workflow events
+      parameters:
+        - name: transaction_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: event_type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of workflow events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowEvent'
+
+  /workflow-log/events/summary:
+    get:
+      tags:
+        - Workflow Logging
+      summary: Get workflow events summary
+      parameters:
+        - name: transaction_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow events summary
+
+  # UBA Form Data Endpoints
+  /uba-forms:
+    post:
+      tags:
+        - UBA Forms
+      summary: Create UBA form data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_id
+              properties:
+                transaction_id:
+                  type: string
+                  format: uuid
+                borrower_name:
+                  type: string
+                property_address:
+                  type: string
+                monthly_gross_income:
+                  type: integer
+                hardship_type:
+                  type: string
+      responses:
+        '201':
+          description: UBA form created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UbaFormData'
+
+  /uba-forms/{transactionId}:
+    get:
+      tags:
+        - UBA Forms
+      summary: Get UBA form by transaction
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: UBA form data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UbaFormData'
+
+  /uba-forms/{formId}:
+    put:
+      tags:
+        - UBA Forms
+      summary: Update UBA form data
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: UBA form updated successfully
+
+  /uba-forms/{formId}/attachments:
+    post:
+      tags:
+        - UBA Forms
+      summary: Add document attachment to UBA form
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_type
+                - document_title
+                - file_url
+                - file_name
+                - file_size_bytes
+                - content_type
+              properties:
+                document_type:
+                  type: string
+                  enum: [income_verification, hardship_letter, financial_statement, property_documents, correspondence]
+                document_title:
+                  type: string
+                file_url:
+                  type: string
+                  format: uri
+                file_name:
+                  type: string
+                file_size_bytes:
+                  type: integer
+                content_type:
+                  type: string
+      responses:
+        '201':
+          description: Document attachment added successfully

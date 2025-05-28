@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import rateLimit from "express-rate-limit";
 import config from "./config";
-import { authenticateJWT, requireNegotiatorRole, requireTransactionAccess } from "./middleware/auth";
+import { authenticateJWT, requireNegotiatorRole, requireTransactionAccess, requireRole, requirePermission } from "./middleware/auth";
 import { authController } from "./controllers/authController";
 import { transactionController } from "./controllers/transactionController";
 import { messageController } from "./controllers/messageController";
@@ -16,6 +16,7 @@ import { publicTrackerController } from "./controllers/publicTrackerController";
 import { userContextController } from "./controllers/userContextController";
 import { workflowLogController } from "./controllers/workflowLogController";
 import { ubaFormController } from "./controllers/ubaFormController";
+import { onboardingController } from "./controllers/onboardingController";
 import { WebSocketServer } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -60,6 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth endpoints
+  authRouter.post('/register', authController.register);
   authRouter.post('/login', authController.login);
   authRouter.post('/reset-password', authController.resetPassword);
   authRouter.post('/update-password', authController.updatePassword);
@@ -187,24 +189,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // -- Phase 0 - User Context Profile Routes --
   const userContextRouter = express.Router();
-  userContextRouter.post('/', authenticateJWT, userContextController.createProfile);
-  userContextRouter.get('/', authenticateJWT, userContextController.getProfile);
-  userContextRouter.get('/all', authenticateJWT, userContextController.getUserProfiles);
-  userContextRouter.put('/:profileId', authenticateJWT, userContextController.updateProfile);
+  userContextRouter.post('/', authenticateJWT, requirePermission('user_context:manage_own'), userContextController.createProfile);
+  userContextRouter.get('/', authenticateJWT, requirePermission('user_context:manage_own'), userContextController.getProfile);
+  userContextRouter.get('/all', authenticateJWT, requirePermission('user_context:manage_own'), userContextController.getUserProfiles);
+  userContextRouter.put('/:profileId', authenticateJWT, requirePermission('user_context:manage_own'), userContextController.updateProfile);
 
   // -- Phase 0 - Workflow Logging Routes --
   const workflowLogRouter = express.Router();
-  workflowLogRouter.post('/events', authenticateJWT, workflowLogController.logEvent);
-  workflowLogRouter.get('/events', authenticateJWT, workflowLogController.getEvents);
-  workflowLogRouter.get('/events/summary', authenticateJWT, workflowLogController.getEventsSummary);
+  workflowLogRouter.post('/events', authenticateJWT, requirePermission('workflow_log:own'), workflowLogController.logEvent);
+  workflowLogRouter.get('/events', authenticateJWT, requirePermission('workflow_log:own'), workflowLogController.getEvents);
+  workflowLogRouter.get('/events/summary', authenticateJWT, requireRole(['negotiator']), workflowLogController.getEventsSummary);
 
   // -- Phase 0 - UBA Form Data Routes --
   const ubaFormRouter = express.Router();
-  ubaFormRouter.post('/', authenticateJWT, ubaFormController.createUbaForm);
-  ubaFormRouter.get('/:transactionId', authenticateJWT, requireTransactionAccess, ubaFormController.getUbaForm);
-  ubaFormRouter.put('/:formId', authenticateJWT, ubaFormController.updateUbaForm);
-  ubaFormRouter.post('/:formId/attachments', authenticateJWT, ubaFormController.addDocumentAttachment);
-  ubaFormRouter.get('/:formId/validation', authenticateJWT, ubaFormController.getFormValidationStatus);
+  ubaFormRouter.post('/', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.createUbaForm);
+  ubaFormRouter.get('/:transactionId', authenticateJWT, requireTransactionAccess, requirePermission('uba_form:view'), ubaFormController.getUbaForm);
+  ubaFormRouter.put('/:formId', authenticateJWT, requirePermission('uba_form:update'), ubaFormController.updateUbaForm);
+  ubaFormRouter.post('/:formId/attachments', authenticateJWT, requirePermission('uba_form:update'), ubaFormController.addDocumentAttachment);
+  ubaFormRouter.get('/:formId/validation', authenticateJWT, requirePermission('uba_form:view'), ubaFormController.getFormValidationStatus);
+
+  // -- Phase 0 - Onboarding Routes --
+  const onboardingRouter = express.Router();
+  onboardingRouter.post('/initialize', authenticateJWT, onboardingController.initializeUserContext);
+  onboardingRouter.get('/status', authenticateJWT, onboardingController.getOnboardingStatus);
+  onboardingRouter.put('/preferences', authenticateJWT, onboardingController.updateOnboardingPreferences);
 
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
@@ -230,6 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/workflow-log', workflowLogRouter);
   console.log('Registering UBA form router at /uba-forms');
   apiRouter.use('/uba-forms', ubaFormRouter);
+  console.log('Registering onboarding router at /onboarding');
+  apiRouter.use('/onboarding', onboardingRouter);
   
   // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');
