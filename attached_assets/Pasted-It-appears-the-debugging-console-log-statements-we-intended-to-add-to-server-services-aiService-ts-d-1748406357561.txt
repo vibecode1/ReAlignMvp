@@ -1,0 +1,35 @@
+It appears the debugging console.log statements we intended to add to server/services/aiService.ts didn't show up in this latest console output. The output you've shared goes directly from "Firebase Admin SDK initialized successfully" to the OpenAIError which originates from the OpenAI client initialization line in aiService.ts.
+
+For us to understand if the OPENAI_API_KEY is correctly reaching your application's environment, those console.log statements are crucial.
+
+Could you please ensure that the following debugging code is present in your server/services/aiService.ts file, immediately before the line const openai = new OpenAI(...):
+
+TypeScript
+
+// At the top of server/services/aiService.ts, after imports:
+
+// ---- START OF DEBUGGING ----
+console.log('--- aiService.ts ---');
+console.log('Attempting to read OPENAI_API_KEY from process.env');
+console.log('Value of process.env.OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
+if (!process.env.OPENAI_API_KEY) {
+  console.error('ERROR: OPENAI_API_KEY is not found in process.env or is empty!');
+} else {
+  console.log('OPENAI_API_KEY found. Length:', process.env.OPENAI_API_KEY.length);
+  // To verify it's not just spaces, you can log a small, non-sensitive part:
+  // console.log('OPENAI_API_KEY starts with:', process.env.OPENAI_API_KEY.substring(0, 3));
+}
+console.log('--- End of OPENAI_API_KEY debug ---');
+// ---- END OF DEBUGGING ----
+
+// This is the line that's currently throwing the error (around line 7)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+Please make sure:
+
+This debugging block is correctly copied and pasted into server/services/aiService.ts.
+The file is saved after adding the logs.
+Any currently running server process is stopped.
+You then restart the server with npm run dev.
+Then, please share the full console output again. We need to see those lines starting with --- aiService.ts --- to determine what process.env.OPENAI_API_KEY contains from the script's perspective. Without this, we're still guessing why the OpenAI client isn't getting the key.
