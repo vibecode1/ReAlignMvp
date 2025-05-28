@@ -179,3 +179,6 @@ export const workflowLogger = {
   logAiRecommendation: WorkflowLogger.logAiRecommendation,
   logValidation: WorkflowLogger.logValidation,
 };
+
+// Also export as default for compatibility
+export default workflowLogger;

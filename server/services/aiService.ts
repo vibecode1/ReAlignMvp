@@ -207,3 +207,6 @@ export const aiService = {
   generateRecommendation: AiService.generateRecommendation,
   validateUbaField: AiService.validateUbaField,
 };
+
+// Also export as default for compatibility
+export default aiService;
