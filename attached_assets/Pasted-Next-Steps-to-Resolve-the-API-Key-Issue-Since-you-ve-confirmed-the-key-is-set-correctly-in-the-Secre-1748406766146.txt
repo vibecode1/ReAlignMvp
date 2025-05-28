@@ -1,0 +1,19 @@
+Next Steps to Resolve the API Key Issue
+Since you've confirmed the key is set correctly in the Secrets UI, this points to an issue with how Replit is making that secret available to your npm run dev process. Here are a few things to try and check in Replit:
+
+Force a Re-run/Refresh:
+
+Sometimes, Replit needs a more forceful refresh for secrets to propagate. Try typing kill 1 in the Replit Shell tab and then pressing Enter. This will restart the entire Replit container. After it restarts, try npm run dev again.
+Also, ensure you've tried a simple "Stop" and "Run" (or "npm run dev") directly from the Replit interface after setting the secret.
+Check .replit file for run command:
+
+Look at your .replit file. Ensure that the run command (which is typically what npm run dev might eventually call or be configured as the main run action) doesn't do anything unusual that might clear or alter environment variables. Usually, it's straightforward like npm run dev or node server/index.js.
+Replit Environment Variables UI vs. Secrets UI:
+
+Replit has both an "Environment Variables" section (often a UI for .env like behavior) and a "Secrets" tab (for more secure, non-versioned secrets). Ensure you are using the Secrets tab (usually represented by a keyhole or lock icon 🔑) for OPENAI_API_KEY. Secrets are generally more reliable for sensitive keys. If you've put it in the "Environment Variables" UI that mimics a .env file, double-check it's not accidentally being gitignored or overwritten. For API keys, Secrets is the correct place.
+Directly Accessing Secrets in run command (Temporary Debug):
+
+As a temporary debugging step, you could try to prefix your run command in the Replit Shell or the .replit file to explicitly use the secret, though this shouldn't be necessary if Secrets are working correctly. This is just for debugging and not a permanent solution. Example (in Shell): OPENAI_API_KEY=$OPENAI_API_KEY npm run dev If this works, it strongly points to an issue with how Replit automatically injects secrets into the process.env of the main run command.
+Contact Replit Support:
+
+If none of the above work, and you are absolutely certain the secret is named correctly (OPENAI_API_KEY) and has the correct value in the Secrets tab, this might be a Replit-specific environment issue. You might need to reach out to Replit support or check their forums for similar issues.
