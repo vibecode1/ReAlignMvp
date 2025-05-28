@@ -2,7 +2,26 @@
 import OpenAI from 'openai';
 import { contextRecipeService } from './contextRecipeService';
 import { WorkflowLogger } from './workflowLogger';
+// Place this code right after your imports in server/services/aiService.ts
+// and BEFORE the line: const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ---- START OF DEBUGGING ----
+console.log('--- aiService.ts ---');
+console.log('Attempting to read OPENAI_API_KEY from process.env');
+console.log('Value of process.env.OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
+
+if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === "") {
+  console.error('ERROR: OPENAI_API_KEY is not found in process.env or is an empty string!');
+} else {
+  console.log('OPENAI_API_KEY found. Length:', process.env.OPENAI_API_KEY.length);
+}
+console.log('--- End of OPENAI_API_KEY debug ---');
+// ---- END OF DEBUGGING ----
+
+// This is the line that's currently throwing the error
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
