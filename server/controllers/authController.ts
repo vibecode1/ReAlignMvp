@@ -524,5 +524,3 @@ export const authController = {
     }
   }
 };
-
-export { authController };
