@@ -133,11 +133,11 @@ export const PublicHeader: React.FC = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-border/40 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50"
+            className="md:hidden absolute top-full left-0 right-0 border-t border-border/40 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 shadow-lg z-50"
           >
             <nav className="container px-4 py-4 space-y-2">
               {/* Main Navigation */}
