@@ -168,18 +168,22 @@ export const PublicHeader: React.FC = () => {
                     {module.name}
                   </Link>
                 ))}
+                
+                {/* Sign In Link */}
+                <Link
+                  href="/login"
+                  className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
               </div>
               
-              {/* Mobile CTA Buttons */}
-              <div className="pt-6 pb-8 space-y-3">
-                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full text-sm">
-                    Sign In
-                  </Button>
-                </Link>
+              {/* Mobile CTA Button */}
+              <div className="pt-6 pb-8">
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full text-sm">
-                    Get Started
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold text-base shadow-lg">
+                    Start Free Trial
                   </Button>
                 </Link>
               </div>
