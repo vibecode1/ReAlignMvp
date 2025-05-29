@@ -20,6 +20,7 @@ import { onboardingController } from "./controllers/onboardingController";
 import ClaudeController from "./controllers/claudeController.js";
 import OpenAIController from "./controllers/openaiController.js";
 import { WebSocketServer } from "ws";
+import publicRouter from "./routes/public";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add middleware to log all incoming requests
@@ -267,6 +268,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/claude', claudeRouter);
   console.log('Registering OpenAI router at /openai');
   apiRouter.use('/openai', openaiRouter);
+
+  // Register public routes (no authentication required)
+  console.log('Registering public router at /api/public');
+  app.use('/api/public', (req, res, next) => {
+    console.log(`Public API route hit: ${req.method} ${req.path}`);
+    next();
+  }, publicRouter);
 
   // Register API router under /api/v1 with specific middleware
   console.log('Registering main API router at /api/v1');
