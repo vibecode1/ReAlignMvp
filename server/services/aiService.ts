@@ -1,27 +1,54 @@
 
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { contextRecipeService } from './contextRecipeService';
 import { WorkflowLogger } from './workflowLogger';
-// Place this code right after your imports in server/services/aiService.ts
-// and BEFORE the line: const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ---- START OF DEBUGGING ----
 console.log('--- aiService.ts ---');
-console.log('Attempting to read OPENAI_API_KEY from process.env');
-console.log('Value of process.env.OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
+console.log('Attempting to read API keys from process.env');
+console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+console.log('ANTHROPIC_API_KEY exists:', !!process.env.ANTHROPIC_API_KEY);
 
 if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === "") {
-  console.error('ERROR: OPENAI_API_KEY is not found in process.env or is an empty string!');
+  console.log('OpenAI API key not found, will check for Claude fallback');
 } else {
   console.log('OPENAI_API_KEY found. Length:', process.env.OPENAI_API_KEY.length);
 }
-console.log('--- End of OPENAI_API_KEY debug ---');
+
+if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === "") {
+  console.log('Anthropic API key not found');
+} else {
+  console.log('ANTHROPIC_API_KEY found. Length:', process.env.ANTHROPIC_API_KEY.length);
+}
+console.log('--- End of API key debug ---');
 // ---- END OF DEBUGGING ----
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize AI clients with graceful handling
+let openai: OpenAI | null = null;
+let anthropic: Anthropic | null = null;
+
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  console.log('OpenAI client initialized successfully');
+} else {
+  console.warn('OpenAI API key not found.');
+}
+
+if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '') {
+  anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+  console.log('Anthropic client initialized successfully');
+} else {
+  console.warn('Anthropic API key not found.');
+}
+
+if (!openai && !anthropic) {
+  console.error('WARNING: No AI API keys configured. AI features will be disabled.');
+}
 
 export interface AiRequest {
   userId: string;
@@ -77,25 +104,88 @@ export class AiService {
         { user_input: request.userInput, ...contextData }
       );
 
-      // Call AI model
-      console.log('Calling OpenAI with model:', recipe.ai_config.preferred_model);
-      const completion = await openai.chat.completions.create({
-        model: recipe.ai_config.preferred_model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: recipe.ai_config.max_tokens,
-        temperature: recipe.ai_config.temperature,
-      });
+      // Try OpenAI first, fallback to Claude if needed
+      let aiResponse: any;
+      let modelUsed: string;
+      
+      if (openai) {
+        try {
+          console.log('Calling OpenAI with model:', recipe.ai_config.preferred_model);
+          const completion = await openai.chat.completions.create({
+            model: recipe.ai_config.preferred_model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            max_tokens: recipe.ai_config.max_tokens,
+            temperature: recipe.ai_config.temperature,
+          });
+          
+          aiResponse = completion;
+          modelUsed = recipe.ai_config.preferred_model;
+          
+        } catch (openaiError) {
+          console.error('OpenAI API error, attempting Claude fallback:', openaiError);
+          if (!anthropic) {
+            throw openaiError;
+          }
+          // Continue to Claude fallback
+          aiResponse = null;
+        }
+      }
+      
+      // Use Claude as fallback if OpenAI failed or is not available
+      if (!aiResponse && anthropic) {
+        try {
+          console.log('Using Claude as fallback');
+          // Map OpenAI model to Claude equivalent
+          const claudeModel = recipe.ai_config.preferred_model.includes('gpt-4') 
+            ? 'claude-3-7-sonnet-20250219' 
+            : 'claude-3-haiku-20240307';
+          
+          const claudeResponse = await anthropic.messages.create({
+            model: claudeModel,
+            max_tokens: recipe.ai_config.max_tokens,
+            temperature: recipe.ai_config.temperature,
+            messages: [
+              { 
+                role: 'user', 
+                content: `${systemPrompt}\n\n${userPrompt}`
+              }
+            ],
+          });
+          
+          // Transform Claude response to match OpenAI format
+          const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
+          aiResponse = {
+            choices: [{
+              message: { content: textContent?.text || '' }
+            }],
+            usage: {
+              prompt_tokens: claudeResponse.usage?.input_tokens || 0,
+              completion_tokens: claudeResponse.usage?.output_tokens || 0,
+              total_tokens: (claudeResponse.usage?.input_tokens || 0) + (claudeResponse.usage?.output_tokens || 0)
+            }
+          };
+          modelUsed = claudeModel;
+          
+        } catch (claudeError) {
+          console.error('Claude API error:', claudeError);
+          throw new Error('Both OpenAI and Claude APIs failed. Please check API configurations.');
+        }
+      }
+      
+      if (!aiResponse) {
+        throw new Error('No AI service available. Please configure either OpenAI or Anthropic API key.');
+      }
 
       const executionTime = Date.now() - startTime;
       const response: AiResponse = {
-        content: completion.choices[0]?.message?.content || '',
-        model_used: recipe.ai_config.preferred_model,
-        prompt_tokens: completion.usage?.prompt_tokens || 0,
-        completion_tokens: completion.usage?.completion_tokens || 0,
-        total_tokens: completion.usage?.total_tokens || 0,
+        content: aiResponse.choices[0]?.message?.content || '',
+        model_used: modelUsed!,
+        prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
+        completion_tokens: aiResponse.usage?.completion_tokens || 0,
+        total_tokens: aiResponse.usage?.total_tokens || 0,
         execution_time_ms: executionTime,
       };
 

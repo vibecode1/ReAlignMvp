@@ -257,6 +257,114 @@ export const ubaFormController = {
   },
 
   /**
+   * Process uploaded document with AI to extract UBA form data
+   */
+  async processDocument(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const { fileName, fileContent, documentType } = req.body;
+
+      if (!fileName || !fileContent) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'File name and content are required',
+          }
+        });
+      }
+
+      // Create document processing prompt
+      const systemPrompt = `You are an expert at extracting information from documents for UBA mortgage assistance forms.
+      
+Extract relevant information from this ${documentType || 'document'} that can be used to fill out a UBA form:
+- Borrower name and contact information
+- Property address
+- Income details
+- Asset information
+- Hardship information
+- Any other relevant details
+
+Return the extracted data in JSON format with field names matching the UBA form fields.`;
+
+      try {
+        // Process with AI
+        const aiResponse = await aiService.generateRecommendation({
+          userId: req.user.id,
+          contextRecipeId: 'uba_form_completion_v1',
+          userInput: fileContent,
+          additionalContext: {
+            systemPrompt,
+            task: 'document_extraction',
+            documentType
+          }
+        });
+
+        // Parse extracted data
+        let extractedData;
+        try {
+          extractedData = JSON.parse(aiResponse.content);
+        } catch (e) {
+          extractedData = {
+            raw_text: aiResponse.content,
+            extraction_failed: true
+          };
+        }
+
+        // Log document processing
+        await storage.logWorkflowEvent({
+          user_id: req.user.id,
+          event_type: 'document_processed',
+          event_category: 'uba_form',
+          event_name: 'document_data_extracted',
+          event_description: `Extracted data from ${fileName}`,
+          success_indicator: true,
+          event_metadata: JSON.stringify({
+            file_name: fileName,
+            document_type: documentType,
+            fields_extracted: Object.keys(extractedData).length
+          })
+        });
+
+        return res.status(200).json({
+          fileName,
+          extractedData,
+          message: `Successfully processed ${fileName}`,
+          fieldsExtracted: Object.keys(extractedData).filter(k => !['raw_text', 'extraction_failed'].includes(k))
+        });
+
+      } catch (aiError) {
+        console.error('Document AI processing error:', aiError);
+        
+        // Return basic response without AI
+        return res.status(200).json({
+          fileName,
+          extractedData: {},
+          message: 'Document uploaded but AI extraction is unavailable. Please fill the form manually.',
+          fieldsExtracted: [],
+          ai_available: false
+        });
+      }
+
+    } catch (error) {
+      console.error('Process document error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to process document',
+        }
+      });
+    }
+  },
+
+  /**
    * Get UBA form validation status
    */
   async getFormValidationStatus(req: AuthenticatedRequest, res: Response) {
@@ -477,43 +585,26 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
 
       const startTime = Date.now();
       
-      // Check if OpenAI API key is configured
-      if (!process.env.OPENAI_API_KEY) {
-        console.error('OpenAI API key is not configured');
-        
-        // Return a helpful response without AI
-        return res.status(200).json({
-          response: `I understand you're trying to ${caseType === 'short_sale' ? 'sell' : 'keep'} your home. While I can't process your request with AI assistance right now due to missing configuration, I can guide you through the form manually.
-
-Let's start with your basic information. What's your full legal name?`,
-          extracted_data: {},
-          suggestions: {},
-          confidence: {},
-          next_step: 'borrower-info',
-          document_request: null,
-          ai_available: false
+      try {
+        // Process with AI
+        console.log('About to call AI service...');
+        const aiResponse = await aiService.generateRecommendation({
+          userId: req.user!.id,
+          contextRecipeId: 'uba_form_completion_v1',
+          userInput: message,
+          additionalContext: {
+            currentFormData,
+            activeSection,
+            caseType,
+            ubaGuideRules,
+            systemPrompt
+          }
         });
-      }
-      
-      // Process with AI
-      console.log('About to call AI service...');
-      const aiResponse = await aiService.generateRecommendation({
-        userId: req.user!.id,
-        contextRecipeId: 'uba_form_completion_v1',
-        userInput: message,
-        additionalContext: {
-          currentFormData,
-          activeSection,
-          caseType,
-          ubaGuideRules,
-          systemPrompt
-        }
-      });
-      console.log('AI service completed successfully');
+        console.log('AI service completed successfully');
 
-      const executionTime = Date.now() - startTime;
+        const executionTime = Date.now() - startTime;
 
-      // Parse AI response
+        // Parse AI response
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(aiResponse.content);
@@ -588,30 +679,95 @@ Let's start with your basic information. What's your full legal name?`,
         console.warn('Failed to log workflow event:', logError);
       }
 
-      return res.status(200).json(parsedResponse);
+        return res.status(200).json(parsedResponse);
+      } catch (aiError) {
+        console.error('AI service error:', aiError);
+        
+        // Log the error (with error handling)
+        try {
+          await storage.logWorkflowEvent({
+            user_id: req.user!.id,
+            event_type: 'ai_recommendation_generated',
+            event_category: 'uba_form',
+            event_name: 'conversation_processing_failed',
+            event_description: 'Failed to process conversation with AI',
+            success_indicator: false,
+            error_details: JSON.stringify({ message: aiError instanceof Error ? aiError.message : 'Unknown error' }),
+            event_severity: 'error'
+          });
+        } catch (logError) {
+          console.warn('Failed to log error event:', logError);
+        }
+
+        // Provide fallback response without AI
+        const fallbackResponses: Record<string, any> = {
+          'borrower-info': {
+            response: "I understand you need help with your borrower information. Let's start with your full legal name as it appears on your mortgage documents.",
+            next_step: 'borrower-info',
+            extracted_data: {},
+            suggestions: {
+              borrower_name: "Enter your full name (First Middle Last)",
+              borrower_ssn: "Format: XXX-XX-XXXX"
+            }
+          },
+          'property-info': {
+            response: "Now let's gather information about your property. What's the full property address?",
+            next_step: 'property-info',
+            extracted_data: {},
+            suggestions: {
+              property_address: "Enter the complete street address",
+              property_type: "My Primary Residence"
+            }
+          },
+          'financial-hardship': {
+            response: `I see you're ${caseType === 'short_sale' ? 'looking to sell' : 'trying to keep'} your home. Can you tell me about the financial hardship you're experiencing?`,
+            next_step: 'financial-hardship',
+            extracted_data: {
+              hardship_duration: caseType === 'short_sale' ? 'Long-term' : 'Short-term'
+            },
+            suggestions: {
+              hardship_type: "Select the type of hardship",
+              hardship_description: "Explain your situation in detail"
+            }
+          },
+          'income-expenses': {
+            response: "Let's review your monthly income and expenses. What's your total monthly gross income from all sources?",
+            next_step: 'income-expenses',
+            extracted_data: {},
+            suggestions: {
+              monthly_gross_income: "Enter your total monthly income before taxes",
+              total_assets: "500"
+            }
+          }
+        };
+
+        const fallbackResponse = fallbackResponses[activeSection || 'borrower-info'] || {
+          response: `I understand you're trying to ${caseType === 'short_sale' ? 'sell' : 'keep'} your home. While I'm temporarily unable to process your message with AI assistance, I can guide you through the form step by step.
+
+What information would you like to provide? You can tell me about:
+- Your personal information
+- Property details
+- Financial hardship
+- Income and expenses`,
+          extracted_data: {},
+          suggestions: {},
+          next_step: 'borrower-info'
+        };
+
+        return res.status(200).json({
+          ...fallbackResponse,
+          confidence: {},
+          document_request: null,
+          ai_available: false,
+          fallback_mode: true
+        });
+      }
     } catch (error) {
       console.error('Process conversation error:', error);
-      
-      // Log the error (with error handling)
-      try {
-        await storage.logWorkflowEvent({
-          user_id: req.user!.id,
-          event_type: 'ai_recommendation_generated',
-          event_category: 'uba_form',
-          event_name: 'conversation_processing_failed',
-          event_description: 'Failed to process conversation with AI',
-          success_indicator: false,
-          error_details: JSON.stringify({ message: error instanceof Error ? error.message : 'Unknown error' }),
-          event_severity: 'error'
-        });
-      } catch (logError) {
-        console.warn('Failed to log error event:', logError);
-      }
-
       return res.status(500).json({
         error: {
-          code: 'AI_PROCESSING_ERROR',
-          message: 'Failed to process conversation with AI',
+          code: 'SERVER_ERROR',
+          message: 'Failed to process conversation',
         }
       });
     }

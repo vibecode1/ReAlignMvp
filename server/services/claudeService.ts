@@ -2,9 +2,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { TextBlock } from '@anthropic-ai/sdk/resources';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let anthropic: Anthropic | null = null;
+
+if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '') {
+  anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+} else {
+  console.warn('Anthropic API key not found. Claude features will be disabled.');
+}
 
 export class ClaudeService {
   /**

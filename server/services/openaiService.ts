@@ -1,7 +1,13 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} else {
+  console.warn('OpenAI API key not found in openaiService. AI features will be disabled.');
+}
 
 export class OpenAIService {
   /**
@@ -21,6 +27,10 @@ export class OpenAIService {
     marketingPoints: string[];
   }> {
     try {
+      if (!openai) {
+        throw new Error('OpenAI API key not configured. Cannot generate property description.');
+      }
+
       const prompt = `Create a compelling property listing description for this real estate property:
 
 Address: ${propertyData.address}

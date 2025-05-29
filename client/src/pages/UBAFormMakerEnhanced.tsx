@@ -683,20 +683,111 @@ This will help me tailor the form to your specific needs.`,
     setCurrentMessage('');
   };
 
+  // Apply UBA Guide rules to form data
+  const applyUBAGuideRules = (data: Record<string, any>): Record<string, any> => {
+    const updatedData = { ...data };
+    
+    // Rule 1: Intent Selection - Never use 'Undecided'
+    if (updatedData.intent && updatedData.intent !== 'Sell' && updatedData.intent !== 'Keep') {
+      updatedData.intent = ''; // Force selection
+    }
+    
+    // Rule 2: Property Type - Default to 'My Primary Residence'
+    if (!updatedData.property_type) {
+      updatedData.property_type = 'My Primary Residence';
+    }
+    
+    // Rule 3: Owner Occupied - Default to 'Yes'
+    if (!updatedData.owner_occupied) {
+      updatedData.owner_occupied = 'Yes';
+    }
+    
+    // Rule 4: Phone Numbers - Home phone must be 'N/A'
+    updatedData.borrower_home_phone = 'N/A';
+    updatedData.coborrower_home_phone = 'N/A';
+    
+    // Rule 5: Email - Always 'Attorney Only'
+    updatedData.borrower_email = 'Attorney Only';
+    updatedData.coborrower_email = 'Attorney Only';
+    
+    // Rule 6: Co-borrower - All fields 'N/A' if no co-borrower
+    if (updatedData.has_coborrower === 'No' || !updatedData.has_coborrower) {
+      updatedData.coborrower_name = 'N/A';
+      updatedData.coborrower_ssn = 'N/A';
+      updatedData.coborrower_cell_phone = 'N/A';
+      updatedData.coborrower_home_phone = 'N/A';
+      updatedData.coborrower_email = 'Attorney Only';
+    }
+    
+    // Rule 7: Credit Counseling - Always 'No' and 'N/A'
+    updatedData.credit_counseling = 'No';
+    updatedData.credit_counseling_agency = 'N/A';
+    updatedData.credit_counseling_date = 'N/A';
+    
+    // Rule 8: Military Service - Default to 'No'
+    if (!updatedData.military_service) {
+      updatedData.military_service = 'No';
+    }
+    
+    // Rule 9: Income Reporting - Based on case type
+    if (caseType === 'retention') {
+      updatedData.monthly_net_income = 'N/A';
+    }
+    
+    // Rule 10: Default Assets
+    if (!updatedData.checking_account_balance) {
+      updatedData.checking_account_balance = '500';
+    }
+    if (!updatedData.total_assets) {
+      updatedData.total_assets = '500';
+    }
+    
+    // Rule 11: Hardship Duration - Based on case type
+    if (caseType === 'short_sale') {
+      updatedData.hardship_duration = 'Long-term';
+    } else if (caseType === 'retention') {
+      updatedData.hardship_duration = 'Short-term';
+    }
+    
+    // Rule 12: Replace all empty fields with 'N/A'
+    Object.keys(updatedData).forEach(key => {
+      if (updatedData[key] === '' || updatedData[key] === null || updatedData[key] === undefined) {
+        updatedData[key] = 'N/A';
+      }
+    });
+    
+    return updatedData;
+  };
+
   const handleFieldChange = (sectionId: string, fieldId: string, value: string) => {
+    // Update the field value
+    let updatedFormData = { ...formData, [fieldId]: value };
+    
+    // Apply UBA rules when certain fields change
+    if (fieldId === 'intent') {
+      setCaseType(value === 'Sell' ? 'short_sale' : 'retention');
+    }
+    
+    if (fieldId === 'has_coborrower' && value === 'No') {
+      // Apply co-borrower rules immediately
+      updatedFormData = applyUBAGuideRules(updatedFormData);
+    }
+    
     setSections(prevSections =>
       prevSections.map(section =>
         section.id === sectionId
           ? {
               ...section,
               fields: section.fields.map(field =>
-                field.id === fieldId ? { ...field, value } : field
+                field.id === fieldId ? { ...field, value: updatedFormData[fieldId] || value } : 
+                { ...field, value: updatedFormData[field.id] || field.value }
               )
             }
           : section
       )
     );
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
+    
+    setFormData(updatedFormData);
   };
 
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -722,31 +813,133 @@ This will help me tailor the form to your specific needs.`,
       metadata: { fileName: file.name }
     }]);
 
-    // Simulate document processing
-    setTimeout(() => {
-      setDocuments(prev => 
-        prev.map(doc => 
-          doc.id === newDocument.id 
-            ? { ...doc, processingStatus: 'completed', extractedData: { /* extracted data */ } }
-            : doc
-        )
-      );
+    // Read file content
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const fileContent = e.target?.result as string;
+      
+      try {
+        // Process document with AI
+        const response = await apiRequest('POST', '/api/v1/uba-forms/process-document', {
+          fileName: file.name,
+          fileContent: fileContent,
+          documentType: determineDocumentType(file.name)
+        });
+        
+        const result = await response.json();
+        
+        // Update document status
+        setDocuments(prev => 
+          prev.map(doc => 
+            doc.id === newDocument.id 
+              ? { ...doc, processingStatus: 'completed', extractedData: result.extractedData }
+              : doc
+          )
+        );
 
-      setMessages(prev => [...prev, {
-        id: Date.now().toString() + '-processed',
-        type: 'ai',
-        content: `I've successfully processed ${file.name}. I found some information that I can use to help fill out your form. Let me update the relevant fields for you.`,
-        timestamp: new Date()
-      }]);
-    }, 2000);
+        // Add AI response message
+        setMessages(prev => [...prev, {
+          id: Date.now().toString() + '-processed',
+          type: 'ai',
+          content: result.message,
+          timestamp: new Date(),
+          metadata: { extractedData: result.extractedData }
+        }]);
+
+        // Update form data with extracted information
+        if (result.extractedData && Object.keys(result.extractedData).length > 0) {
+          const updatedData = { ...formData, ...result.extractedData };
+          setFormData(updatedData);
+          
+          // Update sections with extracted data
+          setSections(prevSections => 
+            prevSections.map(section => ({
+              ...section,
+              fields: section.fields.map(field => ({
+                ...field,
+                value: updatedData[field.id] || field.value
+              }))
+            }))
+          );
+          
+          // Show success message
+          toast({
+            title: "Document Processed",
+            description: `Extracted ${result.fieldsExtracted.length} fields from ${file.name}`,
+          });
+        }
+        
+      } catch (error) {
+        console.error('Document processing error:', error);
+        
+        // Update document status to failed
+        setDocuments(prev => 
+          prev.map(doc => 
+            doc.id === newDocument.id 
+              ? { ...doc, processingStatus: 'failed' }
+              : doc
+          )
+        );
+        
+        // Show error message
+        setMessages(prev => [...prev, {
+          id: Date.now().toString() + '-error',
+          type: 'system',
+          content: `❌ Failed to process ${file.name}. Please try again or enter the information manually.`,
+          timestamp: new Date()
+        }]);
+        
+        toast({
+          title: "Processing Failed",
+          description: "Unable to process the document. Please enter information manually.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    // Determine how to read the file
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file);
+    }
+  };
+  
+  // Helper function to determine document type
+  const determineDocumentType = (fileName: string): string => {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.includes('pay') || lowerName.includes('stub') || lowerName.includes('income')) {
+      return 'income_verification';
+    } else if (lowerName.includes('hardship') || lowerName.includes('letter')) {
+      return 'hardship_letter';
+    } else if (lowerName.includes('bank') || lowerName.includes('statement')) {
+      return 'financial_statement';
+    } else if (lowerName.includes('tax') || lowerName.includes('w2') || lowerName.includes('1099')) {
+      return 'tax_document';
+    } else if (lowerName.includes('mortgage') || lowerName.includes('deed')) {
+      return 'property_documents';
+    }
+    return 'general_document';
   };
 
   const saveForm = useMutation({
     mutationFn: async () => {
+      // Apply UBA rules before saving
+      const finalFormData = applyUBAGuideRules(formData);
+      
+      // Update sections with final data
+      const updatedSections = sections.map(section => ({
+        ...section,
+        fields: section.fields.map(field => ({
+          ...field,
+          value: finalFormData[field.id] || field.value
+        }))
+      }));
+      
       const response = await apiRequest('POST', '/api/v1/uba-forms', {
-        form_data: formData,
+        form_data: finalFormData,
         completion_percentage: completionPercentage,
-        sections: sections,
+        sections: updatedSections,
         case_type: caseType
       });
       return response.json();
@@ -754,7 +947,7 @@ This will help me tailor the form to your specific needs.`,
     onSuccess: () => {
       toast({
         title: "Form Saved",
-        description: "Your UBA form has been saved successfully.",
+        description: "Your UBA form has been saved successfully with all UBA Guide rules applied.",
       });
     },
     onError: () => {
@@ -768,8 +961,12 @@ This will help me tailor the form to your specific needs.`,
 
   const validateForm = useMutation({
     mutationFn: async () => {
+      // Apply UBA rules before validation
+      const finalFormData = applyUBAGuideRules(formData);
+      
       const response = await apiRequest('POST', '/api/v1/uba-forms/validate', {
-        form_data: formData
+        form_data: finalFormData,
+        case_type: caseType
       });
       return response.json();
     },
@@ -780,10 +977,20 @@ This will help me tailor the form to your specific needs.`,
           description: `Found ${data.errors.length} errors. Please review and correct them.`,
           variant: "destructive",
         });
+        
+        // Update sections with validation errors
+        setSections(prevSections =>
+          prevSections.map(section => ({
+            ...section,
+            validationErrors: data.errors.filter((error: string) => 
+              section.fields.some(field => error.includes(field.label))
+            )
+          }))
+        );
       } else {
         toast({
           title: "Validation Successful",
-          description: "Your form passes all validation checks!",
+          description: "Your form passes all validation checks and UBA Guide rules!",
         });
       }
     }
@@ -1134,6 +1341,20 @@ This will help me tailor the form to your specific needs.`,
                           <ul className="list-disc list-inside mt-1">
                             {section.ubaGuideRules.map((rule, index) => (
                               <li key={index} className="text-sm">{rule}</li>
+                            ))}
+                          </ul>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {section.validationErrors && section.validationErrors.length > 0 && (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>Validation Errors:</strong>
+                          <ul className="list-disc list-inside mt-1">
+                            {section.validationErrors.map((error, index) => (
+                              <li key={index} className="text-sm">{error}</li>
                             ))}
                           </ul>
                         </AlertDescription>

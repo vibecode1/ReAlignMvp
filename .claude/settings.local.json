@@ -9,8 +9,16 @@
       "Bash(npx tsc:*)",
       "Bash(cat:*)",
       "Bash(npm run db:push:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(timeout 15s npm run dev)",
+      "Bash(curl:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }

@@ -28,6 +28,10 @@ const config = {
   
   // Temporary uploads directory
   uploadsDir: process.env.UPLOADS_DIR || './tmp/uploads',
+  
+  // AI Services
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
 };
 
 // Validate required environment variables
@@ -55,5 +59,7 @@ console.log('  SUPABASE_URL:', config.supabaseUrl ? config.supabaseUrl.substring
 console.log('  SUPABASE_ANON_KEY:', config.supabaseAnonKey ? config.supabaseAnonKey.substring(0, 10) + '...' : 'MISSING!');
 console.log('  SUPABASE_SERVICE_ROLE_KEY:', config.supabaseServiceRoleKey ? config.supabaseServiceRoleKey.substring(0, 10) + '...' : 'MISSING!');
 console.log('  DATABASE_URL:', config.databaseUrl ? 'Connected' : 'MISSING!');
+console.log('  OPENAI_API_KEY:', config.openaiApiKey ? 'Configured' : 'Not configured');
+console.log('  ANTHROPIC_API_KEY:', config.anthropicApiKey ? 'Configured' : 'Not configured');
 
 export default config;

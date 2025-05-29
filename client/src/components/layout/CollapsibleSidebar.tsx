@@ -222,7 +222,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
     <TooltipProvider delayDuration={0}>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex flex-col ${sidebarWidth} bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-in-out border-r border-slate-700/50 shadow-2xl`}
+        className={`hidden md:flex flex-col ${sidebarWidth} bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-in-out border-r border-slate-700/50 shadow-2xl fixed inset-y-0 left-0 z-40`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

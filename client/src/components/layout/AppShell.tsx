@@ -28,7 +28,7 @@ const AppShell = ({ children }: AppShellProps) => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden md:ml-16">
         {/* Top Bar */}
         <header className="bg-card border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">
