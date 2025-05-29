@@ -26,17 +26,17 @@ export const PublicHeader: React.FC = () => {
   const modules = [
     {
       href: '/solutions/tracker',
-      name: 'ReAlign:Tracker',
+      name: 'Tracker',
       icon: <Target className="h-4 w-4" />,
     },
     {
       href: '/solutions/maker',
-      name: 'ReAlign:Maker',
+      name: 'Maker',
       icon: <Wrench className="h-4 w-4" />,
     },
     {
       href: '/solutions/advisor',
-      name: 'ReAlign:Advisor',
+      name: 'Advisor',
       icon: <GraduationCap className="h-4 w-4" />,
     },
   ];
@@ -133,31 +133,31 @@ export const PublicHeader: React.FC = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed inset-0 top-16 bg-gradient-to-br from-slate-50 to-blue-50/30 z-50 overflow-hidden"
+            className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur"
           >
-            <nav className="h-full flex flex-col px-4 py-4">
-              <div className="space-y-2 mb-8">
-                {/* Main Navigation */}
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block py-2 text-sm transition-colors hover:text-foreground/80 ${
-                      isActiveLink(item.href)
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                
-                {/* Modules Section */}
+            <nav className="container px-4 py-4 space-y-2">
+              {/* Main Navigation */}
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`block py-2 text-sm transition-colors hover:text-foreground/80 ${
+                    isActiveLink(item.href)
+                      ? 'text-foreground'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              
+              {/* Modules Section */}
+              <div className="space-y-2">
                 {modules.map((module) => (
                   <Link
                     key={module.href}
@@ -168,19 +168,15 @@ export const PublicHeader: React.FC = () => {
                     {module.name}
                   </Link>
                 ))}
-                
-                {/* Sign In link */}
-                <Link
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
-                >
-                  Sign In
-                </Link>
               </div>
               
-              {/* Get Started button - positioned higher for smaller screens */}
-              <div className="mt-auto pb-6">
+              {/* Mobile CTA Buttons */}
+              <div className="pt-6 pb-8 space-y-3">
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full text-sm">
+                    Sign In
+                  </Button>
+                </Link>
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full text-sm">
                     Get Started
