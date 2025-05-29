@@ -140,77 +140,128 @@ export const PublicHeader: React.FC = () => {
         </Button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Enhanced Mobile Navigation Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur"
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="fixed inset-0 z-50 md:hidden"
           >
-            <nav className="container px-4 py-4 space-y-4">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block py-2 text-sm font-medium transition-colors hover:text-foreground/80 ${
-                    isActiveLink(item.href)
-                      ? 'text-foreground'
-                      : 'text-foreground/60'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              
-              {/* Mobile Products Section */}
-              <div className="py-2">
-                <div className="text-sm font-medium text-foreground/60 mb-3">Products</div>
-                <div className="space-y-3 pl-2">
-                  {products.map((product) => (
-                    <Link
-                      key={product.href}
-                      href={product.href}
-                      className="flex items-start space-x-3 py-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <div className="flex-shrink-0 w-6 h-6 bg-muted rounded-md flex items-center justify-center">
-                        {product.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{product.name}</div>
-                        <div className="text-xs text-muted-foreground">{product.description}</div>
-                      </div>
-                    </Link>
-                  ))}
-                  <Link
-                    href="/pricing"
-                    className="flex items-center space-x-2 py-2 pl-2"
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            
+            {/* Drawer Content */}
+            <div className="absolute right-0 top-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl">
+              <div className="flex h-full flex-col">
+                {/* Header Section */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <Logo className="h-8 w-auto" />
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">ReAlign</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsMobileMenuOpen(false)}
+                    className="h-8 w-8 p-0"
                   >
-                    <Package className="h-4 w-4" />
-                    <span className="font-medium text-sm">Compare Plans & Bundles</span>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Navigation Content */}
+                <nav className="flex-1 px-6 py-6 space-y-6">
+                  {/* Primary Navigation Section */}
+                  <div className="space-y-3">
+                    {navigationItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`block py-3 px-3 rounded-lg text-base font-medium transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                          isActiveLink(item.href)
+                            ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-900/20'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Products Section */}
+                  <div className="space-y-4">
+                    {/* Section Header */}
+                    <div className="px-3">
+                      <h3 className="text-xs uppercase font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
+                        Products
+                      </h3>
+                    </div>
+                    
+                    {/* Products Background Container */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3">
+                      {products.map((product) => (
+                        <Link
+                          key={product.href}
+                          href={product.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center space-x-3 py-3 px-3 rounded-lg transition-colors duration-200 hover:bg-white dark:hover:bg-gray-700 group"
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 bg-white dark:bg-gray-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                            {React.cloneElement(product.icon, { className: "h-4 w-4 text-gray-600 dark:text-gray-300" })}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-900 dark:text-white">{product.name}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{product.description}</div>
+                          </div>
+                        </Link>
+                      ))}
+                      
+                      {/* Compare Plans & Bundles */}
+                      <Link
+                        href="/pricing"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center space-x-3 py-3 px-3 rounded-lg transition-colors duration-200 hover:bg-white dark:hover:bg-gray-700 group"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 bg-white dark:bg-gray-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                          <Package className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-gray-900 dark:text-white">Compare Plans & Bundles</div>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                </nav>
+
+                {/* Action Buttons Section */}
+                <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button 
+                      variant="ghost" 
+                      size="lg" 
+                      className="w-full justify-start text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      Get Started
+                    </Button>
                   </Link>
                 </div>
               </div>
-              
-              {/* Mobile CTA Buttons */}
-              <div className="pt-4 space-y-2 border-t border-border/40">
-                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            </nav>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
