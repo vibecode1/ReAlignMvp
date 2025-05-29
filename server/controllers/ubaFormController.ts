@@ -69,7 +69,12 @@ const ProcessConversationSchema = z.object({
   currentFormData: z.record(z.any()).optional(),
   activeSection: z.string().optional(),
   caseType: z.enum(['short_sale', 'retention']).nullable().optional(),
-  ubaGuideRules: z.record(z.any()).optional()
+  ubaGuideRules: z.record(z.any()).optional(),
+  conversationHistory: z.array(z.object({
+    type: z.string(),
+    content: z.string(),
+    timestamp: z.string().or(z.date())
+  })).optional()
 });
 
 export const ubaFormController = {
@@ -539,8 +544,8 @@ Return the extracted data in JSON format with field names matching the UBA form 
         });
       }
 
-      const { message, currentFormData = {}, activeSection, caseType, ubaGuideRules } = validation.data;
-      console.log('Parsed data:', { message, currentFormData, activeSection, caseType });
+      const { message, currentFormData = {}, activeSection, caseType, ubaGuideRules, conversationHistory = [] } = validation.data;
+      console.log('Parsed data:', { message, currentFormData, activeSection, caseType, historyLength: conversationHistory.length });
 
       // Create UBA-specific prompt for AI with UBA Guide rules
       const systemPrompt = `You are an expert assistant helping users complete a Borrower Financial Statement (UBA form) for mortgage assistance. You MUST follow UBA Guide rules strictly.
@@ -559,6 +564,20 @@ Current case type: ${caseType || 'not determined'}
 Current form data: ${JSON.stringify(currentFormData)}
 Active section: ${activeSection || 'none'}
 
+AVAILABLE UBA FORM FIELDS (use exact field names for extracted_data):
+- intent, property_type, owner_occupied
+- borrower_name, borrower_ssn, borrower_cell_phone, borrower_home_phone, borrower_email
+- has_coborrower, coborrower_name, coborrower_ssn
+- property_address, property_value, mortgage_balance, monthly_payment
+- hardship_type, hardship_description, hardship_date, hardship_duration
+- monthly_gross_income, monthly_net_income, monthly_expenses, income_sources
+- checking_account_balance, total_assets, credit_card_debt
+- credit_counseling, credit_counseling_details
+- military_service, bankruptcy_filed
+
+CONVERSATION HISTORY:
+${conversationHistory.length > 0 ? conversationHistory.map(msg => `${msg.type.toUpperCase()}: ${msg.content}`).join('\n') : 'No previous conversation'}
+
 IMPORTANT BEHAVIORS:
 - When user indicates they want to keep their home, set intent="Keep" and case_type="retention"
 - When user indicates they want to sell their home, set intent="Sell" and case_type="short_sale"
@@ -571,15 +590,25 @@ IMPORTANT BEHAVIORS:
 - For home phone, always use "N/A"
 - If no co-borrower, set all co-borrower fields to "N/A"
 
-User message: "${message}"
+IMPORTANT: Review the conversation history above to understand what information has already been provided. Do NOT ask for the same information again.
 
-Respond with JSON containing:
+Current user message: "${message}"
+
+Based on the conversation history and current form data, respond with JSON containing:
 - response: conversational text that guides the user naturally
-- extracted_data: object with field names and values (apply UBA rules)
-- suggestions: object with field suggestions
-- confidence: object with confidence scores (0-1)
+- extracted_data: object with field names and values (use EXACT field names from list above)
+- suggestions: object with field suggestions using same field names
+- confidence: object with confidence scores (0-1) using same field names  
 - next_step: what section or field to focus on next
 - document_request: if documents would help (e.g., "recent pay stubs", "tax returns")
+
+EXAMPLE extracted_data format:
+{
+  "borrower_name": "John Smith",
+  "intent": "Keep",
+  "property_address": "123 Main St, City, State",
+  "monthly_gross_income": "5000"
+}
 
 Keep responses natural and conversational while ensuring UBA compliance.`;
 
@@ -591,13 +620,20 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
         const aiResponse = await aiService.generateRecommendation({
           userId: req.user!.id,
           contextRecipeId: 'uba_form_completion_v1',
-          userInput: message,
+          userInput: `User message: ${message}`,
           additionalContext: {
             currentFormData,
             activeSection,
             caseType,
             ubaGuideRules,
-            systemPrompt
+            systemPrompt,
+            // Override the user prompt template to avoid interpolation issues
+            userPrompt: `User message: ${message}`,
+            // Provide context for template interpolation in case it's still needed
+            current_section: activeSection || 'conversation',
+            current_field: 'chat_input',
+            specific_question: 'Please process this conversational input for UBA form completion.',
+            user_input: message
           }
         });
         console.log('AI service completed successfully');
@@ -607,8 +643,22 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
         // Parse AI response
       let parsedResponse;
       try {
-        parsedResponse = JSON.parse(aiResponse.content);
+        console.log('AI response content type:', typeof aiResponse.content);
+        console.log('AI response content preview:', aiResponse.content.substring(0, 300));
+        
+        // Clean the AI response content - remove markdown code blocks if present
+        let cleanContent = aiResponse.content.trim();
+        if (cleanContent.startsWith('```json') || cleanContent.startsWith('```')) {
+          // Remove opening ```json or ``` and closing ```
+          cleanContent = cleanContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+        }
+        
+        parsedResponse = JSON.parse(cleanContent);
+        console.log('Parsed AI response extracted_data:', JSON.stringify(parsedResponse.extracted_data, null, 2));
       } catch (parseError) {
+        console.log('JSON parse error:', parseError);
+        console.log('Raw content that failed to parse:', aiResponse.content);
+        
         // Fallback if AI doesn't return valid JSON
         parsedResponse = {
           response: aiResponse.content,
@@ -664,7 +714,7 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
           event_name: 'conversation_processed',
           event_description: 'AI processed user input for UBA form completion',
           success_indicator: true,
-          ai_model_used: 'gpt-4',
+          ai_model_used: aiResponse.model_used || 'claude',
           ai_prompt_tokens: aiResponse.prompt_tokens,
           ai_completion_tokens: aiResponse.completion_tokens,
           execution_time_ms: executionTime,
@@ -676,7 +726,8 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
           })
         });
       } catch (logError) {
-        console.warn('Failed to log workflow event:', logError);
+        console.warn('Failed to log workflow event (non-blocking):', logError instanceof Error ? logError.message : String(logError));
+        // Don't throw - continue with the response
       }
 
         return res.status(200).json(parsedResponse);
@@ -696,7 +747,8 @@ Keep responses natural and conversational while ensuring UBA compliance.`;
             event_severity: 'error'
           });
         } catch (logError) {
-          console.warn('Failed to log error event:', logError);
+          console.warn('Failed to log error event (non-blocking):', logError instanceof Error ? logError.message : String(logError));
+          // Don't throw - continue with fallback response
         }
 
         // Provide fallback response without AI

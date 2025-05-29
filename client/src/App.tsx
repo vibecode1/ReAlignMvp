@@ -56,6 +56,7 @@ import { setupFCMHandler } from "@/lib/notifications";
 import { useEffect } from "react";
 import UBAFormMaker from './pages/UBAFormMaker';
 import UBAFormMakerEnhanced from './pages/UBAFormMakerEnhanced';
+import LoeDrafter from './pages/LoeDrafter';
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -289,6 +290,14 @@ function Router() {
       </Route>
       <Route path="/uba-form-maker">
         <ProtectedRoute component={UBAFormMakerEnhanced} allowedRoles={['negotiator']} />
+      </Route>
+      <Route path="/loe-drafter/:transactionId">
+        {params => (
+          <ProtectedRoute 
+            component={() => <LoeDrafter />} 
+            allowedRoles={['negotiator']} 
+          />
+        )}
       </Route>
       <Route path="/tracker-landing" component={TrackerLandingPage} />
       <Route path="/public-tracker/:id" component={PublicTrackerView} />

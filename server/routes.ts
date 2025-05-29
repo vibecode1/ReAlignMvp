@@ -17,6 +17,7 @@ import { userContextController } from "./controllers/userContextController";
 import { workflowLogController } from "./controllers/workflowLogController";
 import { ubaFormController } from "./controllers/ubaFormController";
 import { onboardingController } from "./controllers/onboardingController";
+import { loeDrafterController } from "./controllers/loeDrafterController";
 import ClaudeController from "./controllers/claudeController.js";
 import OpenAIController from "./controllers/openaiController.js";
 import { WebSocketServer } from "ws";
@@ -238,6 +239,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   openaiRouter.post('/compare-options', authenticateJWT, OpenAIController.compareOptions);
   openaiRouter.post('/transcribe-audio', authenticateJWT, OpenAIController.transcribeAudio);
 
+  // -- LOE Drafter Routes (Phase 1 - Task 1.2) --
+  const loeRouter = express.Router();
+  loeRouter.get('/transaction/:transactionId', authenticateJWT, requireTransactionAccess, loeDrafterController.getTransactionLoeDrafts);
+  loeRouter.get('/draft/:draftId', authenticateJWT, loeDrafterController.getLoeDraft);
+  loeRouter.post('/draft', authenticateJWT, loeDrafterController.createLoeDraft);
+  loeRouter.put('/draft/:draftId', authenticateJWT, loeDrafterController.updateLoeDraft);
+  loeRouter.get('/draft/:draftId/export', authenticateJWT, loeDrafterController.exportLoeDraft);
+  loeRouter.post('/draft/:draftId/suggestions', authenticateJWT, loeDrafterController.generateSuggestions);
+  loeRouter.get('/templates', authenticateJWT, loeDrafterController.getTemplates);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -268,6 +279,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/claude', claudeRouter);
   console.log('Registering OpenAI router at /openai');
   apiRouter.use('/openai', openaiRouter);
+  console.log('Registering LOE Drafter router at /loe');
+  apiRouter.use('/loe', loeRouter);
 
   // Register public routes (no authentication required)
   console.log('Registering public router at /api/public');

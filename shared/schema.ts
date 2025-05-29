@@ -31,6 +31,28 @@ export const documentStatusEnum = pgEnum('document_status', ['pending', 'complet
 export const visibilityEnum = pgEnum('visibility', ['private', 'shared']);
 export const deviceTokenTypeEnum = pgEnum('device_token_type', ['fcm', 'apn', 'web']);
 
+// LOE Drafter enums
+export const loeTemplateTypeEnum = pgEnum('loe_template_type', [
+  'unemployment',
+  'medical_hardship',
+  'divorce_separation',
+  'death_of_spouse',
+  'income_reduction',
+  'business_failure',
+  'military_service',
+  'natural_disaster',
+  'increased_expenses',
+  'other_hardship'
+]);
+
+export const loeStatusEnum = pgEnum('loe_status', [
+  'draft',
+  'in_review',
+  'approved',
+  'sent',
+  'archived'
+]);
+
 // Users table
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -328,6 +350,95 @@ export const conversational_intake_sessions = pgTable('conversational_intake_ses
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// LOE Drafter tables
+export const loe_drafts = pgTable('loe_drafts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transaction_id: uuid('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  uba_form_data_id: uuid('uba_form_data_id').references(() => uba_form_data.id, { onDelete: 'set null' }),
+  created_by_user_id: uuid('created_by_user_id').notNull().references(() => users.id),
+  
+  // Template and type information
+  template_type: loeTemplateTypeEnum('template_type').notNull(),
+  custom_template_name: text('custom_template_name'),
+  
+  // Letter content
+  letter_title: text('letter_title').notNull().default('Letter of Explanation'),
+  letter_content: text('letter_content').notNull(),
+  
+  // AI generation metadata
+  ai_generated: boolean('ai_generated').default(false),
+  ai_model_used: text('ai_model_used'),
+  ai_prompt_used: text('ai_prompt_used'),
+  ai_confidence_score: integer('ai_confidence_score'), // 0-100
+  
+  // Status tracking
+  status: loeStatusEnum('status').notNull().default('draft'),
+  current_version: integer('current_version').notNull().default(1),
+  
+  // Export tracking
+  last_exported_at: timestamp('last_exported_at'),
+  export_formats: text('export_formats').array().default([]), // ['pdf', 'docx', 'txt']
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    transaction_idx: index('loe_drafts_transaction_idx').on(table.transaction_id),
+    status_idx: index('loe_drafts_status_idx').on(table.status),
+    created_by_idx: index('loe_drafts_created_by_idx').on(table.created_by_user_id),
+  };
+});
+
+export const loe_versions = pgTable('loe_versions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  loe_draft_id: uuid('loe_draft_id').notNull().references(() => loe_drafts.id, { onDelete: 'cascade' }),
+  version_number: integer('version_number').notNull(),
+  
+  // Version content
+  letter_content: text('letter_content').notNull(),
+  change_summary: text('change_summary'),
+  
+  // Who made the change
+  edited_by_user_id: uuid('edited_by_user_id').notNull().references(() => users.id),
+  
+  // AI assistance tracking for edits
+  ai_assisted_edit: boolean('ai_assisted_edit').default(false),
+  ai_suggestions_applied: text('ai_suggestions_applied'), // JSON array of applied suggestions
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    draft_idx: index('loe_versions_draft_idx').on(table.loe_draft_id),
+    unique_version: uniqueIndex('loe_versions_unique_idx').on(table.loe_draft_id, table.version_number),
+  };
+});
+
+export const loe_templates = pgTable('loe_templates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  template_type: loeTemplateTypeEnum('template_type').notNull(),
+  template_name: text('template_name').notNull(),
+  template_description: text('template_description'),
+  
+  // Template content with placeholders
+  template_content: text('template_content').notNull(),
+  placeholder_mappings: text('placeholder_mappings').notNull(), // JSON mapping of placeholders to UBA fields
+  
+  // Usage tracking
+  usage_count: integer('usage_count').default(0),
+  success_rate: integer('success_rate'), // 0-100 based on approved letters
+  
+  // Management
+  is_active: boolean('is_active').default(true),
+  created_by_user_id: uuid('created_by_user_id').references(() => users.id),
+  
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    type_idx: index('loe_templates_type_idx').on(table.template_type),
+  };
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
@@ -414,6 +525,41 @@ export const insertConversationalIntakeSessionSchema = createInsertSchema(conver
   validation_pending: z.array(z.string()).optional(),
 }).omit({ id: true, created_at: true, updated_at: true });
 
+// LOE Drafter Insert Schemas
+export const insertLoeDraftSchema = createInsertSchema(loe_drafts, {
+  template_type: z.enum([
+    'unemployment',
+    'medical_hardship',
+    'divorce_separation',
+    'death_of_spouse',
+    'income_reduction',
+    'business_failure',
+    'military_service',
+    'natural_disaster',
+    'increased_expenses',
+    'other_hardship'
+  ]),
+  status: z.enum(['draft', 'in_review', 'approved', 'sent', 'archived']),
+  export_formats: z.array(z.string()).optional(),
+}).omit({ id: true, created_at: true, updated_at: true });
+
+export const insertLoeVersionSchema = createInsertSchema(loe_versions, {}).omit({ id: true, created_at: true });
+
+export const insertLoeTemplateSchema = createInsertSchema(loe_templates, {
+  template_type: z.enum([
+    'unemployment',
+    'medical_hardship',
+    'divorce_separation',
+    'death_of_spouse',
+    'income_reduction',
+    'business_failure',
+    'military_service',
+    'natural_disaster',
+    'increased_expenses',
+    'other_hardship'
+  ]),
+}).omit({ id: true, created_at: true, updated_at: true });
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -461,3 +607,13 @@ export type InsertUbaDocumentAttachment = z.infer<typeof insertUbaDocumentAttach
 
 export type ConversationalIntakeSession = typeof conversational_intake_sessions.$inferSelect;
 export type InsertConversationalIntakeSession = z.infer<typeof insertConversationalIntakeSessionSchema>;
+
+// LOE Drafter Types
+export type LoeDraft = typeof loe_drafts.$inferSelect;
+export type InsertLoeDraft = z.infer<typeof insertLoeDraftSchema>;
+
+export type LoeVersion = typeof loe_versions.$inferSelect;
+export type InsertLoeVersion = z.infer<typeof insertLoeVersionSchema>;
+
+export type LoeTemplate = typeof loe_templates.$inferSelect;
+export type InsertLoeTemplate = z.infer<typeof insertLoeTemplateSchema>;

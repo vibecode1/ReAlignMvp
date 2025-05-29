@@ -880,60 +880,28 @@ class DrizzleStorage implements IStorage {
     return null;
   }
 
-    // UBA Form Methods
+    // UBA Form Methods - Currently using uba_form_data table instead
     async createUBAForm(data: {
         user_id: string;
         form_data: string;
         completion_percentage: number;
         status: string;
     }) {
-        try {
-            const [result] = await db
-                .insert(schema.uba_forms)
-                .values({
-                    user_id: data.user_id,
-                    form_data: data.form_data,
-                    completion_percentage: data.completion_percentage,
-                    status: data.status,
-                    created_at: new Date(),
-                    updated_at: new Date()
-                })
-                .returning({ id: schema.uba_forms.id });
-
-            return result.id;
-        } catch (error) {
-            console.error('Create UBA form error:', error);
-            throw new Error('Failed to create UBA form');
-        }
+        // Note: This functionality is now handled by uba_form_data table
+        console.warn('createUBAForm is deprecated - use uba_form_data methods');
+        return null;
     }
 
     async getUBAFormById(id: string) {
-        try {
-            const [form] = await db
-                .select()
-                .from(schema.uba_forms)
-                .where(eq(schema.uba_forms.id, id));
-
-            return form || null;
-        } catch (error) {
-            console.error('Get UBA form by ID error:', error);
-            throw new Error('Failed to get UBA form');
-        }
+        // Note: This functionality is now handled by uba_form_data table
+        console.warn('getUBAFormById is deprecated - use uba_form_data methods');
+        return null;
     }
 
     async getUBAFormsByUserId(userId: string) {
-        try {
-            const forms = await db
-                .select()
-                .from(schema.uba_forms)
-                .where(eq(schema.uba_forms.user_id, userId))
-                .orderBy(desc(schema.uba_forms.updated_at));
-
-            return forms;
-        } catch (error) {
-            console.error('Get UBA forms by user ID error:', error);
-            throw new Error('Failed to get UBA forms');
-        }
+        // Note: This functionality is now handled by uba_form_data table
+        console.warn('getUBAFormsByUserId is deprecated - use uba_form_data methods');
+        return [];
     }
 
     async updateUBAForm(id: string, data: {
@@ -941,21 +909,9 @@ class DrizzleStorage implements IStorage {
         completion_percentage?: number;
         status?: string;
     }) {
-        try {
-            const [result] = await db
-                .update(schema.uba_forms)
-                .set({
-                    ...data,
-                    updated_at: new Date()
-                })
-                .where(eq(schema.uba_forms.id, id))
-                .returning({ id: schema.uba_forms.id });
-
-            return result?.id || null;
-        } catch (error) {
-            console.error('Update UBA form error:', error);
-            throw new Error('Failed to update UBA form');
-        }
+        // Note: This functionality is now handled by uba_form_data table
+        console.warn('updateUBAForm is deprecated - use uba_form_data methods');
+        return null;
     }
 
     async healthCheck(): Promise<{ status: string; timestamp: string }> {

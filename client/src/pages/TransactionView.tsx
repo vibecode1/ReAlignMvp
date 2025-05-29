@@ -19,7 +19,9 @@ import {
   X,
   ExternalLink,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  FileText,
+  Wrench
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -407,6 +409,61 @@ export default function TransactionView({ id }: TransactionViewProps) {
             }}
           />
         </motion.div>
+
+        {/* Quick Actions Section - Only for negotiators */}
+        {isNegotiator && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>
+                  Access tools and features for this transaction
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button
+                    variant="outline"
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate(`/loe-drafter/${id}`)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-5 w-5 mt-0.5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">LOE Drafter</div>
+                        <div className="text-sm text-muted-foreground">
+                          Create hardship letters
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="justify-start h-auto p-4"
+                    onClick={() => navigate(`/uba-form-maker?transactionId=${id}`)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-5 w-5 mt-0.5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">UBA Form</div>
+                        <div className="text-sm text-muted-foreground">
+                          AI-powered form completion
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Party Management Section */}
         <motion.div

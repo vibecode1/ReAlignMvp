@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,6 @@ import {
   CheckCircle, 
   MessageSquare, 
   FileText, 
-  Save, 
   Send, 
   Upload,
   Bot,
@@ -24,7 +24,9 @@ import {
   Info,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowLeft,
+  Home
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -501,6 +503,8 @@ export const UBAFormMakerEnhanced: React.FC = () => {
 
   const [sections, setSections] = useState<UBAFormSection[]>(formSections);
 
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // Initialize conversation
   useEffect(() => {
     if (messages.length === 0) {
@@ -518,13 +522,17 @@ This will help me tailor the form to your specific needs.`,
           timestamp: new Date()
         }
       ]);
+      // Set a delay to prevent initial scroll
+      setTimeout(() => setIsInitialLoad(false), 1000);
     }
   }, []);
 
-  // Scroll to bottom of messages when new messages arrive
+  // Scroll to bottom of messages when new messages arrive (but not on initial load)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!isInitialLoad && messages.length > 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isInitialLoad]);
 
   // Calculate completion percentage
   useEffect(() => {
@@ -588,12 +596,20 @@ This will help me tailor the form to your specific needs.`,
   // AI Processing for conversational input
   const processConversationalInput = useMutation({
     mutationFn: async (input: string) => {
+      // Get recent conversation history (last 10 messages)
+      const recentMessages = messages.slice(-10).map(msg => ({
+        type: msg.type,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
+      
       const response = await apiRequest('POST', '/api/v1/uba-forms/process-conversation', {
         message: input,
         currentFormData: formData,
         activeSection: activeSection,
         caseType: caseType,
-        ubaGuideRules: UBA_GUIDE_RULES
+        ubaGuideRules: UBA_GUIDE_RULES,
+        conversationHistory: recentMessages
       });
       return response.json();
     },
@@ -613,18 +629,29 @@ This will help me tailor the form to your specific needs.`,
 
       // Update form data if AI extracted information
       if (data.extracted_data) {
-        setFormData(prev => ({ ...prev, ...data.extracted_data }));
+        console.log('AI extracted data received:', data.extracted_data);
+        setFormData(prev => {
+          const updated = { ...prev, ...data.extracted_data };
+          console.log('Updated form data:', updated);
+          return updated;
+        });
         
         // Update sections with extracted data
         setSections(prevSections => 
           prevSections.map(section => ({
             ...section,
-            fields: section.fields.map(field => ({
-              ...field,
-              value: data.extracted_data[field.name] || field.value,
-              aiSuggestion: data.suggestions?.[field.name],
-              confidence: data.confidence?.[field.name]
-            }))
+            fields: section.fields.map(field => {
+              const newValue = data.extracted_data[field.name] || field.value;
+              if (data.extracted_data[field.name]) {
+                console.log(`Updating field ${field.name}: "${field.value}" -> "${newValue}"`);
+              }
+              return {
+                ...field,
+                value: newValue,
+                aiSuggestion: data.suggestions?.[field.name],
+                confidence: data.confidence?.[field.name]
+              };
+            })
           }))
         );
 
@@ -632,6 +659,9 @@ This will help me tailor the form to your specific needs.`,
         if (data.extracted_data.intent) {
           setCaseType(data.extracted_data.intent === 'Sell' ? 'short_sale' : 'retention');
         }
+        
+        // Auto-save after AI updates the form
+        setTimeout(() => autoSaveForm.mutate(), 500);
       }
       
       // Check if AI is not available
@@ -788,6 +818,9 @@ This will help me tailor the form to your specific needs.`,
     );
     
     setFormData(updatedFormData);
+    
+    // Auto-save after manual field changes
+    setTimeout(() => autoSaveForm.mutate(), 1000);
   };
 
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -922,7 +955,8 @@ This will help me tailor the form to your specific needs.`,
     return 'general_document';
   };
 
-  const saveForm = useMutation({
+  // Auto-save mutation (silent, no toast notifications)
+  const autoSaveForm = useMutation({
     mutationFn: async () => {
       // Apply UBA rules before saving
       const finalFormData = applyUBAGuideRules(formData);
@@ -944,18 +978,9 @@ This will help me tailor the form to your specific needs.`,
       });
       return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Form Saved",
-        description: "Your UBA form has been saved successfully with all UBA Guide rules applied.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Save Failed",
-        description: "Failed to save your form. Please try again.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.warn('Auto-save failed (non-blocking):', error);
+      // Don't show error toast for auto-save failures to avoid annoying users
     }
   });
 
@@ -996,15 +1021,55 @@ This will help me tailor the form to your specific needs.`,
     }
   });
 
+  const [, navigate] = useLocation();
+  const urlParams = new URLSearchParams(window.location.search);
+  const transactionId = urlParams.get('transactionId');
+
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
+    <div className="container max-w-7xl mx-auto p-6 space-y-6 min-h-screen">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/')}
+          className="px-2"
+        >
+          <Home className="w-4 h-4 mr-1" />
+          Dashboard
+        </Button>
+        <span>/</span>
+        {transactionId && (
+          <>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate(`/transactions/${transactionId}`)}
+              className="px-2"
+            >
+              Transaction
+            </Button>
+            <span>/</span>
+          </>
+        )}
+        <span className="font-medium text-foreground">UBA Form Maker</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">BFS/UBA Form Maker</h1>
-          <p className="text-muted-foreground">
-            AI-Powered Conversational Intake for Mortgage Assistance
-          </p>
+        <div className="flex items-center gap-4">
+          {transactionId && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/transactions/${transactionId}`)}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Transaction
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold">UBA Form Maker</h1>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -1018,10 +1083,6 @@ This will help me tailor the form to your specific needs.`,
             disabled={validateForm.isPending}
           >
             Validate
-          </Button>
-          <Button onClick={() => saveForm.mutate()} disabled={saveForm.isPending}>
-            <Save className="w-4 h-4 mr-2" />
-            {saveForm.isPending ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -1047,8 +1108,8 @@ This will help me tailor the form to your specific needs.`,
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Conversation Panel */}
             <div className="lg:col-span-8">
-              <Card className="h-[700px] flex flex-col">
-                <CardHeader className="pb-3">
+              <Card className="h-[60vh] min-h-[400px] max-h-[600px] flex flex-col relative">
+                <CardHeader className="pb-3 flex-shrink-0">
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Bot className="w-5 h-5" />
@@ -1066,9 +1127,9 @@ This will help me tailor the form to your specific needs.`,
                     I'll help you complete your BFS/UBA form step by step
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col p-0">
+                <CardContent className="flex-1 flex flex-col p-0 min-h-0">
                   {/* Messages */}
-                  <ScrollArea className="flex-1 p-4">
+                  <ScrollArea className="flex-1 p-4 min-h-0">
                     <div className="space-y-4">
                       {messages.map((message) => (
                         <div
@@ -1138,13 +1199,20 @@ This will help me tailor the form to your specific needs.`,
                   </ScrollArea>
 
                   {/* Input Area */}
-                  <div className="p-4 border-t">
+                  <div className="p-4 border-t flex-shrink-0">
                     <div className="flex gap-2">
                       <Input
                         value={currentMessage}
                         onChange={(e) => setCurrentMessage(e.target.value)}
                         placeholder="Type your response..."
                         onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                        onFocus={(e) => {
+                          // Prevent viewport jumping on mobile devices
+                          e.target.style.transform = 'translateZ(0)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.transform = '';
+                        }}
                         disabled={isProcessing}
                         className="flex-1"
                       />
@@ -1309,57 +1377,34 @@ This will help me tailor the form to your specific needs.`,
         <TabsContent value="form" className="mt-6">
           <div className="space-y-6">
             {sections.map((section) => (
-              <Card key={section.id} className={activeSection === section.id ? 'ring-2 ring-primary' : ''}>
+              <Card key={section.id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {section.completed ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-yellow-500" />
-                        )}
-                        {section.title}
-                      </CardTitle>
-                      <CardDescription>{section.description}</CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setActiveSection(activeSection === section.id ? '' : section.id)}
-                    >
-                      {activeSection === section.id ? 'Collapse' : 'Expand'}
-                    </Button>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {section.completed ? (
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
+                      )}
+                      {section.title}
+                    </CardTitle>
+                    <CardDescription>{section.description}</CardDescription>
                   </div>
                 </CardHeader>
-                {activeSection === section.id && (
-                  <CardContent>
-                    {section.ubaGuideRules && section.ubaGuideRules.length > 0 && (
-                      <Alert className="mb-4">
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>UBA Guide Rules:</strong>
-                          <ul className="list-disc list-inside mt-1">
-                            {section.ubaGuideRules.map((rule, index) => (
-                              <li key={index} className="text-sm">{rule}</li>
-                            ))}
-                          </ul>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    
+                <CardContent>
                     {section.validationErrors && section.validationErrors.length > 0 && (
-                      <Alert variant="destructive" className="mb-4">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>Validation Errors:</strong>
-                          <ul className="list-disc list-inside mt-1">
-                            {section.validationErrors.map((error, index) => (
-                              <li key={index} className="text-sm">{error}</li>
-                            ))}
-                          </ul>
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Validation Errors:</strong>
+                        <ul className="list-disc list-inside mt-1">
+                          {section.validationErrors.map((error, index) => (
+                            <li key={index} className="text-sm">{error}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {section.fields.map((field) => (
                         <div key={field.id} className="space-y-2">
@@ -1367,9 +1412,6 @@ This will help me tailor the form to your specific needs.`,
                             {field.label}
                             {field.required && <span className="text-red-500 ml-1">*</span>}
                           </Label>
-                          {field.helpText && (
-                            <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                          )}
                           {field.type === 'select' ? (
                             <Select
                               value={field.value}
@@ -1403,29 +1445,15 @@ This will help me tailor the form to your specific needs.`,
                               placeholder={field.placeholder}
                             />
                           )}
-                          {field.ubaRule && (
-                            <p className="text-xs text-blue-600 flex items-center gap-1">
-                              <Info className="w-3 h-3" />
-                              {field.ubaRule}
-                            </p>
-                          )}
                           {field.aiSuggestion && (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">
-                                AI Suggestion: {field.aiSuggestion}
-                              </Badge>
-                              {field.confidence && (
-                                <Badge variant="outline" className="text-xs">
-                                  {Math.round(field.confidence * 100)}% confident
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              AI: {field.aiSuggestion}
+                            </Badge>
                           )}
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                )}
+                </CardContent>
               </Card>
             ))}
           </div>

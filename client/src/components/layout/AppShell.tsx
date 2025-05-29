@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CollapsibleSidebar } from "./CollapsibleSidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { Logo } from "@/components/ui/logo";
 
 interface AppShellProps {
   children: ReactNode;
@@ -43,9 +44,7 @@ const AppShell = ({ children }: AppShellProps) => {
                   {/* Menu icon is handled in CollapsibleSidebar */}
                 </Button>
               )}
-              <h1 className="text-lg font-semibold text-foreground">
-                ReAlign 2.0
-              </h1>
+              <Logo size="md" variant="full" />
             </div>
 
             <div className="flex items-center space-x-4">

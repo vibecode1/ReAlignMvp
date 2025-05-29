@@ -99,10 +99,11 @@ export class AiService {
           contextData
         );
 
-      const userPrompt = AiService.interpolateTemplate(
-        recipe.ai_config.user_prompt_template,
-        { user_input: request.userInput, ...contextData }
-      );
+      const userPrompt = request.additionalContext?.userPrompt || 
+        AiService.interpolateTemplate(
+          recipe.ai_config.user_prompt_template,
+          { user_input: request.userInput, ...contextData }
+        );
 
       // Try OpenAI first, fallback to Claude if needed
       let aiResponse: any;
