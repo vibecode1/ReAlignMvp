@@ -182,7 +182,7 @@ export const PublicHeader: React.FC = () => {
               {/* Mobile CTA Button */}
               <div className="pt-6 pb-8">
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold text-base shadow-lg">
+                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all">
                     Start Free Trial
                   </Button>
                 </Link>
