@@ -133,10 +133,10 @@ export const PublicHeader: React.FC = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="md:hidden fixed inset-0 top-16 bg-gradient-to-br from-slate-50 to-blue-50/30 z-50 overflow-hidden"
           >
             <nav className="h-full flex flex-col px-4 py-4">
