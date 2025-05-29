@@ -137,7 +137,7 @@ export const PublicHeader: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed inset-x-0 top-16 bottom-0 z-50 border-t border-border/40 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50"
+            className="md:hidden border-t border-border/40 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50"
           >
             <nav className="container px-4 py-4 space-y-2">
               {/* Main Navigation */}
