@@ -139,17 +139,17 @@ export const PublicHeader: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur"
           >
-            <nav className="container px-4 py-6 space-y-3">
+            <nav className="container px-4 py-4 space-y-2">
               {/* Main Navigation */}
               {navigationItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block py-3 text-base font-medium transition-colors hover:text-foreground/80 ${
+                  className={`block py-2 text-sm transition-colors hover:text-foreground/80 ${
                     isActiveLink(item.href)
                       ? 'text-foreground'
-                      : 'text-foreground/60'
+                      : 'text-muted-foreground'
                   }`}
                 >
                   {item.label}
@@ -157,33 +157,28 @@ export const PublicHeader: React.FC = () => {
               ))}
               
               {/* Modules Section */}
-              <div className="py-4 border-t border-border/40">
-                <div className="space-y-3">
-                  {modules.map((module) => (
-                    <Link
-                      key={module.href}
-                      href={module.href}
-                      className="flex items-center space-x-3 py-3 text-base font-medium text-foreground transition-colors hover:text-foreground/80"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <div className="flex-shrink-0 w-6 h-6 bg-muted rounded-md flex items-center justify-center">
-                        {module.icon}
-                      </div>
-                      <span>{module.name}</span>
-                    </Link>
-                  ))}
-                </div>
+              <div className="space-y-2">
+                {modules.map((module) => (
+                  <Link
+                    key={module.href}
+                    href={module.href}
+                    className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {module.name}
+                  </Link>
+                ))}
               </div>
               
               {/* Mobile CTA Buttons */}
-              <div className="pt-4 space-y-3 border-t border-border/40">
+              <div className="pt-6 pb-8 space-y-3">
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="default" className="w-full justify-center text-base">
+                  <Button variant="outline" className="w-full text-sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button size="default" className="w-full bg-primary hover:bg-primary/90 text-base">
+                  <Button className="w-full text-sm">
                     Get Started
                   </Button>
                 </Link>
