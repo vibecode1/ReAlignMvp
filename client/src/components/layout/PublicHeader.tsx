@@ -133,14 +133,14 @@ export const PublicHeader: React.FC = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: '100vh' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed inset-0 top-16 bg-background/95 backdrop-blur z-40"
+            className="md:hidden fixed inset-0 top-16 bg-gradient-to-br from-slate-50 to-blue-50/30 z-50 overflow-hidden"
           >
             <nav className="h-full flex flex-col px-4 py-4">
-              <div className="space-y-2">
+              <div className="space-y-2 mb-8">
                 {/* Main Navigation */}
                 {navigationItems.map((item) => (
                   <Link
@@ -169,18 +169,18 @@ export const PublicHeader: React.FC = () => {
                   </Link>
                 ))}
                 
-                {/* Sign In as pill button */}
-                <div className="pt-4">
-                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="rounded-full px-6 text-sm">
-                      Sign In
-                    </Button>
-                  </Link>
-                </div>
+                {/* Sign In link */}
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+                >
+                  Sign In
+                </Link>
               </div>
               
-              {/* Get Started button at bottom */}
-              <div className="mt-auto pb-8">
+              {/* Get Started button - positioned higher for smaller screens */}
+              <div className="mt-auto pb-6">
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full text-sm">
                     Get Started
