@@ -23,23 +23,20 @@ export const PublicHeader: React.FC = () => {
     { href: '/contact', label: 'Contact' },
   ];
 
-  const products = [
+  const modules = [
     {
       href: '/solutions/tracker',
-      name: 'ReAlign Tracker',
-      description: 'Transaction Management',
+      name: 'Tracker',
       icon: <Target className="h-4 w-4" />,
     },
     {
       href: '/solutions/maker',
-      name: 'ReAlign Maker',
-      description: 'Document Creation',
+      name: 'Maker',
       icon: <Wrench className="h-4 w-4" />,
     },
     {
       href: '/solutions/advisor',
-      name: 'ReAlign Advisor',
-      description: 'Education & Guidance',
+      name: 'Advisor',
       icon: <GraduationCap className="h-4 w-4" />,
     },
   ];
@@ -85,27 +82,19 @@ export const PublicHeader: React.FC = () => {
               <span>Products</span>
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-80">
-              {products.map((product) => (
-                <DropdownMenuItem key={product.href} asChild>
-                  <Link href={product.href} className="flex items-start space-x-3 p-3 cursor-pointer">
+            <DropdownMenuContent align="start" className="w-64">
+              {modules.map((module) => (
+                <DropdownMenuItem key={module.href} asChild>
+                  <Link href={module.href} className="flex items-center space-x-3 p-3 cursor-pointer">
                     <div className="flex-shrink-0 w-8 h-8 bg-muted rounded-md flex items-center justify-center">
-                      {product.icon}
+                      {module.icon}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{product.name}</div>
-                      <div className="text-xs text-muted-foreground">{product.description}</div>
+                      <div className="font-medium text-sm">ReAlign {module.name}</div>
                     </div>
                   </Link>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/pricing" className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <Package className="h-4 w-4" />
-                  <span className="font-medium text-sm">Compare Plans & Bundles</span>
-                </Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
@@ -150,13 +139,14 @@ export const PublicHeader: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur"
           >
-            <nav className="container px-4 py-4 space-y-4">
+            <nav className="container px-4 py-6 space-y-3">
+              {/* Main Navigation */}
               {navigationItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block py-2 text-sm font-medium transition-colors hover:text-foreground/80 ${
+                  className={`block py-3 text-base font-medium transition-colors hover:text-foreground/80 ${
                     isActiveLink(item.href)
                       ? 'text-foreground'
                       : 'text-foreground/60'
@@ -166,46 +156,34 @@ export const PublicHeader: React.FC = () => {
                 </Link>
               ))}
               
-              {/* Mobile Products Section */}
-              <div className="py-2">
-                <div className="text-sm font-medium text-foreground/60 mb-3">Products</div>
-                <div className="space-y-3 pl-2">
-                  {products.map((product) => (
+              {/* Modules Section */}
+              <div className="py-4 border-t border-border/40">
+                <div className="space-y-3">
+                  {modules.map((module) => (
                     <Link
-                      key={product.href}
-                      href={product.href}
-                      className="flex items-start space-x-3 py-2"
+                      key={module.href}
+                      href={module.href}
+                      className="flex items-center space-x-3 py-3 text-base font-medium text-foreground transition-colors hover:text-foreground/80"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <div className="flex-shrink-0 w-6 h-6 bg-muted rounded-md flex items-center justify-center">
-                        {product.icon}
+                        {module.icon}
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{product.name}</div>
-                        <div className="text-xs text-muted-foreground">{product.description}</div>
-                      </div>
+                      <span>{module.name}</span>
                     </Link>
                   ))}
-                  <Link
-                    href="/pricing"
-                    className="flex items-center space-x-2 py-2 pl-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Package className="h-4 w-4" />
-                    <span className="font-medium text-sm">Compare Plans & Bundles</span>
-                  </Link>
                 </div>
               </div>
               
               {/* Mobile CTA Buttons */}
-              <div className="pt-4 space-y-2 border-t border-border/40">
+              <div className="pt-4 space-y-3 border-t border-border/40">
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <Button variant="ghost" size="default" className="w-full justify-center text-base">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
+                  <Button size="default" className="w-full bg-primary hover:bg-primary/90 text-base">
                     Get Started
                   </Button>
                 </Link>
