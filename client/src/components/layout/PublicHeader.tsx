@@ -26,17 +26,17 @@ export const PublicHeader: React.FC = () => {
   const modules = [
     {
       href: '/solutions/tracker',
-      name: 'Tracker',
+      name: 'ReAlign: Tracker',
       icon: <Target className="h-4 w-4" />,
     },
     {
       href: '/solutions/maker',
-      name: 'Maker',
+      name: 'ReAlign: Maker',
       icon: <Wrench className="h-4 w-4" />,
     },
     {
       href: '/solutions/advisor',
-      name: 'Advisor',
+      name: 'ReAlign: Advisor',
       icon: <GraduationCap className="h-4 w-4" />,
     },
   ];
@@ -178,26 +178,7 @@ export const PublicHeader: React.FC = () => {
                   Sign In
                 </Link>
               </div>
-              
-              {/* Mobile CTA Buttons */}
-              <div className="pt-6 pb-8 flex flex-col gap-4">
-                <div className="flex justify-center">
-                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all">
-                      Start Free Trial
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
-                </div>
-                <div className="flex justify-center">
-                  <Link href="/demo" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" size="lg" className="px-8 py-3 text-lg border-slate-300 hover:bg-slate-50">
-                      <Play className="mr-2 h-5 w-5" />
-                      Watch Demo
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+
             </nav>
           </motion.div>
         )}
