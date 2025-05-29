@@ -42,6 +42,7 @@ export const PublicHeader: React.FC = () => {
   ];
 
   const toggleMobileMenu = () => {
+    console.log('Toggle clicked, current state:', isMobileMenuOpen);
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
@@ -130,67 +131,59 @@ export const PublicHeader: React.FC = () => {
       </div>
 
       {/* Mobile Navigation */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="md:hidden fixed inset-0 top-16 bg-gradient-to-br from-slate-50 to-blue-50/30 z-50 overflow-hidden"
-          >
-            <nav className="h-full flex flex-col px-4 py-4">
-              <div className="space-y-2 mb-8">
-                {/* Main Navigation */}
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block py-2 text-sm transition-colors hover:text-foreground/80 ${
-                      isActiveLink(item.href)
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                
-                {/* Modules Section */}
-                {modules.map((module) => (
-                  <Link
-                    key={module.href}
-                    href={module.href}
-                    className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {module.name}
-                  </Link>
-                ))}
-                
-                {/* Sign In link */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 top-16 bg-gradient-to-br from-slate-50 to-blue-50/30 z-50 overflow-hidden">
+          <nav className="h-full flex flex-col px-4 py-4">
+            <div className="space-y-2 mb-8">
+              {/* Main Navigation */}
+              {navigationItems.map((item) => (
                 <Link
-                  href="/login"
+                  key={item.href}
+                  href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+                  className={`block py-2 text-sm transition-colors hover:text-foreground/80 ${
+                    isActiveLink(item.href)
+                      ? 'text-foreground'
+                      : 'text-muted-foreground'
+                  }`}
                 >
-                  Sign In
+                  {item.label}
                 </Link>
-              </div>
+              ))}
               
-              {/* Get Started button - positioned higher for smaller screens */}
-              <div className="mt-auto pb-6">
-                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full text-sm">
-                    Get Started
-                  </Button>
+              {/* Modules Section */}
+              {modules.map((module) => (
+                <Link
+                  key={module.href}
+                  href={module.href}
+                  className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {module.name}
                 </Link>
-              </div>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              ))}
+              
+              {/* Sign In link */}
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block py-2 text-sm text-muted-foreground transition-colors hover:text-foreground/80"
+              >
+                Sign In
+              </Link>
+            </div>
+            
+            {/* Get Started button - positioned higher for smaller screens */}
+            <div className="mt-auto pb-6">
+              <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full text-sm">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
