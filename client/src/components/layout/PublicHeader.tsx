@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Menu, X, ChevronDown, Target, Wrench, GraduationCap, Package, ArrowRight } from 'lucide-react';
+import { Menu, X, ChevronDown, Target, Wrench, GraduationCap, Package, ArrowRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/logo';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -179,14 +179,24 @@ export const PublicHeader: React.FC = () => {
                 </Link>
               </div>
               
-              {/* Mobile CTA Button */}
-              <div className="pt-6 pb-8 flex justify-center">
-                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all">
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
+              {/* Mobile CTA Buttons */}
+              <div className="pt-6 pb-8 flex flex-col gap-4">
+                <div className="flex justify-center">
+                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all">
+                      Start Free Trial
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+                <div className="flex justify-center">
+                  <Link href="/demo" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-slate-300 hover:bg-slate-50">
+                      <Play className="mr-2 h-5 w-5" />
+                      Watch Demo
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </nav>
           </motion.div>
