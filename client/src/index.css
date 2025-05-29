@@ -98,23 +98,7 @@
 --ring: 213 94% 68%;
 --radius: 0.75rem;
 
-/* Navigation Design System Variables */
---spacing-xs: 4px;
---spacing-sm: 8px;
---spacing-md: 16px;
---spacing-lg: 24px;
---spacing-xl: 32px;
 
-/* Typography Scale */
---font-normal: 400;
---font-medium: 500;
---font-semibold: 600;
-
-/* Navigation Colors */
---primary-blue: #4169E1;
---hover-gray: #F3F4F6;
---text-light: hsl(var(--foreground));
---text-dark: hsl(var(--muted-foreground));
 
     /* Overall page background */
     --background-light: 0 0% 100%;
@@ -206,31 +190,6 @@
     @apply bg-primary text-primary-foreground shadow-sm;
   }
 
-  /* Enhanced Mobile Navigation Drawer Styles */
-  .mobile-nav-item {
-    @apply block py-3 px-3 rounded-lg text-base font-medium transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-800;
-  }
-
-  .mobile-nav-item.active {
-    @apply text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-900/20;
-  }
-
-  .mobile-nav-section-header {
-    @apply text-xs uppercase font-semibold text-gray-500 dark:text-gray-400 tracking-wider;
-  }
-
-  .mobile-nav-products-container {
-    @apply bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3;
-  }
-
-  .mobile-nav-product-item {
-    @apply flex items-center space-x-3 py-3 px-3 rounded-lg transition-colors duration-200 hover:bg-white dark:hover:bg-gray-700 group;
-  }
-
-  .mobile-nav-product-icon {
-    @apply flex-shrink-0 w-8 h-8 bg-white dark:bg-gray-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow;
-  }
-
   /* Enhanced animations */
   .nav-transition {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -239,36 +198,6 @@
   .nav-backdrop {
     backdrop-filter: blur(8px);
     background: rgba(0, 0, 0, 0.4);
-  }
-
-  .drawer-slide-in {
-    animation: slideInFromRight 0.3s ease-out;
-  }
-
-  .drawer-slide-out {
-    animation: slideOutToRight 0.3s ease-in;
-  }
-
-  @keyframes slideInFromRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideOutToRight {
-    from {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(100%);
-      opacity: 0;
-    }
   }
 }
 
