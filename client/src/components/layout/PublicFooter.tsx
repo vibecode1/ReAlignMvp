@@ -5,6 +5,10 @@ import { Logo } from '@/components/ui/logo';
 export const PublicFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
+  const handleLinkClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const footerSections = [
     {
       title: 'Product',
@@ -52,7 +56,7 @@ export const PublicFooter: React.FC = () => {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
             {/* Brand Section */}
             <div className="lg:col-span-2">
-              <Link href="/" className="flex items-center space-x-2 mb-4">
+              <Link href="/" className="flex items-center space-x-2 mb-4" onClick={handleLinkClick}>
                 <Logo className="h-8 w-auto" />
               </Link>
               <p className="text-sm text-muted-foreground mb-6 max-w-md">
@@ -100,6 +104,7 @@ export const PublicFooter: React.FC = () => {
                       <Link
                         href={link.href}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={handleLinkClick}
                       >
                         {link.label}
                       </Link>
@@ -121,18 +126,21 @@ export const PublicFooter: React.FC = () => {
               <Link
                 href="/privacy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleLinkClick}
               >
                 Privacy
               </Link>
               <Link
                 href="/terms"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleLinkClick}
               >
                 Terms
               </Link>
               <Link
                 href="/cookies"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleLinkClick}
               >
                 Cookies
               </Link>
