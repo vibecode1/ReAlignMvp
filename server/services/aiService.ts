@@ -1,4 +1,3 @@
-
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { contextRecipeService } from './contextRecipeService';
@@ -76,7 +75,7 @@ export class AiService {
    */
   static async generateRecommendation(request: AiRequest): Promise<AiResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Get context recipe configuration
       const recipe = contextRecipeService.getRecipe(request.contextRecipeId);
@@ -105,7 +104,7 @@ export class AiService {
           recipe.ai_config.user_prompt_template,
           { user_input: request.userInput, ...contextData }
         );
-      
+
       // Override model if specified in additional context
       const preferredModel = request.additionalContext?.preferredModel || recipe.ai_config.preferred_model;
       const maxTokens = request.additionalContext?.maxTokens || recipe.ai_config.max_tokens;
@@ -114,7 +113,7 @@ export class AiService {
       // Try OpenAI first, fallback to Claude if needed
       let aiResponse: any;
       let modelUsed: string;
-      
+
       if (openai && !request.additionalContext?.isImage) {
         try {
           console.log('Calling OpenAI with model:', preferredModel);
@@ -127,10 +126,10 @@ export class AiService {
             max_tokens: maxTokens,
             temperature: temperature,
           });
-          
+
           aiResponse = completion;
           modelUsed = preferredModel;
-          
+
         } catch (openaiError) {
           console.error('OpenAI API error, attempting Claude fallback:', openaiError);
           if (!anthropic) {
@@ -140,7 +139,7 @@ export class AiService {
           aiResponse = null;
         }
       }
-      
+
       // Use Claude as fallback if OpenAI failed or is not available, or for image processing
       if (!aiResponse && anthropic) {
         try {
@@ -152,15 +151,15 @@ export class AiService {
               ? AI_SERVICE_CONFIG.providers.anthropic.models.powerful
               : AI_SERVICE_CONFIG.providers.anthropic.models.balanced;
           }
-          
+
           console.log('Claude model:', claudeModel);
-          
+
           // Handle image documents
           if (request.additionalContext?.isImage && request.additionalContext?.imageData) {
             console.log('Processing image with Claude vision');
             const imageData = request.additionalContext.imageData;
             let base64Data = imageData;
-            
+
             // Extract base64 if it's a data URL
             if (imageData.startsWith('data:')) {
               const parts = imageData.split(',');
@@ -168,7 +167,7 @@ export class AiService {
                 base64Data = parts[1];
               }
             }
-            
+
             const claudeResponse = await anthropic.messages.create({
               model: claudeModel,
               max_tokens: maxTokens,
@@ -193,7 +192,7 @@ export class AiService {
                 }
               ],
             });
-            
+
             // Transform response to match expected format
             const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
             aiResponse = {
@@ -220,7 +219,7 @@ export class AiService {
                 }
               ],
             });
-          
+
           // Transform Claude response to match OpenAI format
           const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
           aiResponse = {
@@ -234,13 +233,13 @@ export class AiService {
             }
           };
           modelUsed = claudeModel;
-          
+          }
         } catch (claudeError) {
           console.error('Claude API error:', claudeError);
           throw new Error('Both OpenAI and Claude APIs failed. Please check API configurations.');
         }
       }
-      
+
       if (!aiResponse) {
         throw new Error('No AI service available. Please configure either OpenAI or Anthropic API key.');
       }
@@ -271,7 +270,7 @@ export class AiService {
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error('AI Service Error:', error);
-      
+
       // Log failed AI interaction
       await WorkflowLogger.logAiRecommendation(request.userId, {
         transaction_id: request.transactionId,
@@ -318,9 +317,9 @@ export class AiService {
       // Parse AI response for validation result
       const isValid = !aiResponse.content.toLowerCase().includes('error') && 
                      !aiResponse.content.toLowerCase().includes('invalid');
-      
+
       const suggestions = AiService.extractSuggestions(aiResponse.content);
-      
+
       // Log validation event
       await WorkflowLogger.logValidation(request.userId, {
         transaction_id: request.transactionId,
@@ -370,7 +369,7 @@ export class AiService {
     // Simple regex to extract bullet points or numbered lists
     const suggestionMatches = content.match(/[-•*]\s+(.+?)(?=\n|$)/g) || 
                              content.match(/\d+\.\s+(.+?)(?=\n|$)/g) || [];
-    
+
     return suggestionMatches.map(match => 
       match.replace(/^[-•*]\s+/, '').replace(/^\d+\.\s+/, '').trim()
     ).slice(0, 5); // Limit to 5 suggestions
