@@ -87,33 +87,45 @@ export const MakerDashboardPage: React.FC = () => {
     },
     {
       title: "Financial Calculators",
-      description: "Calculate key financial metrics for loss mitigation",
+      description: "Fannie Mae compliant calculations for loss mitigation",
       icon: <Calculator className="h-6 w-6" />,
       color: "bg-orange-500",
       tools: [
         { 
-          name: "DTI Calculator", 
+          name: "DTI Calculators", 
           href: "/app/maker/calculator/dti",
-          description: "Debt-to-income ratio calculator",
-          badge: "Essential"
+          description: "Housing & total debt-to-income ratios",
+          badge: "Fannie Mae"
         },
         { 
-          name: "Insolvency Calculator", 
-          href: "/app/maker/calculator/insolvency",
-          description: "Determine net worth and insolvency status",
+          name: "Cash Reserves & Contribution", 
+          href: "/app/maker/calculator/cash",
+          description: "Calculate liquid assets and required contributions",
+          badge: "Short Sale"
+        },
+        { 
+          name: "Payment Deferral Eligibility", 
+          href: "/app/maker/calculator/deferral",
+          description: "Comprehensive eligibility assessment",
+          badge: "Retention"
+        },
+        { 
+          name: "Property LTV & Paydown", 
+          href: "/app/maker/calculator/ltv",
+          description: "Loan-to-value and required paydown calculations",
           badge: "Analysis"
         },
         { 
-          name: "Pro-Rated Property Tax Calculator", 
-          href: "/app/maker/calculator/property-tax",
-          description: "Calculate property tax proration",
-          badge: "Closing"
+          name: "Trial Period & Affordability", 
+          href: "/app/maker/calculator/modification",
+          description: "Modification payment and affordability analysis",
+          badge: "Modification"
         },
         { 
-          name: "Net Proceeds Calculator", 
-          href: "/app/maker/calculator/net-proceeds",
-          description: "Estimate short sale net proceeds",
-          badge: "Short Sale"
+          name: "All Financial Calculators", 
+          href: "/app/maker/calculator/dashboard",
+          description: "Access all 13 Fannie Mae guideline calculators",
+          badge: "Complete Suite"
         }
       ]
     }

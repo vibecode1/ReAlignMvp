@@ -20,6 +20,7 @@ import { simpleDocumentController } from "./controllers/simpleDocumentController
 import { onboardingController } from "./controllers/onboardingController";
 import { loeDrafterController } from "./controllers/loeDrafterController";
 import { documentChecklistController } from './controllers/documentChecklistController';
+import financialCalculatorController from './controllers/financialCalculatorController';
 import ClaudeController from "./controllers/claudeController.js";
 import OpenAIController from "./controllers/openaiController.js";
 import { WebSocketServer } from "ws";
@@ -267,6 +268,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   transactionRouter.get('/:id/checklist', authenticateJWT, requireTransactionAccess, documentChecklistController.getChecklist);
   transactionRouter.get('/:id/checklist/progress', authenticateJWT, requireTransactionAccess, documentChecklistController.getChecklistProgress);
 
+  // -- Financial Calculator Routes (Phase 1 - Task 1.4) --
+  const calculatorRouter = express.Router();
+  calculatorRouter.get('/available', financialCalculatorController.getAvailableCalculators);
+  calculatorRouter.post('/housing-dti', authenticateJWT, financialCalculatorController.calculateHousingDTI);
+  calculatorRouter.post('/total-dti', authenticateJWT, financialCalculatorController.calculateTotalDTI);
+  calculatorRouter.post('/income-gross-up', authenticateJWT, financialCalculatorController.calculateIncomeGrossUp);
+  calculatorRouter.post('/cash-reserves', authenticateJWT, financialCalculatorController.calculateCashReserves);
+  calculatorRouter.post('/cash-contribution', authenticateJWT, financialCalculatorController.calculateCashContribution);
+  calculatorRouter.post('/escrow-shortage', authenticateJWT, financialCalculatorController.calculateEscrowShortageRepayment);
+  calculatorRouter.post('/trial-period-payment', authenticateJWT, financialCalculatorController.calculateTrialPeriodPayment);
+  calculatorRouter.post('/repayment-plan', authenticateJWT, financialCalculatorController.calculateRepaymentPlanParameters);
+  calculatorRouter.post('/payment-deferral-eligibility', authenticateJWT, financialCalculatorController.calculatePaymentDeferralEligibility);
+  calculatorRouter.post('/property-ltv', authenticateJWT, financialCalculatorController.calculatePropertyLTVAndPaydown);
+  calculatorRouter.post('/relocation-assistance', authenticateJWT, financialCalculatorController.calculateRelocationAssistanceEligibility);
+  calculatorRouter.post('/short-sale-proceeds', authenticateJWT, financialCalculatorController.calculateShortSaleNetProceeds);
+  calculatorRouter.post('/affordability-modification', authenticateJWT, financialCalculatorController.calculateAffordabilityForModification);
+  calculatorRouter.post('/evaluate-uba-form', authenticateJWT, financialCalculatorController.evaluateUBAFormForWorkoutOption);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -301,6 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/loe', loeRouter);
   console.log('Registering Document Checklist router at /checklists');
   apiRouter.use('/checklists', checklistRouter);
+  console.log('Registering Financial Calculator router at /calculators');
+  apiRouter.use('/calculators', calculatorRouter);
 
   // Register public routes (no authentication required)
   console.log('Registering public router at /api/public');

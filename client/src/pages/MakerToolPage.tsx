@@ -26,6 +26,7 @@ import {
   User
 } from 'lucide-react';
 import { Link } from 'wouter';
+import FinancialCalculatorDashboard from '@/components/FinancialCalculatorDashboard';
 
 interface MakerToolPageProps {
   tool: string;
@@ -291,6 +292,11 @@ export const MakerToolPage: React.FC<MakerToolPageProps> = ({ tool, subTool }) =
   };
 
   const renderCalculator = () => {
+    // If no subTool specified, show comprehensive dashboard
+    if (!subTool) {
+      return <FinancialCalculatorDashboard />;
+    }
+
     switch (subTool) {
       case 'dti':
         return (

@@ -28,7 +28,10 @@
       "Bash(timeout:*)",
       "Bash(node:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm test:*)",
+      "Bash(npx tsx:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   },
