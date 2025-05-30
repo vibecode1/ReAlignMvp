@@ -7,6 +7,7 @@ import { aiService } from '../services/aiService';
 import { ENHANCED_DOCUMENT_EXTRACTION_PROMPT, AI_SERVICE_CONFIG } from '../services/aiServiceConfig';
 import { mapExtractedToUbaFields } from '@shared/ubaFieldMappings';
 import { UbaFormExportService } from '../services/ubaFormExportService';
+import { DocumentProcessingLogger } from '../services/documentProcessingLogger';
 // PDF processing will use pdfjs-dist
 
 // Schema for UBA form data
@@ -571,24 +572,26 @@ export const ubaFormController = {
           console.log(`Saved document attachment ${attachmentId} with ${Object.keys(extractedData).length} extracted fields`);
         }
 
-        // Log document processing
-        await storage.logWorkflowEvent({
-          user_id: req.user.id,
-          event_type: 'document_processed',
-          event_category: 'uba_form',
-          event_name: 'document_data_extracted',
-          event_description: `Extracted data from ${fileName}`,
-          success_indicator: true,
-          event_metadata: JSON.stringify({
-            file_name: fileName,
+        // Log document processing with comprehensive logging
+        await DocumentProcessingLogger.logExtraction({
+          fileName,
+          fileType,
+          extractionMethod,
+          success: true,
+          fieldCount: Object.keys(extractedData).length,
+          userId: req.user.id,
+          transactionId: req.body.ubaFormId,
+          metadata: {
             document_type: documentType,
-            file_type: fileType,
-            fields_extracted: Object.keys(extractedData).length,
-            fields_mapped: mappingResult.mappingStats.mappedCount,
-            fields_unmapped: mappingResult.mappingStats.unmappedCount,
-            extraction_method: extractionMethod,
             attachment_id: attachmentId
-          })
+          }
+        });
+
+        await DocumentProcessingLogger.logMapping({
+          ...mappingResult.mappingStats,
+          mappingStrategy: 'comprehensive_uba_mapping',
+          userId: req.user.id,
+          fileName
         });
 
         return res.status(200).json({
@@ -622,6 +625,17 @@ export const ubaFormController = {
             console.error('CONTENT POLICY ERROR: Claude rejected content');
           }
         }
+
+        // Log the AI failure
+        await DocumentProcessingLogger.logExtraction({
+          fileName,
+          fileType,
+          extractionMethod: 'ai_extraction_failed',
+          success: false,
+          error: aiError,
+          userId: req.user.id,
+          transactionId: req.body.ubaFormId
+        });
         
         // Fallback: Manual pattern extraction
         const manualExtraction = ubaFormController.extractMortgageDataManually(processedContent, fileName);
@@ -643,10 +657,10 @@ export const ubaFormController = {
       console.error('Process document error:', error);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       console.error('Error details:', {
-        fileName,
-        fileType,
-        documentType,
-        contentLength: typeof processedContent === 'string' ? processedContent.length : 'unknown'
+        fileName: fileName || 'unknown',
+        fileType: fileType || 'unknown', 
+        documentType: documentType || 'unknown',
+        contentLength: 'unknown'
       });
       
       return res.status(500).json({
@@ -1531,16 +1545,26 @@ What information would you like to provide? You can tell me about:
         });
       }
       
-      // Get all extracted document data for the transaction
-      const documentExtractions = await storage.getTransactionDocumentExtractions(
-        ubaForm.transaction_id
-      );
+      // Get aggregated document data for the transaction
+      let aggregatedDocumentData;
+      let extractedData = {};
       
-      // Aggregate all extracted data
-      const extractedData = documentExtractions.reduce((acc, doc) => {
-        const data = doc.extracted_data || {};
-        return { ...acc, ...data };
-      }, {});
+      try {
+        aggregatedDocumentData = await storage.getAggregatedDocumentData(
+          ubaForm.transaction_id
+        );
+        extractedData = aggregatedDocumentData.aggregatedData;
+        console.log(`Found ${aggregatedDocumentData.documentCount} documents with ${aggregatedDocumentData.extractedFields.length} unique fields`);
+      } catch (aggregationError) {
+        console.warn('Failed to get aggregated document data, proceeding with form data only:', aggregationError);
+        // Continue with just the form data - this is not a blocking error
+        aggregatedDocumentData = {
+          documentCount: 0,
+          extractedFields: [],
+          aggregatedData: {},
+          documents: []
+        };
+      }
       
       console.log(`Exporting form ${formId} to ${formType} with ${Object.keys(extractedData).length} extracted fields`);
       
@@ -1558,21 +1582,22 @@ What information would you like to provide? You can tell me about:
         extractedData
       );
       
-      // Log the export
-      await storage.logWorkflowEvent({
-        user_id: req.user.id,
-        event_type: 'form_exported',
-        event_category: 'uba_form',
-        event_name: `exported_to_${formType}`,
-        event_description: `Exported UBA form to ${formType}`,
-        success_indicator: true,
-        event_metadata: JSON.stringify({
-          form_id: formId,
-          form_type: formType,
-          file_size: pdfBuffer.length,
-          extracted_fields_count: Object.keys(extractedData).length,
-          form_fields_count: Object.keys(formData).length
-        })
+      // Log the export with comprehensive logging
+      await DocumentProcessingLogger.logExport({
+        formType,
+        formId,
+        documentCount: aggregatedDocumentData.documentCount,
+        fieldCount: Object.keys(extractedData).length,
+        success: true,
+        userId: req.user.id
+      });
+
+      await DocumentProcessingLogger.logAggregation({
+        transactionId: ubaForm.transaction_id,
+        documentCount: aggregatedDocumentData.documentCount,
+        fieldCount: aggregatedDocumentData.extractedFields.length,
+        userId: req.user.id,
+        success: true
       });
       
       // Send the PDF

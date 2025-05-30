@@ -12,6 +12,10 @@ export const workflowEventSeverityEnum = pgEnum('workflow_event_severity', ['inf
 export const ubaFieldStatusEnum = pgEnum('uba_field_status', ['empty', 'in_progress', 'completed', 'validated', 'requires_review']);
 export const ubaDocumentTypeEnum = pgEnum('uba_document_type', ['income_verification', 'hardship_letter', 'financial_statement', 'property_documents', 'correspondence']);
 export const conversationalIntakeStatusEnum = pgEnum('conversational_intake_status', ['not_started', 'in_progress', 'completed', 'validated']);
+
+// Loan type enum for financial calculator service extensibility
+export const loanTypeEnum = pgEnum('loan_type', ['Conventional', 'FHA', 'VA', 'USDA', 'Other']);
+
 // Updated transaction phases for Tracker MVP
 export const transactionPhaseEnum = pgEnum('transaction_phase', [
   'Transaction Initiated',
@@ -263,6 +267,7 @@ export const uba_form_data = pgTable('uba_form_data', {
   borrower_ssn: text('borrower_ssn'), // Encrypted in production
   property_address: text('property_address'),
   loan_number: text('loan_number'),
+  loan_type: loanTypeEnum('loan_type').default('Conventional'), // Added for financial calculator extensibility
   
   // Section 2: Financial Information (UBA Guide conventions)
   monthly_gross_income: integer('monthly_gross_income'), // In cents

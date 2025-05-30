@@ -233,7 +233,7 @@ export class AiService {
             }
           };
           modelUsed = claudeModel;
-          }
+        }
         } catch (claudeError) {
           console.error('Claude API error:', claudeError);
           throw new Error('Both OpenAI and Claude APIs failed. Please check API configurations.');

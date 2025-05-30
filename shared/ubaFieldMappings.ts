@@ -105,7 +105,7 @@ export interface FieldMappingResult {
 }
 
 export function mapExtractedToUbaFields(extractedData: Record<string, any>): FieldMappingResult {
-  const mappedFields: Record<string, any> = {};
+  let mappedFields: Record<string, any> = {};
   const unmappedFields: Record<string, any> = {};
   
   for (const [extractedKey, value] of Object.entries(extractedData)) {
@@ -183,7 +183,7 @@ export function mapExtractedToUbaFields(extractedData: Record<string, any>): Fie
 }
 
 function applyUbaFormattingRules(fields: Record<string, any>): Record<string, any> {
-  const formatted = { ...fields };
+  const formatted: Record<string, any> = { ...fields };
   
   // Always set these fields per UBA Guide
   formatted['borrower_email'] = 'Attorney Only';

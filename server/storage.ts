@@ -917,14 +917,101 @@ class DrizzleStorage implements IStorage {
 
     async getTransactionDocumentExtractions(transactionId: string): Promise<any[]> {
         try {
-            const result = await db.execute(
-                sql`SELECT * FROM transaction_document_extractions 
-                    WHERE transaction_id = ${transactionId} 
-                    ORDER BY created_at DESC`
-            );
-            return result.rows;
+            // Query uba_document_attachments for documents related to this transaction
+            const result = await db
+                .select()
+                .from(schema.uba_document_attachments)
+                .leftJoin(
+                    schema.uba_form_data,
+                    eq(schema.uba_document_attachments.uba_form_data_id, schema.uba_form_data.id)
+                )
+                .where(eq(schema.uba_form_data.transaction_id, transactionId))
+                .orderBy(desc(schema.uba_document_attachments.uploaded_at));
+
+            return result.map(row => ({
+                ...row.uba_document_attachments,
+                extracted_data: row.uba_document_attachments.extracted_data 
+                    ? JSON.parse(row.uba_document_attachments.extracted_data) 
+                    : {}
+            }));
         } catch (error) {
             console.error('Error getting transaction document extractions:', error);
+            throw error;
+        }
+    }
+
+    async getAggregatedDocumentData(transactionId: string): Promise<{
+        aggregatedData: Record<string, any>;
+        documentCount: number;
+        extractedFields: string[];
+        documents: any[];
+    }> {
+        try {
+            if (!transactionId) {
+                throw new Error('Transaction ID is required');
+            }
+
+            const documentExtractions = await this.getTransactionDocumentExtractions(transactionId);
+            
+            // Aggregate all extracted data with safe parsing
+            const aggregatedData = documentExtractions.reduce((acc, doc) => {
+                try {
+                    const data = doc.extracted_data || {};
+                    // Only include non-null, non-empty values
+                    const cleanData = Object.entries(data).reduce((cleanAcc, [key, value]) => {
+                        if (value !== null && value !== undefined && value !== '') {
+                            cleanAcc[key] = value;
+                        }
+                        return cleanAcc;
+                    }, {} as Record<string, any>);
+                    
+                    return { ...acc, ...cleanData };
+                } catch (parseError) {
+                    console.warn(`Failed to parse extracted data for document ${doc.id}:`, parseError);
+                    return acc;
+                }
+            }, {});
+
+            const extractedFields = Object.keys(aggregatedData);
+            
+            console.log(`Aggregated ${documentExtractions.length} documents with ${extractedFields.length} unique fields`);
+
+            return {
+                aggregatedData,
+                documentCount: documentExtractions.length,
+                extractedFields,
+                documents: documentExtractions
+            };
+        } catch (error) {
+            console.error('Error getting aggregated document data:', error);
+            // Return empty data structure instead of throwing
+            return {
+                aggregatedData: {},
+                documentCount: 0,
+                extractedFields: [],
+                documents: []
+            };
+        }
+    }
+
+    async getUbaDocumentAttachments(transactionId: string): Promise<any[]> {
+        try {
+            const result = await db
+                .select()
+                .from(schema.uba_document_attachments)
+                .leftJoin(
+                    schema.uba_form_data,
+                    eq(schema.uba_document_attachments.uba_form_data_id, schema.uba_form_data.id)
+                )
+                .where(eq(schema.uba_form_data.transaction_id, transactionId))
+                .orderBy(desc(schema.uba_document_attachments.uploaded_at));
+
+            return result.map(row => ({
+                ...row.uba_document_attachments,
+                form_data: row.uba_form_data
+            }));
+        } catch (error) {
+            console.error('Error getting UBA document attachments:', error);
             throw error;
         }
     }
