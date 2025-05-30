@@ -16,8 +16,10 @@ import { publicTrackerController } from "./controllers/publicTrackerController";
 import { userContextController } from "./controllers/userContextController";
 import { workflowLogController } from "./controllers/workflowLogController";
 import { ubaFormController } from "./controllers/ubaFormController";
+import { simpleDocumentController } from "./controllers/simpleDocumentController";
 import { onboardingController } from "./controllers/onboardingController";
 import { loeDrafterController } from "./controllers/loeDrafterController";
+import { documentChecklistController } from './controllers/documentChecklistController';
 import ClaudeController from "./controllers/claudeController.js";
 import OpenAIController from "./controllers/openaiController.js";
 import { WebSocketServer } from "ws";
@@ -214,6 +216,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ubaFormRouter.get('/:id', authenticateJWT, requirePermission('uba_form:view_own'), ubaFormController.getForm);
   ubaFormRouter.post('/process-conversation', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.processConversation);
   ubaFormRouter.post('/process-document', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.processDocument);
+  ubaFormRouter.post('/process-document-simple', authenticateJWT, requirePermission('uba_form:create'), simpleDocumentController.processDocument);
+  ubaFormRouter.post('/process-document-upload', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.processDocumentUpload);
   ubaFormRouter.post('/validate', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.validateForm);
 
   // -- Phase 0 - Onboarding Routes --
@@ -249,6 +253,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   loeRouter.post('/draft/:draftId/suggestions', authenticateJWT, loeDrafterController.generateSuggestions);
   loeRouter.get('/templates', authenticateJWT, loeDrafterController.getTemplates);
 
+  // -- Document Checklist Routes (Phase 1 - Task 1.3) --
+  const checklistRouter = express.Router();
+  checklistRouter.post('/generate', authenticateJWT, documentChecklistController.generateChecklist);
+  checklistRouter.get('/lenders', authenticateJWT, documentChecklistController.getLenders);
+  checklistRouter.post('/templates', authenticateJWT, requireRole(['negotiator']), documentChecklistController.createTemplate);
+  checklistRouter.get('/templates', authenticateJWT, documentChecklistController.getTemplates);
+  checklistRouter.put('/items/:itemId', authenticateJWT, documentChecklistController.updateChecklistItem);
+  
+  // Transaction-specific checklist routes
+  transactionRouter.get('/:id/checklist', authenticateJWT, requireTransactionAccess, documentChecklistController.getChecklist);
+  transactionRouter.get('/:id/checklist/progress', authenticateJWT, requireTransactionAccess, documentChecklistController.getChecklistProgress);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -281,6 +297,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/openai', openaiRouter);
   console.log('Registering LOE Drafter router at /loe');
   apiRouter.use('/loe', loeRouter);
+  console.log('Registering Document Checklist router at /checklists');
+  apiRouter.use('/checklists', checklistRouter);
 
   // Register public routes (no authentication required)
   console.log('Registering public router at /api/public');

@@ -1,0 +1,169 @@
+﻿This document outlines the requirements for borrowers seeking assistance with distressed properties through various remedies or disposal options, including the data and supporting evidence they need to provide, and the general rules for approval or denial based on the Fannie Mae Servicing Guide dated April 9, 2025.
+General Notes on Borrower Documentation:
+* Borrower Response Package (BRP): For many workout options, a BRP is a key requirement. A complete BRP typically includes:
+   * A fully completed Mortgage Assistance Application (Form 710) or an equivalent form requesting the same financial information, hardship details, and attestations.
+   * Income documentation, generally not more than 90 days old (180 days if impacted by a disaster). This varies by income type:
+      * Wages and Salaries: Paystubs, W-2s, tax returns, etc. (as outlined in Form 710).
+      * Self-Employed: Profit & loss statements, tax returns, bank statements (as outlined in Form 710).
+      * Other Income (Social Security, disability, rental, etc.): Benefit statements, lease agreements, bank statements (as outlined in Form 710).
+      * Non-Borrower Household Member Income: May be considered if voluntarily provided, properly documented and verified, the contributor occupies the property as a principal residence, and there's evidence of routine contribution to household expenses/mortgage payment.
+      * Non-Taxable Income: An "adjusted gross income" is developed by adding an amount equivalent to 25% of the non-taxable income (or a higher actual tax rate if determinable) to the borrower's income.
+      * Income Documented by Bank Statements: An "adjusted gross income" is developed by adding an amount equivalent to 25% of the amount documented (or a higher actual tax rate if determinable).
+   * Hardship documentation, as outlined in Form 710, based on the type of hardship.
+   * IRS IVES Request for Transcript of Tax Return (IRS Form 4506-C), signed by the borrower, may be required to reconcile inconsistencies, if Fannie Mae requests it, or if a self-employed borrower doesn't provide standard income documentation.
+* A BRP is considered incomplete if Form 710 is only partially filled, lacks required income or hardship documentation, or is missing a required IRS Form 4506-C.
+* For borrowers in active Chapter 7 or 13 bankruptcy, a copy of the bankruptcy schedule(s) (if not more than 90 days old) may be accepted in lieu of Form 710, along with tax returns if required.
+Home Retention Options
+1. Forbearance Plan
+* What Servicers Need from Borrowers/Data/Evidence:
+   * Servicers are authorized to evaluate for a forbearance plan without receiving a complete BRP.
+   * The borrower must have an eligible hardship. (Form 710 lists types of eligible hardships, although a BRP is not mandatory for evaluation).
+   * The property securing the mortgage loan must generally be a principal residence. This rule is waived if the hardship is due to a disaster event, in which case a second home or investment property may be eligible.
+   * The property must not be condemned or abandoned, though it may be vacant.
+   * Quality Right Party Contact (QRPC) with the borrower must generally be achieved. An exception exists for disaster events where the property is in a FEMA-Declared Disaster Area eligible for Individual Assistance, the loan was current or less than two months delinquent at the time of the disaster, and is now at least one month delinquent; in such cases, an initial forbearance of up to 3 months can be offered without QRPC.
+* Rules for Approval/Denial (Eligibility Criteria & Key Terms):
+   * Borrower has an eligible hardship.
+   * Property type and occupancy meet guidelines (principal residence, with disaster exceptions).
+   * Property is not condemned or abandoned.
+   * QRPC is achieved (with disaster exceptions).
+   * An initial forbearance plan term of up to 6 months may be offered, with a possible extension of up to 6 additional months.
+   * Payments are reduced or suspended during the plan.
+   * The plan may be terminated if the borrower fails to meet its terms, the hardship is resolved, or the borrower requests termination.
+2. Repayment Plan
+* What Servicers Need from Borrowers/Data/Evidence:
+   * Servicers may evaluate for a repayment plan without a complete BRP if the mortgage loan is 90 days or less delinquent AND the term of the repayment plan does not exceed six months.
+   * A complete BRP is required if the loan is more than 90 days delinquent OR the repayment plan term exceeds six months.
+   * The borrower must have experienced a temporary hardship that now appears to be resolved.
+   * The borrower must demonstrate the financial capacity to make the regular contractual payments plus the additional amount to cure the delinquency over the plan term. This may be verified through QRPC if a BRP is not submitted.
+* Rules for Approval/Denial (Eligibility Criteria & Key Terms):
+   * The delinquency must have resulted from a temporary hardship that appears to be resolved.
+   * For plans up to 6 months and loan delinquency ≤ 90 days:
+      * Total monthly repayment plan payment must not exceed 150% of the full monthly contractual payment.
+      * Borrower must have the financial capacity to bring the loan current during the plan.
+   * For plans exceeding 6 months or loan delinquency > 90 days:
+      * Complete BRP required.
+      * Total monthly repayment plan payment must not exceed 150% of the full monthly contractual payment.
+   * A repayment plan term exceeding 12 months requires prior written approval from Fannie Mae.
+   * A combined forbearance and repayment plan period must not exceed 36 months.
+3. Payment Deferral
+* What Servicers Need from Borrowers/Data/Evidence:
+   * Servicers are authorized to evaluate for a payment deferral without receiving a complete BRP. (If a BRP is submitted, it's evaluated according to standard BRP requirements ).
+   * QRPC with the borrower must be achieved.
+   * Borrower must confirm that the hardship has been resolved.
+   * Borrower must confirm the ability to continue making the full monthly contractual payment, including any amount required to repay an escrow shortage over a term of 60 months.
+   * Borrower must confirm they are unable to reinstate the mortgage loan or afford a repayment plan to cure the delinquency.
+* Rules for Approval/Denial (Eligibility Criteria):
+   * All borrower confirmations listed above must be met.
+   * Mortgage loan must be a conventional first lien (fixed-rate, step-rate, or ARM). The property may be vacant or condemned.
+   * Loan must have been originated at least 12 months prior to the evaluation date.
+   * Loan must be equal to or greater than 2 months delinquent but less than or equal to 6 months delinquent as of the evaluation date.
+   * Cumulative past-due P&I payments deferred via payment deferral (excluding disaster payment deferrals) must not exceed 12 months over the life of the loan.
+   * No prior payment deferral (non-disaster related) with an effective date within 12 months of the current evaluation date.
+   * Mortgage loan must not be within 36 months of its maturity or projected payoff date (unless Fannie Mae grants prior approval for an exception).
+   * Loan must not be subject to certain recourse/indemnification arrangements, an approved liquidation workout option, an active/performing repayment plan, a current offer for another retention workout option, or an active/performing mortgage loan modification Trial Period Plan.
+   * Borrower must not have failed a non-disaster related mortgage loan modification Trial Period Plan within 12 months of being evaluated.
+   * Loan must not have received a non-disaster related mortgage loan modification within the previous 12 months of being evaluated.
+   * For Texas Section 50(a)(6) loans, the payment deferral must comply with applicable law.
+4. Disaster Payment Deferral
+* What Servicers Need from Borrowers/Data/Evidence:
+   * A complete BRP is not required for evaluation.
+   * The disaster event must have resulted in a financial hardship for the borrower.
+   * The property must have experienced an insured loss due to the disaster, OR the property is located in a FEMA-Declared Disaster Area eligible for Individual Assistance, OR the borrower's place of employment is in such an area.
+   * QRPC with the borrower must be achieved.
+   * Borrower must confirm the hardship has been resolved.
+   * Borrower must confirm the ability to continue making the full monthly contractual payment, including repaying any escrow shortage over 60 months.
+   * Borrower must confirm inability to reinstate the loan or afford a repayment plan.
+* Rules for Approval/Denial (Eligibility Criteria):
+   * All borrower confirmations and disaster-related conditions listed above must be met.
+   * Mortgage loan must be a conventional first lien (fixed-rate, step-rate, or ARM). The property may be vacant or condemned.
+   * Loan must have been current or less than two months delinquent at the time the disaster occurred.
+   * Loan must be equal to or greater than one month delinquent but less than or equal to 12 months delinquent as of the evaluation date. (An exception for loans 2+ months delinquent at the time of disaster may be requested from Fannie Mae).
+   * Loan must not have previously received a disaster payment deferral as a result of the same disaster event.
+   * Loan must not be within 36 months of its maturity/projected payoff date (unless Fannie Mae grants prior approval).
+   * Loan must not be subject to certain recourse/indemnification arrangements, an approved liquidation option, an active repayment plan, a current offer for another retention option, or an active modification Trial Period Plan.
+   * For Texas Section 50(a)(6) loans, the disaster payment deferral must comply with applicable law.
+5. Fannie Mae Flex Modification
+* What Servicers Need from Borrowers/Data/Evidence:
+   * If the mortgage loan is current or less than 90 days delinquent, the borrower must submit a complete BRP. (Refer to general BRP requirements at the beginning of this document).
+   * A BRP is not required if the loan is 90 or more days delinquent, or if it was previously modified with a step-rate feature, an interest rate adjustment occurred within the last 12 months, and the loan became 60 days delinquent after the adjustment; in these cases, the servicer may solicit the borrower.
+   * The borrower must successfully complete a Trial Period Plan (3 or 4 months depending on delinquency).
+   * The borrower must execute and return a copy of the Loan Modification Agreement (Form 3179).
+* Rules for Approval/Denial (Eligibility Criteria):
+   * Mortgage loan must be a conventional first lien. The property may be vacant or condemned.
+   * Loan must be at least 60 days delinquent OR the servicer has determined the borrower's payment is in imminent default (per D2-1-01 guidelines, requiring a BRP, non-retirement cash reserves < $25,000, and documented hardship, plus specific credit or hardship criteria met ).
+   * Loan must have been originated at least 12 months prior to the evaluation date.
+   * Loan must not be subject to certain recourse/indemnification, an approved liquidation option, an active/performing repayment plan, a current offer for another retention option, or an active/performing modification Trial Period Plan.
+   * Loan must not have been modified three or more times previously (a payment deferral does not count as a prior modification for this purpose).
+   * Borrower must not have failed a Fannie Mae Flex Modification Trial Period Plan within 12 months of being evaluated for another.
+   * Loan must not have received a Fannie Mae Flex Modification and become 60 days or more delinquent within the first 12 months of the modification's effective date without being reinstated.
+   * For borrowers with a disaster-related hardship, reduced eligibility criteria apply as detailed in D2-3.2-06.
+   * For Texas Section 50(a)(6) loans, the modification must comply with applicable law.
+Home Liquidation Options
+6. Fannie Mae Short Sale
+* What Servicers Need from Borrowers/Data/Evidence:
+   * BRP Requirements:
+
+   * If current or less than 90 days delinquent: Complete BRP required. (If current or <60 days delinquent, imminent default must be determined per D2-1-01, which requires BRP, non-retirement cash reserves < $25,000, documented hardship, and specific credit or hardship criteria ).
+   * If 90 days to 18 months delinquent: Complete BRP generally required, unless specific exceptions are met (e.g., failed Flex Mod TPP, prior Flex Mod with early default, ≥3 prior mods, certain forbearances, or non-investment property with FICO ≤620).
+   * If greater than 18 months delinquent: No BRP required.
+   * If Chapter 7 bankruptcy debt discharged (including the mortgage): No BRP required; proof of discharge is needed.
+   * Evidence of intent to pursue a short sale.
+   * Property must be listed with a licensed real estate agent on the MLS for a minimum of five consecutive calendar days (including a weekend) prior to the servicer submitting a recommendation to Fannie Mae.
+   * Borrower must allow timely and sufficient access to the property for valuation purposes.
+   * Borrower remains responsible for property maintenance until the sale closes.
+   * Sales contract must include a contingency clause ("contingent on the mortgage holder’s and the mortgage insurer’s, if applicable, agreement to the sale") and a specific cancellation clause.
+   * All parties involved in the short sale transaction must sign and date a Short Sale Affidavit (Form 191) at closing.
+   * Borrower must provide details of property improvements if requesting MI termination based on current value due to improvements.
+   * Rules for Approval/Denial (Eligibility Criteria & Key Terms):
+   * Eligibility is evaluated based on the delinquency status of the loan and BRP requirements as outlined above.
+   * If the borrower obtained a new mortgage loan within six months prior to the delinquency on the subject property (or within six months prior to the short sale evaluation for a current loan), the short sale is only eligible if the hardship was due to distant employment transfer/relocation (>50 miles, principal residence), new employment (>50 miles, principal residence), or PCS orders (>50 miles, principal residence). Other situations require Fannie Mae review.
+   * Cash Contribution: May be required from the borrower if non-retirement cash reserves exceed $10,000 OR their housing expense-to-income ratio is 40% or less (calculated per F-1-14 ). This is not required if prohibited by law, if the servicer evaluated the borrower without a BRP under the specified exceptions, or for certain servicemembers with PCS orders. The initial request is the greater of 20% of non-retirement cash reserves or four times the contractual monthly PITI, not to exceed the deficiency. This amount is negotiable by the servicer based on the borrower's circumstances. If the loan is current or less than 60 days delinquent, a minimum contribution of 20% of non-retirement cash reserves is mandatory. The contribution requirement is waived if the calculated amount is less than $500.
+   * Relocation Assistance: Borrowers may receive $7,500 from Fannie Mae for relocation expenses if the property was their principal residence, unless a cash contribution is required (even if not made), or if they are a servicemember with PCS orders receiving a DLA or other government relocation aid.
+   * The borrower or purchaser must not receive any funds or commissions from the sale, except for the relocation incentive.
+   * A deficiency waiver is provided for certain mortgage loans (non-MI loans or MI loans with delegated authority).
+   * Deed restrictions apply to the purchaser regarding resale price and timing.
+7. Fannie Mae Mortgage Release (Deed-in-Lieu of Foreclosure)
+   * What Servicers Need from Borrowers/Data/Evidence:
+   * The borrower must not be involved in or party to litigation (other than foreclosure or bankruptcy) involving the subject property or mortgage loan.
+   * BRP Requirements: (Similar to Short Sale)
+
+      * If current or less than 90 days delinquent: Complete BRP required. (If current or <60 days delinquent, imminent default must be determined per D2-1-01, which requires BRP, non-retirement cash reserves < $25,000, documented hardship, and specific credit or hardship criteria ).
+      * If 90 days to 18 months delinquent: Complete BRP generally required, unless specific exceptions are met (similar to short sale exceptions).
+      * If greater than 18 months delinquent: No BRP required.
+      * If Chapter 7 bankruptcy debt discharged (including the mortgage): No BRP required; proof of discharge is needed.
+      * The borrower must execute the deed of conveyance and a personal property release (Form 192 is optional for personal property release).
+      * The property must generally be vacant and left in broom-swept condition unless the borrower is eligible for and participates in a Mortgage Release transition option.
+      * For Mortgage Release Transition Options (3-month no-rent or 12-month market rent lease):
+
+         * Occupant (borrower or tenant) must have verifiable income (not required for the 3-month no-rent option).
+         * Occupant must agree to maintain the property, keep it in good condition, and permit marketing for sale.
+         * Number of occupants must be appropriate and comply with local laws/HOA rules.
+         * If pets are present, renter's insurance may be required.
+         * Occupants signing the lease must agree to a credit review, and all residents over 18 must have an acceptable background check, including OFAC clearance.
+         * Borrowers must execute a general release of all claims in favor of Fannie Mae, the servicer, and their agents.
+         * Rules for Approval/Denial (Eligibility Criteria & Key Terms):
+         * Eligibility is evaluated based on the delinquency status of the loan and BRP requirements as outlined above.
+         * If the borrower obtained a new mortgage loan within six months prior to the delinquency (or evaluation for current loans), the Mortgage Release is only eligible under the same hardship conditions as a Short Sale (distant employment transfer, new employment, or PCS orders, all >50 miles for a principal residence).
+         * The property must be free of environmental contamination and not pose potential legal risks, and be in acceptable condition.
+         * Cash Contribution: May be required from the borrower under the same rules and calculations as for a Short Sale.
+         * Relocation Assistance: Borrowers may receive $7,500 from Fannie Mae for relocation expenses if the property was their principal residence, under the same rules and exceptions as for a Short Sale.
+         * A deficiency waiver is provided for certain mortgage loans (non-MI loans or MI loans with delegated authority).
+         * Mortgage Release Transition Options Eligibility: The loan must be a first lien on a single-family property, not government-insured/guaranteed. Property must be borrower's principal residence or an investment property leased to a tenant as their principal residence (3-month option for principal residence only). For the 12-month lease option, at least three monthly payments must have been made since origination/last modification, and the loan must not be 12 or more payments past due. Generally, the borrower must not be in active bankruptcy (exception for 3-month no-rent option). Clear and marketable title must be conveyable, and subordinate lien releases obtainable if applicable.
+Other Property-Related Requests
+8. Evaluating a Request for the Release, or Partial Release, of Property Securing a Mortgage Loan (General)
+         * What Servicers Need from Borrowers/Data/Evidence (General):
+         * For any request under this section (easements, mineral rights, partial release, addition of land, partition, substitution of property, condemnation, lease for semi-permanent structure, subdivision), the borrower must submit a completed Application for Release of Security (Form 236) and all other documentation required per that form.
+         * Specific documentation for each type of request (e.g., surveys, appraisals, legal descriptions, government notices for condemnation) will be detailed on Form 236 or required by the servicer to make an evaluation.
+         * Specific Rules for Approval/Denial by Request Type:
+         * Release of Beneficial Easement: Approved if no adverse effect on property value or use. If value is adversely affected, approval conditioned on LTV remaining below 60% or borrower paying down mortgage to maintain prior LTV or 60% LTV (whichever is higher). Denied if future use/marketability is expected to be adversely affected.
+         * Grant of Burdensome Easement: Customary public utility easements generally approved if they meet specific location/non-interference criteria. Other easements approved if no adverse value impact, or if LTV with easement is <60%, or borrower pays down mortgage. Denied if long-term negative implications for value/foreclosability or if granted on a limited basis. Lien subordination possible under certain conditions.
+         * Lease of Oil, Gas, or Mineral Rights: Requires loan to be current, originated >12 months prior, and good payment history. Lease must be customary, not prevent residential use or create hazards, value reduction not to exceed royalties, and drill site >500ft from structures. Approval if LTV with lease <60% (royalties can be waived by FNMA); if LTV ≥60%, royalties must be applied to loan balance to maintain prior LTV or 60% LTV.
+         * Partial Release of Real Property: Requires loan to be current, originated >12 months prior, and good payment history. FNMA lien priority must not be impacted, and property must remain accessible. Approval if LTV after release <60%; if LTV ≥60%, borrower must pay down loan to maintain prior LTV or 60% LTV.
+         * Addition of Land: Requires loan to be current, originated >12 months prior, and good payment history. FNMA lien priority not impacted. Added parcel conveyed entirely, similar zoning, results in one dwelling unit on total property (limited non-res structures ok). No hazards on added land, adjoined to existing property. Approval if LTV after addition <60%; if LTV ≥60%, borrower pays down to maintain prior LTV or 60% LTV.
+         * Partition of Real Property: Requires loan to be current, originated >12 months prior, and good payment history. FNMA lien priority not impacted. Partition meets legal/zoning requirements, primary dwelling on a single retained parcel. Approval if LTV after partition <60%; if LTV ≥60%, borrower pays down to maintain prior LTV or 60% LTV. If co-borrower released, remaining borrower must qualify.
+         * Substitution of Property Securing a Mortgage Loan: All requests submitted to Fannie Mae. If approved, borrower is responsible for costs/risks of moving/rebuilding dwelling and new flood insurance if needed.
+         * Partial or Total Taking by Condemnation/Eminent Domain: Borrower submits Form 236. Servicer evaluates if compensation award is accurate. Approval if award satisfies debt or if award doesn't satisfy debt but valuation requirements met and LTV ≤ prior LTV. Proceeds generally applied to debt.
+         * Lease Real Property for Installation of Semi-Permanent Structure (e.g., wind turbine): Requires loan current, originated >12 months prior, good payment history. Lease doesn't prevent residential use or cause hazards, structure >500ft from dwelling. Approval if LTV with structure <60% (lease payments can be waived by FNMA); if LTV ≥60%, lease payments must reduce loan balance to maintain prior LTV or 60% LTV.
+         * Subdivision of Real Property: Requires loan current, originated >12 months prior, good payment history. FNMA lien priority not impacted. Existing structures on one new lot. Subdivision meets legal/zoning codes. Approval if LTV after subdivision <60%; if LTV ≥60%, borrower pays down to maintain prior LTV or 60% LTV.
+Note on "Partial Claims" and "Compromise Sale": The term "partial claim" is not explicitly used as a standalone workout option in this Servicing Guide's table of contents. However, the guide does cover Government Mortgage Loan Modifications (D2-3.2-03, F-1-15 ), and procedures for filing claims with government insurers like FHA (E-4.5-02 ), which may involve similar concepts depending on the specific government program rules.
+The term "compromise sale" is not used in this Servicing Guide. The most comparable option detailed is a "Fannie Mae Short Sale" (D2-3.3-01, F-1-14 ), where the property is sold for less than the total amount owed

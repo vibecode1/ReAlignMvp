@@ -4,6 +4,7 @@ import { storage } from '../storage';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
 import { aiService } from '../services/aiService';
+// PDF processing will use pdfjs-dist
 
 // Schema for UBA form data
 const CreateUbaFormDataSchema = z.object({
@@ -275,7 +276,7 @@ export const ubaFormController = {
         });
       }
 
-      const { fileName, fileContent, documentType } = req.body;
+      const { fileName, fileContent, documentType, fileType } = req.body;
 
       if (!fileName || !fileContent) {
         return res.status(400).json({
@@ -286,41 +287,245 @@ export const ubaFormController = {
         });
       }
 
-      // Create document processing prompt
-      const systemPrompt = `You are an expert at extracting information from documents for UBA mortgage assistance forms.
-      
-Extract relevant information from this ${documentType || 'document'} that can be used to fill out a UBA form:
-- Borrower name and contact information
-- Property address
-- Income details
-- Asset information
-- Hardship information
-- Any other relevant details
+      const contentSizeMB = (fileContent.length / 1024 / 1024).toFixed(2);
+      console.log(`Processing document: ${fileName}, type: ${fileType}, docType: ${documentType}, content size: ${contentSizeMB}MB`);
+      console.log(`File content starts with:`, fileContent.substring(0, 100));
+      console.log(`Is image file:`, fileType?.startsWith('image/'));
+      console.log(`Is PDF file:`, fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf'));
 
-Return the extracted data in JSON format with field names matching the UBA form fields.`;
+      let processedContent = fileContent;
+
+      // Handle PDF files - check if content is base64 encoded PDF
+      if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+        try {
+          // Check if content is base64 encoded
+          let pdfBuffer;
+          if (fileContent.startsWith('data:application/pdf;base64,')) {
+            // Remove data URL prefix
+            const base64Data = fileContent.replace('data:application/pdf;base64,', '');
+            pdfBuffer = Buffer.from(base64Data, 'base64');
+          } else if (fileContent.length > 100 && !fileContent.includes(' ')) {
+            // Likely base64 without prefix
+            pdfBuffer = Buffer.from(fileContent, 'base64');
+          } else {
+            throw new Error('PDF content format not recognized');
+          }
+
+          // Check buffer size to prevent memory issues
+          const bufferSizeMB = pdfBuffer.length / (1024 * 1024);
+          if (bufferSizeMB > 50) {
+            throw new Error(`PDF file too large (${bufferSizeMB.toFixed(1)}MB). Maximum size is 50MB.`);
+          }
+
+          // Extract text from PDF using pdfjs-dist with timeout
+          const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+          
+          // Set up timeout for PDF processing
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('PDF processing timeout after 30 seconds')), 30000);
+          });
+
+          const pdfProcessingPromise = (async () => {
+            const pdfDocument = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+            
+            let allText = '';
+            const maxPages = Math.min(pdfDocument.numPages, 10); // Limit to 10 pages max
+            
+            for (let i = 1; i <= maxPages; i++) {
+              const page = await pdfDocument.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items
+                .map((item: any) => item.str)
+                .join(' ');
+              allText += pageText + '\n';
+              
+              // Break if we have enough text
+              if (allText.length > 50000) break;
+            }
+            
+            return allText.trim();
+          })();
+
+          processedContent = await Promise.race([pdfProcessingPromise, timeoutPromise]) as string;
+          console.log(`Extracted ${processedContent.length} characters from PDF`);
+
+          if (!processedContent || processedContent.trim().length < 10) {
+            throw new Error('PDF appears to be empty or contains no extractable text. Try uploading as an image instead.');
+          }
+
+        } catch (pdfError) {
+          console.error('PDF processing error:', pdfError);
+          
+          // For PDF failures, try to continue with manual extraction instead of failing
+          console.log('PDF processing failed, attempting fallback processing...');
+          processedContent = 'PDF_PROCESSING_FAILED';
+          
+          // Don't return error immediately - let it fall through to manual extraction
+        }
+      }
+
+      // Enhanced document processing prompt for all file types
+      const documentTypeDescription = fileType === 'application/pdf' ? 'PDF document' : 
+                                     fileType?.startsWith('image/') ? 'image of a document' : 'document';
+      
+      const systemPrompt = `Please look at this ${documentTypeDescription} and extract all the data fields and their values.
+
+${fileType?.startsWith('image/') ? 'This is an image of a document. Please read all visible text carefully.' : ''}
+
+Identify what type of document this is and extract ALL data fields and their values that you can see.
+
+Return the results as a JSON object where each field name is a key and the extracted value is the value.
+
+For financial amounts, remove dollar signs and commas (e.g., return "1200" not "$1,200").
+
+Just extract everything you can see - use clear, descriptive field names for what you find.`;
 
       try {
-        // Process with AI
-        const aiResponse = await aiService.generateRecommendation({
-          userId: req.user.id,
-          contextRecipeId: 'uba_form_completion_v1',
-          userInput: fileContent,
-          additionalContext: {
-            systemPrompt,
-            task: 'document_extraction',
-            documentType
-          }
+        // Skip AI processing if content failed to process
+        if (processedContent === 'PDF_PROCESSING_FAILED') {
+          throw new Error('PDF processing failed - using manual extraction');
+        }
+        
+        // Process with AI using direct Claude call to bypass context recipe issues
+        console.log('Attempting direct Claude API call for document processing...');
+        console.log('Document type:', documentType);
+        console.log('File name:', fileName);
+        console.log('System prompt length:', systemPrompt.length);
+        
+        if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '') {
+          throw new Error('Anthropic API key not configured - AI processing unavailable');
+        }
+        
+        const { default: Anthropic } = await import('@anthropic-ai/sdk');
+        const anthropic = new Anthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY,
         });
 
-        // Parse extracted data
+        let claudeResponse;
+        
+        // Set up timeout for Claude API calls
+        const claudeTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Claude API timeout after 45 seconds')), 45000);
+        });
+        
+        const claudeApiCall = async () => {
+          // For images, send the image directly to Claude for better OCR
+          if (fileType?.startsWith('image/')) {
+            console.log('Processing image file with Claude vision...');
+            console.log('File type:', fileType);
+            console.log('File content starts with data URL:', fileContent.startsWith('data:'));
+            console.log('File content length:', fileContent.length);
+            
+            // Extract base64 data properly
+            let base64Data = fileContent;
+            if (fileContent.startsWith('data:')) {
+              const parts = fileContent.split(',');
+              if (parts.length > 1) {
+                base64Data = parts[1];
+                console.log('Extracted base64 data length:', base64Data.length);
+              }
+            }
+            
+            // Validate base64 data
+            try {
+              const buffer = Buffer.from(base64Data, 'base64');
+              const imageSizeMB = buffer.length / (1024 * 1024);
+              console.log(`Image size: ${imageSizeMB.toFixed(2)}MB`);
+              
+              if (imageSizeMB > 20) {
+                throw new Error(`Image too large (${imageSizeMB.toFixed(1)}MB). Maximum size is 20MB.`);
+              }
+              
+              console.log('Base64 data is valid');
+            } catch (e) {
+              console.error('Invalid base64 data:', e);
+              throw new Error('Invalid image data format');
+            }
+            
+            return await anthropic.messages.create({
+              model: 'claude-3-5-sonnet-20241022',
+              max_tokens: 4000,
+              temperature: 0.1,
+              messages: [
+                { 
+                  role: 'user', 
+                  content: [
+                    {
+                      type: 'text',
+                      text: systemPrompt
+                    },
+                    {
+                      type: 'image',
+                      source: {
+                        type: 'base64',
+                        media_type: fileType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+            });
+          } else {
+            // For PDFs and text, use text-based processing
+            // Truncate very long content to prevent API limits
+            const maxContentLength = 100000; // 100k chars max
+            let contentToProcess = processedContent;
+            if (processedContent.length > maxContentLength) {
+              contentToProcess = processedContent.substring(0, maxContentLength) + '\n\n[Content truncated due to length]';
+            }
+            
+            return await anthropic.messages.create({
+              model: 'claude-3-5-sonnet-20241022',
+              max_tokens: 4000,
+              temperature: 0.1,
+              messages: [
+                { 
+                  role: 'user', 
+                  content: `${systemPrompt}\n\nDocument content to extract from:\n${contentToProcess}`
+                }
+              ],
+            });
+          }
+        };
+
+        claudeResponse = await Promise.race([claudeApiCall(), claudeTimeoutPromise]) as any;
+
+        // Transform Claude response to match expected format
+        const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
+        const aiResponse = {
+          content: textContent?.text || '',
+          usage: {
+            prompt_tokens: claudeResponse.usage?.input_tokens || 0,
+            completion_tokens: claudeResponse.usage?.output_tokens || 0,
+          }
+        };
+
+        console.log('Claude API call successful, extracted content length:', aiResponse.content.length);
+        console.log('Raw Claude response:', aiResponse.content);
+
+        // Enhanced parsing with better error handling
         let extractedData;
         try {
-          extractedData = JSON.parse(aiResponse.content);
-        } catch (e) {
-          extractedData = {
-            raw_text: aiResponse.content,
-            extraction_failed: true
-          };
+          // Clean up the AI response - remove any markdown formatting
+          const cleanContent = aiResponse.content.trim()
+            .replace(/^```(?:json)?\n?/, '')
+            .replace(/\n?```$/, '')
+            .trim();
+          
+          console.log('Cleaned content for parsing:', cleanContent);
+          extractedData = JSON.parse(cleanContent);
+          console.log('Successfully parsed extracted data:', extractedData);
+        } catch (parseError) {
+          console.log('JSON parse failed, attempting manual extraction from AI response');
+          
+          // Try to extract key-value pairs from the text if JSON parsing fails
+          extractedData = ubaFormController.extractKeyValuePairs(aiResponse.content);
+          
+          if (Object.keys(extractedData).length === 0) {
+            // Last resort: try manual pattern extraction from original content
+            extractedData = ubaFormController.extractMortgageDataManually(processedContent, fileName);
+          }
         }
 
         // Log document processing
@@ -334,7 +539,9 @@ Return the extracted data in JSON format with field names matching the UBA form 
           event_metadata: JSON.stringify({
             file_name: fileName,
             document_type: documentType,
-            fields_extracted: Object.keys(extractedData).length
+            file_type: fileType,
+            fields_extracted: Object.keys(extractedData).length,
+            content_length: processedContent.length
           })
         });
 
@@ -342,31 +549,259 @@ Return the extracted data in JSON format with field names matching the UBA form 
           fileName,
           extractedData,
           message: `Successfully processed ${fileName}`,
-          fieldsExtracted: Object.keys(extractedData).filter(k => !['raw_text', 'extraction_failed'].includes(k))
+          fieldsExtracted: Object.keys(extractedData).filter(k => !['raw_text', 'extraction_failed'].includes(k)),
+          fileType,
+          processingMethod: 'ai_extraction'
         });
 
       } catch (aiError) {
         console.error('Document AI processing error:', aiError);
+        console.error('Error type:', typeof aiError);
+        console.error('Error name:', aiError instanceof Error ? aiError.name : 'Unknown');
+        console.error('Error message:', aiError instanceof Error ? aiError.message : String(aiError));
+        console.error('Error stack:', aiError instanceof Error ? aiError.stack : 'No stack trace');
         
-        // Return basic response without AI
+        // Check if it's a specific type of error
+        if (aiError instanceof Error) {
+          if (aiError.message.includes('timeout')) {
+            console.error('TIMEOUT ERROR: Claude API call timed out');
+          } else if (aiError.message.includes('API key')) {
+            console.error('API KEY ERROR: Claude API key issue');
+          } else if (aiError.message.includes('rate limit')) {
+            console.error('RATE LIMIT ERROR: Claude API rate limited');
+          } else if (aiError.message.includes('content_policy')) {
+            console.error('CONTENT POLICY ERROR: Claude rejected content');
+          }
+        }
+        
+        // Fallback: Manual pattern extraction
+        const manualExtraction = ubaFormController.extractMortgageDataManually(processedContent, fileName);
+        
         return res.status(200).json({
           fileName,
-          extractedData: {},
-          message: 'Document uploaded but AI extraction is unavailable. Please fill the form manually.',
-          fieldsExtracted: [],
+          extractedData: manualExtraction,
+          message: manualExtraction && Object.keys(manualExtraction).length > 0 
+            ? `Processed ${fileName} with manual extraction` 
+            : `Document uploaded but automatic extraction failed. Please review and enter information manually.`,
+          fieldsExtracted: Object.keys(manualExtraction || {}),
+          fileType,
+          processingMethod: 'manual_extraction',
           ai_available: false
         });
       }
 
     } catch (error) {
       console.error('Process document error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error details:', {
+        fileName,
+        fileType,
+        documentType,
+        contentLength: typeof processedContent === 'string' ? processedContent.length : 'unknown'
+      });
+      
       return res.status(500).json({
         error: {
           code: 'SERVER_ERROR',
-          message: 'Failed to process document',
+          message: `Failed to process document: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: error instanceof Error ? error.message : 'Unknown error'
         }
       });
     }
+  },
+
+  // Helper method for manual mortgage data extraction
+  extractMortgageDataManually(content: string, fileName: string) {
+    const data: Record<string, string> = {};
+    
+    console.log(`Starting manual extraction for ${fileName}`);
+    console.log(`Content length: ${content.length} characters`);
+    console.log(`Content preview (first 500 chars): ${content.substring(0, 500)}`);
+    
+    // Enhanced patterns for mortgage statements with multiple variations
+    const patterns = {
+      loan_number: [
+        // Primary patterns based on mortgage statement format
+        /account\s*number\s*:?\s*([A-Z0-9-]{8,20})/i,
+        /account\s*#\s*:?\s*([A-Z0-9-]{8,20})/i,
+        /loan\s*(?:number|#)\s*:?\s*([A-Z0-9-]{8,20})/i,
+        // Fallback patterns
+        /(?:reference|ref)\s*(?:number|#|no)\s*:?\s*([A-Z0-9-]{8,20})/i,
+        /account\s*([A-Z0-9-]{8,20})/i,
+        /^([0-9]{10,15})$/m,
+        // Pattern for numbers that appear after common mortgage terms
+        /(?:mtg|mortgage|home\s*loan).*?([0-9]{8,15})/i
+      ],
+      servicer_name: [
+        // Primary patterns for bank name at top of statement
+        /^([A-Z][A-Za-z\s&.,Inc]{3,50}(?:Bank|Mortgage|Financial|Corp|Inc|LLC))/m,
+        // Common mortgage servicer patterns (specific banks)
+        /(Wells\s*Fargo|Bank\s*of\s*America|Chase|Quicken|Rocket|Freedom|Mr\s*Cooper|Nationstar|Ocwen|Green\s*Tree|PNC|Truist|US\s*Bank|SunTrust)/i,
+        // Pattern for company names at the top of statements
+        /^([A-Z][A-Za-z\s&.,]{10,50})(?:Bank|Mortgage|Home\s*Loans|Financial)/im,
+        // Fallback patterns
+        /(?:servicer|lender|company)\s*:?\s*([A-Za-z\s&.,Inc]+?)(?:\n|\r|$)/i,
+        /(?:from|bank)\s*:?\s*([A-Za-z\s&.,Inc]+?)(?:\n|\r|$)/i
+      ],
+      borrower_name: [
+        /(?:borrower|name|customer|account\s*holder)\s*:?\s*([A-Za-z\s.,]+?)(?:\n|\r|$)/i,
+        /(?:dear|to)\s+([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        // Pattern for names that appear after mortgage account info
+        /(?:account\s*holder|borrower).*?([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i
+      ],
+      property_address: [
+        /(?:property|subject|collateral)\s*(?:address|location)\s*:?\s*([0-9A-Za-z\s.,#-]+?)(?:\n|\r|$)/i,
+        /(?:located\s*at|address)\s*:?\s*([0-9A-Za-z\s.,#-]+?)(?:\n|\r|$)/i,
+        // Pattern for addresses that start with numbers
+        /^([0-9]+\s+[A-Za-z\s.,#-]+?)(?:\n|\r|$)/m
+      ],
+      mortgage_balance: [
+        // Primary patterns based on mortgage statement format
+        /outstanding\s*principal\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /principal\s*balance\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /current\s*balance\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /unpaid\s*principal\s*balance\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        // Fallback patterns
+        /(?:outstanding|current|unpaid)\s*(?:principal|balance)\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /balance\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        // Pattern for large dollar amounts (likely balance)
+        /\$\s*([1-9]\d{5,}\.\d{2})/
+      ],
+      monthly_payment: [
+        // Primary patterns based on mortgage statement format
+        /regular\s*payment\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /amount\s*due\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /monthly\s*payment\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /payment\s*amount\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        // Principal and interest pattern
+        /p\s*&\s*i.*?\$?([\d,]+\.?\d*)/i,
+        // Fallback patterns
+        /payment\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /due\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /next\s*payment.*?\$?([\d,]+\.?\d*)/i
+      ],
+      interest_rate: [
+        // Interest rate patterns from mortgage statements
+        /interest\s*rate\s*:?\s*([\d.]+%?)/i,
+        /current\s*rate\s*:?\s*([\d.]+%?)/i,
+        /rate\s*:?\s*([\d.]+%)/i,
+        // Pattern for percentage values
+        /([\d.]+)%/
+      ],
+      // SERVICER CONTACT INFORMATION
+      loan_officer_name: [
+        /loan\s*officer\s*(?:name)?\s*:?\s*([A-Za-z\s.,]+?)(?:\n|\r|$)/i,
+        /(?:contact|officer)\s*(?:name)?\s*:?\s*([A-Za-z\s.,]+?)(?:\n|\r|$)/i,
+        /name\s*:?\s*([A-Za-z\s.,]+?)(?:\s*title|\n|\r|$)/i
+      ],
+      loan_officer_phone: [
+        /office\s*phone\s*:?\s*([\d\s\-\(\)\.]+)/i,
+        /contact\s*phone\s*:?\s*([\d\s\-\(\)\.]+)/i,
+        /phone\s*:?\s*([\d\s\-\(\)\.]+)/i
+      ],
+      loan_officer_email: [
+        /email\s*:?\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i,
+        /contact\s*email\s*:?\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i
+      ],
+      loan_officer_nmls: [
+        /nmls\s*(?:number|#)\s*:?\s*([0-9]+)/i,
+        /nmls\s*:?\s*([0-9]+)/i
+      ],
+      // PAYMENT BREAKDOWN
+      principal_payment: [
+        /principal\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /principal\s*amount\s*:?\s*\$?([\d,]+\.?\d*)/i
+      ],
+      interest_payment: [
+        /interest\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /interest\s*amount\s*:?\s*\$?([\d,]+\.?\d*)/i
+      ],
+      escrow_payment: [
+        /escrow\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /escrow\s*(?:taxes?\s*and\/or\s*insurance)?\s*:?\s*\$?([\d,]+\.?\d*)/i
+      ],
+      late_fees: [
+        /late\s*fee\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /late\s*charges?\s*:?\s*\$?([\d,]+\.?\d*)/i
+      ],
+      payment_due_date: [
+        /payment\s*due\s*date\s*:?\s*([0-9\/\-]+)/i,
+        /due\s*(?:by\s*)?date\s*:?\s*([0-9\/\-]+)/i,
+        /due\s*:?\s*([0-9\/\-]+)/i
+      ],
+      // ADDITIONAL LOAN INFORMATION
+      prepayment_penalty: [
+        /prepayment\s*penalty\s*:?\s*([A-Za-z0-9\$\s.,]+?)(?:\n|\r|$)/i
+      ],
+      deferred_balance: [
+        /deferred\s*balance\(?s?\)?\s*:?\s*\$?([\d,]+\.?\d*)/i
+      ],
+      wage_income: [
+        /(?:gross\s*pay|salary|wages|income)\s*:?\s*\$?([\d,]+\.?\d*)/i,
+        /pay\s*period\s*.*?\$?([\d,]+\.?\d*)/i,
+        // Paycheck specific patterns
+        /gross\s*earnings.*?\$?([\d,]+\.?\d*)/i,
+        /current\s*gross.*?\$?([\d,]+\.?\d*)/i
+      ],
+      employer_name: [
+        /(?:employer|company)\s*:?\s*([A-Za-z\s&.,Inc]+?)(?:\n|\r|$)/i,
+        /pay\s*period\s*ending.*?([A-Za-z\s&.,Inc]{3,50})/i,
+        // Pattern for employer on pay stubs
+        /employer.*?([A-Za-z\s&.,Inc]{3,50})/i
+      ]
+    };
+
+    for (const [field, patternArray] of Object.entries(patterns)) {
+      const patterns_list = Array.isArray(patternArray) ? patternArray : [patternArray];
+      
+      for (const pattern of patterns_list) {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+          let value = match[1].trim();
+          
+          // Clean up extracted values
+          if (field.includes('name') || field.includes('servicer')) {
+            value = value.replace(/[^A-Za-z\s&.,]/g, '').trim();
+          }
+          if (field.includes('balance') || field.includes('payment') || field.includes('income')) {
+            // Remove commas from numbers
+            value = value.replace(/,/g, '');
+          }
+          if (field.includes('address')) {
+            // Clean up addresses
+            value = value.replace(/\s+/g, ' ').trim();
+          }
+          
+          if (value && value.length > 1) {
+            console.log(`Found ${field}: ${value} using pattern: ${pattern}`);
+            data[field] = value;
+            break; // Found a match, stop trying other patterns for this field
+          }
+        }
+      }
+    }
+
+    console.log(`Manual extraction completed. Found ${Object.keys(data).length} fields:`, data);
+    return data;
+  },
+
+  // Helper method for key-value extraction when JSON parsing fails
+  extractKeyValuePairs(text: string) {
+    const data: Record<string, string> = {};
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      const colonMatch = line.match(/^([^:]+):\s*(.+)$/);
+      if (colonMatch) {
+        const key = colonMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+        const value = colonMatch[2].trim();
+        if (value && value !== 'N/A' && value !== 'null' && value !== 'undefined') {
+          data[key] = value;
+        }
+      }
+    }
+    
+    return data;
   },
 
   /**
@@ -565,15 +1000,56 @@ Current form data: ${JSON.stringify(currentFormData)}
 Active section: ${activeSection || 'none'}
 
 AVAILABLE UBA FORM FIELDS (use exact field names for extracted_data):
-- intent, property_type, owner_occupied
-- borrower_name, borrower_ssn, borrower_cell_phone, borrower_home_phone, borrower_email
+LOAN INFORMATION:
+- loan_number, mortgage_insurance_case_number, servicer_name
+
+INTENT & PROPERTY:
+- intent, property_type, owner_occupied, renter_occupied, vacant
+- property_listed, listing_date, listing_agent_name, listing_agent_phone, listing_price
+- for_sale_by_owner, offer_received, offer_amount, offer_date, offer_status
+
+BORROWER INFORMATION:
+- borrower_name, borrower_dob, borrower_ssn, borrower_cell_phone, borrower_home_phone, borrower_work_phone
+- borrower_email, mailing_address
 - has_coborrower, coborrower_name, coborrower_ssn
+
+PROPERTY DETAILS:
 - property_address, property_value, mortgage_balance, monthly_payment
+
+EMPLOYMENT:
+- employer_name, employment_start_date, employer_phone
+- coborrower_employer_name, coborrower_employment_start_date
+
+HARDSHIP:
 - hardship_type, hardship_description, hardship_date, hardship_duration
-- monthly_gross_income, monthly_net_income, monthly_expenses, income_sources
-- checking_account_balance, total_assets, credit_card_debt
-- credit_counseling, credit_counseling_details
-- military_service, bankruptcy_filed
+
+INCOME BREAKDOWN:
+- wage_income, overtime_income, child_support_received, social_security_income
+- self_employment_income, rental_income, unemployment_income, other_income, other_income_description
+- monthly_gross_income, monthly_net_income
+
+EXPENSE BREAKDOWN:
+- first_mortgage_payment, second_mortgage_payment, homeowners_insurance, property_taxes
+- hoa_fees, utilities, car_payment, car_insurance, credit_card_payments
+- child_support_paid, food_groceries, medical_expenses, other_expenses, monthly_expenses
+
+ASSETS:
+- checking_account_balance, savings_account_balance, money_market_balance, stocks_bonds_value
+- retirement_accounts, other_real_estate_value, cash_on_hand, other_assets, total_assets
+
+LIABILITIES:
+- credit_card_debt, auto_loan_balance, student_loan_balance, installment_loans
+- personal_loans, other_mortgages, other_liabilities, total_liabilities
+
+LIEN HOLDERS:
+- second_lien_holder, second_lien_balance, second_lien_loan_number
+- third_lien_holder, third_lien_balance, third_lien_loan_number
+
+HOA INFORMATION:
+- has_hoa, hoa_name, hoa_contact_name, hoa_contact_phone, hoa_contact_address, hoa_monthly_fee
+
+ADDITIONAL INFO:
+- credit_counseling, credit_counseling_details, military_service, bankruptcy_filed
 
 CONVERSATION HISTORY:
 ${conversationHistory.length > 0 ? conversationHistory.map(msg => `${msg.type.toUpperCase()}: ${msg.content}`).join('\n') : 'No previous conversation'}
@@ -905,6 +1381,41 @@ What information would you like to provide? You can tell me about:
         error: {
           code: 'SERVER_ERROR',
           message: 'Failed to validate UBA form',
+        }
+      });
+    }
+  },
+
+  /**
+   * Process uploaded document using file upload (bypass JSON size limits)
+   */
+  async processDocumentUpload(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      // This method will be implemented to use multer for file upload
+      // instead of sending file content in JSON body
+      
+      return res.status(501).json({
+        error: {
+          code: 'NOT_IMPLEMENTED',
+          message: 'File upload method under development. Please use the standard document processing for now.',
+        }
+      });
+
+    } catch (error) {
+      console.error('Process document upload error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to process document upload',
         }
       });
     }

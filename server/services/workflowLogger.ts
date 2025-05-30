@@ -169,16 +169,89 @@ export class WorkflowLogger {
       console.error('Failed to log validation:', error);
     }
   }
+
+  /**
+   * Instance method for general event logging
+   */
+  async logEvent(eventData: any) {
+    return storage.logWorkflowEvent(eventData);
+  }
+
+  // Document checklist logging methods
+  async logChecklistGeneration(data: {
+    userId: string;
+    transactionId: string;
+    checklistId: string;
+    lenderName: string;
+    caseType: string;
+    itemCount: number;
+  }) {
+    return this.logEvent({
+      user_id: data.userId,
+      event_type: 'checklist_generated',
+      event_category: 'document_checklist',
+      event_name: 'checklist_created',
+      event_description: `Generated ${data.itemCount} item checklist for ${data.lenderName} ${data.caseType}`,
+      transaction_id: data.transactionId,
+      success_indicator: true,
+      event_metadata: JSON.stringify({
+        checklist_id: data.checklistId,
+        lender_name: data.lenderName,
+        case_type: data.caseType,
+        item_count: data.itemCount
+      })
+    });
+  }
+
+  async logChecklistItemUpdate(data: {
+    userId: string;
+    itemId: string;
+    status?: string;
+    documentId?: string;
+  }) {
+    return this.logEvent({
+      user_id: data.userId,
+      event_type: 'checklist_item_updated',
+      event_category: 'document_checklist',
+      event_name: 'item_status_changed',
+      event_description: `Checklist item ${data.status || 'updated'}`,
+      success_indicator: true,
+      event_metadata: JSON.stringify({
+        item_id: data.itemId,
+        status: data.status,
+        document_id: data.documentId
+      })
+    });
+  }
+
+  async logDocumentAnalysis(data: {
+    userId: string;
+    documentId: string;
+    checklistItemId: string;
+    aiConfidence: number;
+    status: string;
+  }) {
+    return this.logEvent({
+      user_id: data.userId,
+      event_type: 'document_analyzed',
+      event_category: 'document_checklist',
+      event_name: 'ai_document_analysis',
+      event_description: `Document analyzed with ${Math.round(data.aiConfidence * 100)}% confidence`,
+      success_indicator: data.status === 'verified',
+      ai_model_used: 'document_analysis_v1',
+      ai_interaction_type: 'Document Analysis',
+      event_metadata: JSON.stringify({
+        document_id: data.documentId,
+        checklist_item_id: data.checklistItemId,
+        confidence_score: data.aiConfidence,
+        verification_status: data.status
+      })
+    });
+  }
 }
 
 // Export workflowLogger instance for controller imports
-export const workflowLogger = {
-  logUserInteraction: WorkflowLogger.logUserInteraction,
-  logUbaFormField: WorkflowLogger.logUbaFormField,
-  logDocumentUpload: WorkflowLogger.logDocumentUpload,
-  logAiRecommendation: WorkflowLogger.logAiRecommendation,
-  logValidation: WorkflowLogger.logValidation,
-};
+export const workflowLogger = new WorkflowLogger();
 
-// Also export as default for compatibility
+// Also export static methods for backward compatibility
 export default workflowLogger;

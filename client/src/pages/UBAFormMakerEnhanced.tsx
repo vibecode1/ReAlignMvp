@@ -33,6 +33,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Types for UBA Form sections following the UBA Guide rules
 interface UBAFormSection {
@@ -113,7 +114,7 @@ export const UBAFormMakerEnhanced: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // State management
-  const [activeSection, setActiveSection] = useState<string>('getting-started');
+  const [activeSection, setActiveSection] = useState<string>('loan-info');
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [viewMode, setViewMode] = useState<'conversation' | 'preview' | 'form'>('conversation');
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -126,6 +127,42 @@ export const UBAFormMakerEnhanced: React.FC = () => {
 
   // Enhanced UBA Form Sections with UBA Guide rules
   const formSections: UBAFormSection[] = [
+    {
+      id: 'loan-info',
+      title: 'Loan Information',
+      description: 'Basic loan and servicer details',
+      completed: false,
+      validationErrors: [],
+      fields: [
+        {
+          id: 'loan_number',
+          name: 'loan_number',
+          type: 'text',
+          label: 'Loan Number',
+          value: '',
+          required: true,
+          placeholder: 'Enter your loan number'
+        },
+        {
+          id: 'mortgage_insurance_case_number',
+          name: 'mortgage_insurance_case_number',
+          type: 'text',
+          label: 'Mortgage Insurance Case Number',
+          value: '',
+          required: false,
+          placeholder: 'If applicable'
+        },
+        {
+          id: 'servicer_name',
+          name: 'servicer_name',
+          type: 'text',
+          label: 'Servicer/Lender Name',
+          value: '',
+          required: true,
+          placeholder: 'Name of your mortgage servicer'
+        }
+      ]
+    },
     {
       id: 'intent-selection',
       title: 'Intent & Case Type',
@@ -163,6 +200,24 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           required: true,
           options: ['Yes', 'No'],
           ubaRule: UBA_GUIDE_RULES.ownerOccupied
+        },
+        {
+          id: 'renter_occupied',
+          name: 'renter_occupied',
+          type: 'select',
+          label: 'Renter Occupied',
+          value: 'No',
+          required: true,
+          options: ['Yes', 'No']
+        },
+        {
+          id: 'vacant',
+          name: 'vacant',
+          type: 'select',
+          label: 'Property Vacant',
+          value: 'No',
+          required: true,
+          options: ['Yes', 'No']
         }
       ]
     },
@@ -182,6 +237,14 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           value: '',
           required: true,
           placeholder: 'First Middle Last'
+        },
+        {
+          id: 'borrower_dob',
+          name: 'borrower_dob',
+          type: 'date',
+          label: 'Date of Birth',
+          value: '',
+          required: true
         },
         {
           id: 'borrower_ssn',
@@ -213,6 +276,15 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           ubaRule: UBA_GUIDE_RULES.phone
         },
         {
+          id: 'borrower_work_phone',
+          name: 'borrower_work_phone',
+          type: 'phone',
+          label: 'Work Phone Number',
+          value: '',
+          required: false,
+          placeholder: '(XXX) XXX-XXXX'
+        },
+        {
           id: 'borrower_email',
           name: 'borrower_email',
           type: 'email',
@@ -221,6 +293,15 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           required: true,
           ubaRule: UBA_GUIDE_RULES.email,
           helpText: 'Use "Attorney Only" per UBA Guide'
+        },
+        {
+          id: 'mailing_address',
+          name: 'mailing_address',
+          type: 'textarea',
+          label: 'Mailing Address (if different from property)',
+          value: '',
+          required: false,
+          placeholder: 'Street Address, City, State ZIP'
         }
       ]
     },
@@ -303,6 +384,96 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           value: '',
           required: true,
           placeholder: '$0.00'
+        },
+        {
+          id: 'property_listed',
+          name: 'property_listed',
+          type: 'select',
+          label: 'Is Property Listed for Sale?',
+          value: 'No',
+          required: true,
+          options: ['Yes', 'No']
+        },
+        {
+          id: 'listing_date',
+          name: 'listing_date',
+          type: 'date',
+          label: 'Listing Date',
+          value: '',
+          required: false,
+          helpText: 'Required if property is listed'
+        },
+        {
+          id: 'listing_agent_name',
+          name: 'listing_agent_name',
+          type: 'text',
+          label: 'Listing Agent Name',
+          value: '',
+          required: false,
+          placeholder: 'Agent full name'
+        },
+        {
+          id: 'listing_agent_phone',
+          name: 'listing_agent_phone',
+          type: 'phone',
+          label: 'Listing Agent Phone',
+          value: '',
+          required: false,
+          placeholder: '(XXX) XXX-XXXX'
+        },
+        {
+          id: 'listing_price',
+          name: 'listing_price',
+          type: 'currency',
+          label: 'Listing Price',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'for_sale_by_owner',
+          name: 'for_sale_by_owner',
+          type: 'select',
+          label: 'For Sale By Owner?',
+          value: 'No',
+          required: true,
+          options: ['Yes', 'No'],
+          ubaRule: 'Always "No" per UBA Guide'
+        },
+        {
+          id: 'offer_received',
+          name: 'offer_received',
+          type: 'select',
+          label: 'Offer Received?',
+          value: 'No',
+          required: false,
+          options: ['Yes', 'No']
+        },
+        {
+          id: 'offer_amount',
+          name: 'offer_amount',
+          type: 'currency',
+          label: 'Offer Amount',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'offer_date',
+          name: 'offer_date',
+          type: 'date',
+          label: 'Offer Date',
+          value: '',
+          required: false
+        },
+        {
+          id: 'offer_status',
+          name: 'offer_status',
+          type: 'select',
+          label: 'Offer Status',
+          value: '',
+          required: false,
+          options: ['', 'Pending', 'Accepted', 'Rejected', 'Countered']
         }
       ]
     },
@@ -364,15 +535,148 @@ export const UBAFormMakerEnhanced: React.FC = () => {
       ]
     },
     {
+      id: 'employment',
+      title: 'Employment Information',
+      description: 'Current employment details',
+      completed: false,
+      validationErrors: [],
+      fields: [
+        {
+          id: 'employer_name',
+          name: 'employer_name',
+          type: 'text',
+          label: 'Current Employer Name',
+          value: '',
+          required: true,
+          placeholder: 'Company name'
+        },
+        {
+          id: 'employment_start_date',
+          name: 'employment_start_date',
+          type: 'date',
+          label: 'Employment Start Date',
+          value: '',
+          required: true
+        },
+        {
+          id: 'employer_phone',
+          name: 'employer_phone',
+          type: 'phone',
+          label: 'Employer Phone',
+          value: '',
+          required: false,
+          placeholder: '(XXX) XXX-XXXX'
+        },
+        {
+          id: 'coborrower_employer_name',
+          name: 'coborrower_employer_name',
+          type: 'text',
+          label: 'Co-Borrower Employer Name',
+          value: 'N/A',
+          required: false,
+          placeholder: 'Company name'
+        },
+        {
+          id: 'coborrower_employment_start_date',
+          name: 'coborrower_employment_start_date',
+          type: 'date',
+          label: 'Co-Borrower Employment Start Date',
+          value: '',
+          required: false
+        }
+      ]
+    },
+    {
       id: 'income-expenses',
       title: 'Income & Expenses',
-      description: 'Current monthly income and expense details',
+      description: 'Detailed monthly income and expense breakdown',
       completed: false,
       validationErrors: [],
       ubaGuideRules: [
         caseType === 'retention' ? UBA_GUIDE_RULES.income.retention : UBA_GUIDE_RULES.income.shortSale
       ],
       fields: [
+        {
+          id: 'wage_income',
+          name: 'wage_income',
+          type: 'currency',
+          label: 'Wages/Salary',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'overtime_income',
+          name: 'overtime_income',
+          type: 'currency',
+          label: 'Overtime',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'child_support_received',
+          name: 'child_support_received',
+          type: 'currency',
+          label: 'Child Support/Alimony Received',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'social_security_income',
+          name: 'social_security_income',
+          type: 'currency',
+          label: 'Social Security/SSDI',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'self_employment_income',
+          name: 'self_employment_income',
+          type: 'currency',
+          label: 'Self-Employment Income',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'rental_income',
+          name: 'rental_income',
+          type: 'currency',
+          label: 'Rental Income',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'unemployment_income',
+          name: 'unemployment_income',
+          type: 'currency',
+          label: 'Unemployment Benefits',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_income',
+          name: 'other_income',
+          type: 'currency',
+          label: 'Other Income',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_income_description',
+          name: 'other_income_description',
+          type: 'text',
+          label: 'Other Income Description',
+          value: '',
+          required: false,
+          placeholder: 'Describe other income source'
+        },
         {
           id: 'monthly_gross_income',
           name: 'monthly_gross_income',
@@ -394,6 +698,124 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           ubaRule: caseType === 'retention' ? 'N/A for retention files' : UBA_GUIDE_RULES.income.shortSale
         },
         {
+          id: 'first_mortgage_payment',
+          name: 'first_mortgage_payment',
+          type: 'currency',
+          label: 'First Mortgage Payment',
+          value: '',
+          required: true,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'second_mortgage_payment',
+          name: 'second_mortgage_payment',
+          type: 'currency',
+          label: 'Second Mortgage Payment',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'homeowners_insurance',
+          name: 'homeowners_insurance',
+          type: 'currency',
+          label: 'Homeowners Insurance',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'property_taxes',
+          name: 'property_taxes',
+          type: 'currency',
+          label: 'Property Taxes',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'hoa_fees',
+          name: 'hoa_fees',
+          type: 'currency',
+          label: 'HOA/Condo Fees',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'utilities',
+          name: 'utilities',
+          type: 'currency',
+          label: 'Utilities (Electric, Gas, Water, etc.)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'car_payment',
+          name: 'car_payment',
+          type: 'currency',
+          label: 'Car Payment(s)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'car_insurance',
+          name: 'car_insurance',
+          type: 'currency',
+          label: 'Car Insurance',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'credit_card_payments',
+          name: 'credit_card_payments',
+          type: 'currency',
+          label: 'Credit Card Payments (Minimum)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'child_support_paid',
+          name: 'child_support_paid',
+          type: 'currency',
+          label: 'Child Support/Alimony Paid',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'food_groceries',
+          name: 'food_groceries',
+          type: 'currency',
+          label: 'Food/Groceries',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'medical_expenses',
+          name: 'medical_expenses',
+          type: 'currency',
+          label: 'Medical/Health Expenses',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_expenses',
+          name: 'other_expenses',
+          type: 'currency',
+          label: 'Other Expenses',
+          value: '',
+          required: false,
+          placeholder: '$0.00',
+          helpText: 'Combined food/utilities on condensed UBA page'
+        },
+        {
           id: 'monthly_expenses',
           name: 'monthly_expenses',
           type: 'currency',
@@ -401,15 +823,6 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           value: '',
           required: true,
           placeholder: '$0.00'
-        },
-        {
-          id: 'income_sources',
-          name: 'income_sources',
-          type: 'textarea',
-          label: 'Sources of Income',
-          value: '',
-          required: true,
-          placeholder: 'List all sources of income...'
         }
       ]
     },
@@ -431,6 +844,69 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           ubaRule: UBA_GUIDE_RULES.assets
         },
         {
+          id: 'savings_account_balance',
+          name: 'savings_account_balance',
+          type: 'currency',
+          label: 'Savings Account Balance',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'money_market_balance',
+          name: 'money_market_balance',
+          type: 'currency',
+          label: 'Money Market/CDs',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'stocks_bonds_value',
+          name: 'stocks_bonds_value',
+          type: 'currency',
+          label: 'Stocks/Bonds Value',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'retirement_accounts',
+          name: 'retirement_accounts',
+          type: 'currency',
+          label: 'Retirement Accounts (401k, IRA)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_real_estate_value',
+          name: 'other_real_estate_value',
+          type: 'currency',
+          label: 'Other Real Estate Value',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'cash_on_hand',
+          name: 'cash_on_hand',
+          type: 'currency',
+          label: 'Cash on Hand',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_assets',
+          name: 'other_assets',
+          type: 'currency',
+          label: 'Other Assets',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
           id: 'total_assets',
           name: 'total_assets',
           type: 'currency',
@@ -444,6 +920,201 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           name: 'credit_card_debt',
           type: 'currency',
           label: 'Total Credit Card Debt',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'auto_loan_balance',
+          name: 'auto_loan_balance',
+          type: 'currency',
+          label: 'Auto Loan Balance(s)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'student_loan_balance',
+          name: 'student_loan_balance',
+          type: 'currency',
+          label: 'Student Loan Balance',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'installment_loans',
+          name: 'installment_loans',
+          type: 'currency',
+          label: 'Installment Loans (furniture, etc.)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'personal_loans',
+          name: 'personal_loans',
+          type: 'currency',
+          label: 'Personal Loans (unsecured)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_mortgages',
+          name: 'other_mortgages',
+          type: 'currency',
+          label: 'Other Mortgages (on other properties)',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'other_liabilities',
+          name: 'other_liabilities',
+          type: 'currency',
+          label: 'Other Liabilities',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        },
+        {
+          id: 'total_liabilities',
+          name: 'total_liabilities',
+          type: 'currency',
+          label: 'Total Liabilities',
+          value: '',
+          required: false,
+          placeholder: '$0.00'
+        }
+      ]
+    },
+    {
+      id: 'lien-holders',
+      title: 'Lien Holder Information',
+      description: 'Information about second/third mortgages or liens',
+      completed: false,
+      validationErrors: [],
+      fields: [
+        {
+          id: 'second_lien_holder',
+          name: 'second_lien_holder',
+          type: 'text',
+          label: 'Second Lien Holder Name',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: 'Lender name',
+          ubaRule: 'N/A for retention files'
+        },
+        {
+          id: 'second_lien_balance',
+          name: 'second_lien_balance',
+          type: 'currency',
+          label: 'Second Lien Balance',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: '$0.00',
+          ubaRule: 'N/A for retention files'
+        },
+        {
+          id: 'second_lien_loan_number',
+          name: 'second_lien_loan_number',
+          type: 'text',
+          label: 'Second Lien Loan Number',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: 'Loan number',
+          ubaRule: 'N/A for retention files'
+        },
+        {
+          id: 'third_lien_holder',
+          name: 'third_lien_holder',
+          type: 'text',
+          label: 'Third Lien Holder Name',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: 'Lender name',
+          ubaRule: 'N/A for retention files'
+        },
+        {
+          id: 'third_lien_balance',
+          name: 'third_lien_balance',
+          type: 'currency',
+          label: 'Third Lien Balance',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: '$0.00',
+          ubaRule: 'N/A for retention files'
+        },
+        {
+          id: 'third_lien_loan_number',
+          name: 'third_lien_loan_number',
+          type: 'text',
+          label: 'Third Lien Loan Number',
+          value: caseType === 'retention' ? 'N/A' : '',
+          required: false,
+          placeholder: 'Loan number',
+          ubaRule: 'N/A for retention files'
+        }
+      ]
+    },
+    {
+      id: 'hoa-info',
+      title: 'HOA Information',
+      description: 'Homeowners Association details if applicable',
+      completed: false,
+      validationErrors: [],
+      fields: [
+        {
+          id: 'has_hoa',
+          name: 'has_hoa',
+          type: 'select',
+          label: 'Does property have HOA?',
+          value: 'No',
+          required: true,
+          options: ['Yes', 'No']
+        },
+        {
+          id: 'hoa_name',
+          name: 'hoa_name',
+          type: 'text',
+          label: 'HOA Name',
+          value: 'N/A',
+          required: false,
+          placeholder: 'Association name'
+        },
+        {
+          id: 'hoa_contact_name',
+          name: 'hoa_contact_name',
+          type: 'text',
+          label: 'HOA Contact Name',
+          value: 'N/A',
+          required: false,
+          placeholder: 'Contact person'
+        },
+        {
+          id: 'hoa_contact_phone',
+          name: 'hoa_contact_phone',
+          type: 'phone',
+          label: 'HOA Contact Phone',
+          value: '',
+          required: false,
+          placeholder: '(XXX) XXX-XXXX'
+        },
+        {
+          id: 'hoa_contact_address',
+          name: 'hoa_contact_address',
+          type: 'textarea',
+          label: 'HOA Contact Address',
+          value: 'N/A',
+          required: false,
+          placeholder: 'Street Address, City, State ZIP'
+        },
+        {
+          id: 'hoa_monthly_fee',
+          name: 'hoa_monthly_fee',
+          type: 'currency',
+          label: 'HOA Monthly Fee',
           value: '',
           required: false,
           placeholder: '$0.00'
@@ -514,11 +1185,9 @@ export const UBAFormMakerEnhanced: React.FC = () => {
           type: 'ai',
           content: `Hello! I'm here to help you complete your Borrower Financial Statement (UBA form) for mortgage assistance. This conversation will guide you through each section step by step.
 
-Before we begin, I need to understand your situation. Are you looking to:
-- **Keep your home** (loan modification/retention)
-- **Sell your home** (short sale)
+First, let me gather some basic loan information. What is your mortgage loan number? This helps ensure we're working with the correct account.
 
-This will help me tailor the form to your specific needs.`,
+If you have documents like your mortgage statement or recent correspondence from your lender, you can upload them using the paperclip button and I'll extract the information automatically.`,
           timestamp: new Date()
         }
       ]);
@@ -630,8 +1299,19 @@ This will help me tailor the form to your specific needs.`,
       // Update form data if AI extracted information
       if (data.extracted_data) {
         console.log('AI extracted data received:', data.extracted_data);
+        
+        // Sanitize extracted data to ensure all values are strings
+        const sanitizedExtractedData: Record<string, string> = {};
+        Object.entries(data.extracted_data).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            sanitizedExtractedData[key] = JSON.stringify(value);
+          } else {
+            sanitizedExtractedData[key] = String(value || '');
+          }
+        });
+        
         setFormData(prev => {
-          const updated = { ...prev, ...data.extracted_data };
+          const updated = { ...prev, ...sanitizedExtractedData };
           console.log('Updated form data:', updated);
           return updated;
         });
@@ -641,14 +1321,21 @@ This will help me tailor the form to your specific needs.`,
           prevSections.map(section => ({
             ...section,
             fields: section.fields.map(field => {
-              const newValue = data.extracted_data[field.name] || field.value;
-              if (data.extracted_data[field.name]) {
+              const rawValue = data.extracted_data[field.name];
+              const newValue = rawValue ? (typeof rawValue === 'object' && rawValue !== null 
+                ? JSON.stringify(rawValue) 
+                : String(rawValue)) : field.value;
+              
+              if (rawValue) {
                 console.log(`Updating field ${field.name}: "${field.value}" -> "${newValue}"`);
               }
+              
               return {
                 ...field,
                 value: newValue,
-                aiSuggestion: data.suggestions?.[field.name],
+                aiSuggestion: typeof data.suggestions?.[field.name] === 'object' 
+                  ? JSON.stringify(data.suggestions[field.name]) 
+                  : String(data.suggestions?.[field.name] || ''),
                 confidence: data.confidence?.[field.name]
               };
             })
@@ -827,6 +1514,36 @@ This will help me tailor the form to your specific needs.`,
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const supportedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'text/plain'];
+    if (!supportedTypes.includes(file.type)) {
+      try {
+        toast({
+          title: "Unsupported File Type",
+          description: `File type ${file.type} is not supported. Please upload PDF, image, or text files.`,
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        console.error('Error showing unsupported file type toast:', toastError);
+      }
+      return;
+    }
+
+    // Validate file size (100MB limit - very generous for homeowners)
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      try {
+        toast({
+          title: "File Too Large",
+          description: `File size is ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum size is 100MB.`,
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        console.error('Error showing file too large toast:', toastError);
+      }
+      return;
+    }
+
     const newDocument: DocumentUpload = {
       id: Date.now().toString(),
       fileName: file.name,
@@ -841,71 +1558,47 @@ This will help me tailor the form to your specific needs.`,
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       type: 'document',
-      content: `📄 Uploaded: ${file.name}`,
+      content: `📄 Uploaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
       timestamp: new Date(),
       metadata: { fileName: file.name }
     }]);
 
     // Read file content
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const fileContent = e.target?.result as string;
+    
+    // Add error handler for FileReader
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
+      setDocuments(prev => 
+        prev.map(doc => 
+          doc.id === newDocument.id 
+            ? { ...doc, processingStatus: 'failed' }
+            : doc
+        )
+      );
+      
+      setMessages(prev => [...prev, {
+        id: Date.now().toString() + '-reader-error',
+        type: 'system',
+        content: `❌ Failed to read file: ${file.name}. Please try again.`,
+        timestamp: new Date()
+      }]);
       
       try {
-        // Process document with AI
-        const response = await apiRequest('POST', '/api/v1/uba-forms/process-document', {
-          fileName: file.name,
-          fileContent: fileContent,
-          documentType: determineDocumentType(file.name)
+        toast({
+          title: "File Read Error",
+          description: "Unable to read the uploaded file. Please try again.",
+          variant: "destructive",
         });
-        
-        const result = await response.json();
-        
-        // Update document status
-        setDocuments(prev => 
-          prev.map(doc => 
-            doc.id === newDocument.id 
-              ? { ...doc, processingStatus: 'completed', extractedData: result.extractedData }
-              : doc
-          )
-        );
-
-        // Add AI response message
-        setMessages(prev => [...prev, {
-          id: Date.now().toString() + '-processed',
-          type: 'ai',
-          content: result.message,
-          timestamp: new Date(),
-          metadata: { extractedData: result.extractedData }
-        }]);
-
-        // Update form data with extracted information
-        if (result.extractedData && Object.keys(result.extractedData).length > 0) {
-          const updatedData = { ...formData, ...result.extractedData };
-          setFormData(updatedData);
-          
-          // Update sections with extracted data
-          setSections(prevSections => 
-            prevSections.map(section => ({
-              ...section,
-              fields: section.fields.map(field => ({
-                ...field,
-                value: updatedData[field.id] || field.value
-              }))
-            }))
-          );
-          
-          // Show success message
-          toast({
-            title: "Document Processed",
-            description: `Extracted ${result.fieldsExtracted.length} fields from ${file.name}`,
-          });
-        }
-        
-      } catch (error) {
-        console.error('Document processing error:', error);
-        
-        // Update document status to failed
+      } catch (toastError) {
+        console.error('Error showing file read error toast:', toastError);
+      }
+    };
+    
+    reader.onload = async (e) => {
+      // Add null checks for FileReader result
+      if (!e.target?.result) {
+        console.error('FileReader returned null result');
         setDocuments(prev => 
           prev.map(doc => 
             doc.id === newDocument.id 
@@ -914,26 +1607,296 @@ This will help me tailor the form to your specific needs.`,
           )
         );
         
-        // Show error message
+        try {
+          toast({
+            title: "File Read Error",
+            description: "File could not be read. Please try again.",
+            variant: "destructive",
+          });
+        } catch (toastError) {
+          console.error('Error showing file read null error toast:', toastError);
+        }
+        return;
+      }
+      
+      const fileContent = e.target.result as string;
+      
+      try {
+        // Check if file content is very large and might hit limits
+        const contentSizeMB = fileContent.length / 1024 / 1024;
+        console.log(`File content size: ${contentSizeMB.toFixed(2)}MB`);
+        
+        // Client-side validation before sending to server
+        if (contentSizeMB > 25) {
+          throw new Error(`File too large (${contentSizeMB.toFixed(1)}MB). Maximum size is 25MB.`);
+        }
+        
+        // Add processing indicator
         setMessages(prev => [...prev, {
-          id: Date.now().toString() + '-error',
+          id: Date.now().toString() + '-processing',
           type: 'system',
-          content: `❌ Failed to process ${file.name}. Please try again or enter the information manually.`,
+          content: `🔄 Processing ${file.name}...`,
           timestamp: new Date()
         }]);
         
-        toast({
-          title: "Processing Failed",
-          description: "Unable to process the document. Please enter information manually.",
-          variant: "destructive",
+        // Process document with AI - with timeout and error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 60000); // 60 second timeout
+        
+        let response;
+        try {
+          response = await apiRequest('POST', '/api/v1/uba-forms/process-document-simple', {
+            fileName: file.name,
+            fileContent: fileContent,
+            fileType: file.type
+          }, {
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          throw new Error('Server returned invalid response. Please try again.');
+        }
+        
+        // Check if the response indicates an error
+        if (!response.ok) {
+          throw new Error(result?.error?.message || result?.message || `Server error: ${response.status}`);
+        }
+        
+        // Update document status - with error protection
+        try {
+          setDocuments(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Documents state is not an array:', prev);
+              return [{ ...newDocument, processingStatus: 'completed', extractedData: result.extractedData }];
+            }
+            return prev.map(doc => 
+              doc.id === newDocument.id 
+                ? { ...doc, processingStatus: 'completed', extractedData: result.extractedData }
+                : doc
+            );
+          });
+        } catch (docError) {
+          console.error('Error updating document status:', docError);
+        }
+
+        // Remove processing indicator and add result message - with error protection
+        try {
+          setMessages(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Messages state is not an array:', prev);
+              return [{
+                id: Date.now().toString() + '-processed',
+                type: 'ai',
+                content: result.message || `Successfully processed ${file.name}`,
+                timestamp: new Date(),
+                metadata: { extractedData: result.extractedData }
+              }];
+            }
+            const filtered = prev.filter(msg => !msg.content.includes(`🔄 Processing ${file.name}`));
+            return [...filtered, {
+              id: Date.now().toString() + '-processed',
+              type: 'ai',
+              content: result.message || `Successfully processed ${file.name}`,
+              timestamp: new Date(),
+              metadata: { extractedData: result.extractedData }
+            }];
+          });
+        } catch (msgError) {
+          console.error('Error updating messages:', msgError);
+        }
+
+        // Update form data with extracted information
+        if (result.extractedData && typeof result.extractedData === 'object' && Object.keys(result.extractedData).length > 0) {
+          try {
+            // Ensure all extracted data values are strings to prevent rendering errors
+            const sanitizedData: Record<string, string> = {};
+            Object.entries(result.extractedData).forEach(([key, value]) => {
+              if (typeof value === 'object' && value !== null) {
+                sanitizedData[key] = JSON.stringify(value);
+              } else {
+                sanitizedData[key] = String(value || '');
+              }
+            });
+            
+            const updatedData = { ...formData, ...sanitizedData };
+            setFormData(updatedData);
+            
+            // Update sections with extracted data - with error protection
+            setSections(prevSections => {
+              try {
+                return prevSections.map(section => ({
+                  ...section,
+                  fields: section.fields.map(field => {
+                    const newValue = updatedData[field.id] || field.value;
+                    return {
+                      ...field,
+                      value: typeof newValue === 'object' && newValue !== null 
+                        ? JSON.stringify(newValue) 
+                        : String(newValue || field.value)
+                    };
+                  })
+                }));
+              } catch (sectionError) {
+                console.error('Error updating sections:', sectionError);
+                return prevSections; // Return unchanged if error
+              }
+            });
+            
+            // Show success message
+            const fieldsCount = result.fieldsExtracted?.length || Object.keys(result.extractedData).length;
+            try {
+              toast({
+                title: "Document Processed",
+                description: `Extracted ${fieldsCount} fields from ${file.name}`,
+              });
+            } catch (toastError) {
+              console.error('Error showing success toast:', toastError);
+            }
+          } catch (updateError) {
+            console.error('Error updating form data:', updateError);
+            try {
+              toast({
+                title: "Partial Success",
+                description: `${file.name} was processed but there was an issue updating the form. Please check manually.`,
+                variant: "destructive",
+              });
+            } catch (toastError) {
+              console.error('Error showing partial success toast:', toastError);
+            }
+          }
+        } else {
+          // Even if no data extracted, still show success
+          try {
+            toast({
+              title: "Document Uploaded",
+              description: `${file.name} was processed but no extractable data was found. You can continue filling the form manually.`,
+            });
+          } catch (toastError) {
+            console.error('Error showing upload success toast:', toastError);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Document processing error:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          type: typeof error,
+          stack: error instanceof Error ? error.stack : undefined
         });
+        
+        // Update document status to failed - with error protection
+        try {
+          setDocuments(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Documents state is not an array in error handler:', prev);
+              return [{ ...newDocument, processingStatus: 'failed' }];
+            }
+            return prev.map(doc => 
+              doc.id === newDocument.id 
+                ? { ...doc, processingStatus: 'failed' }
+                : doc
+            );
+          });
+        } catch (docError) {
+          console.error('Error updating document status in error handler:', docError);
+        }
+        
+        // Remove any processing indicator - with error protection
+        try {
+          setMessages(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Messages state is not an array in error handler:', prev);
+              return [];
+            }
+            return prev.filter(msg => !msg.content.includes(`🔄 Processing ${file.name}`));
+          });
+        } catch (msgError) {
+          console.error('Error filtering messages in error handler:', msgError);
+        }
+        
+        // Provide specific error feedback
+        let errorMessage = "Processing Failed";
+        let description = "Please try again or enter information manually";
+        
+        if (error instanceof Error) {
+          console.log('Analyzing error message:', error.message);
+          
+          if (error.name === 'AbortError' || error.message.includes('timeout')) {
+            errorMessage = "Processing Timeout";
+            description = "Document processing took too long. Please try with a smaller file or enter information manually.";
+          } else if (error.message.includes('413') || error.message.includes('entity too large') || error.message.includes('too large')) {
+            errorMessage = "File Too Large";
+            description = "File size exceeds limits. Please try a smaller file or enter information manually.";
+          } else if (error.message.includes('PDF_PROCESSING_ERROR') || error.message.includes('PDF')) {
+            errorMessage = "PDF Processing Error";
+            description = "Unable to extract text from PDF. Please ensure the PDF contains selectable text or try uploading as an image.";
+          } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+            errorMessage = "Connection Error";
+            description = "Unable to connect to processing service. Please check your connection and try again.";
+          } else if (error.message.includes('Unsupported') || error.message.includes('format') || error.message.includes('Invalid')) {
+            errorMessage = "File Format Error";
+            description = error.message;
+          } else if (error.message.includes('Server error')) {
+            errorMessage = "Server Error";
+            description = error.message;
+          } else if (error.message) {
+            description = error.message;
+          }
+        }
+        
+        // Show error message in chat - with error protection
+        try {
+          setMessages(prev => {
+            if (!Array.isArray(prev)) {
+              console.error('Messages state is not an array when adding error message:', prev);
+              return [{
+                id: Date.now().toString() + '-error',
+                type: 'system',
+                content: `❌ ${errorMessage}: ${file.name}. ${description}`,
+                timestamp: new Date()
+              }];
+            }
+            return [...prev, {
+              id: Date.now().toString() + '-error',
+              type: 'system',
+              content: `❌ ${errorMessage}: ${file.name}. ${description}`,
+              timestamp: new Date()
+            }];
+          });
+        } catch (msgError) {
+          console.error('Error adding error message to chat:', msgError);
+        }
+
+        // Show toast notification - with error protection
+        try {
+          toast({
+            title: errorMessage,
+            description: description,
+            variant: "destructive",
+          });
+        } catch (toastError) {
+          console.error('Error showing toast notification:', toastError);
+        }
       }
     };
     
-    // Determine how to read the file
-    if (file.type.startsWith('image/')) {
+    // Determine how to read the file based on type
+    if (file.type === 'application/pdf') {
+      // Handle PDF files - convert to base64 for backend processing
+      reader.readAsDataURL(file);
+    } else if (file.type.startsWith('image/')) {
+      // Handle images - convert to base64
       reader.readAsDataURL(file);
     } else {
+      // Handle text files
       reader.readAsText(file);
     }
   };
@@ -941,7 +1904,9 @@ This will help me tailor the form to your specific needs.`,
   // Helper function to determine document type
   const determineDocumentType = (fileName: string): string => {
     const lowerName = fileName.toLowerCase();
-    if (lowerName.includes('pay') || lowerName.includes('stub') || lowerName.includes('income')) {
+    if (lowerName.includes('uba') || lowerName.includes('710') || lowerName.includes('uniform') || lowerName.includes('applicant')) {
+      return 'uba_form';
+    } else if (lowerName.includes('pay') || lowerName.includes('stub') || lowerName.includes('income')) {
       return 'income_verification';
     } else if (lowerName.includes('hardship') || lowerName.includes('letter')) {
       return 'hardship_letter';
@@ -1026,7 +1991,8 @@ This will help me tailor the form to your specific needs.`,
   const transactionId = urlParams.get('transactionId');
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6 min-h-screen">
+    <ErrorBoundary>
+      <div className="container max-w-7xl mx-auto p-6 space-y-6 min-h-screen">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button 
@@ -1264,7 +2230,10 @@ This will help me tailor the form to your specific needs.`,
                                 {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </Label>
                               <div className="text-sm font-medium">
-                                {value || 'Not provided'}
+                                {typeof value === 'object' && value !== null 
+                                  ? JSON.stringify(value, null, 2) 
+                                  : (value || 'Not provided')
+                                }
                               </div>
                             </div>
                           ))}
@@ -1360,7 +2329,10 @@ This will help me tailor the form to your specific needs.`,
                                 {field.label}
                               </Label>
                               <div className="text-sm font-medium">
-                                {field.value}
+                                {typeof field.value === 'object' && field.value !== null 
+                                  ? JSON.stringify(field.value, null, 2) 
+                                  : field.value
+                                }
                               </div>
                             </div>
                           );
@@ -1447,7 +2419,10 @@ This will help me tailor the form to your specific needs.`,
                           )}
                           {field.aiSuggestion && (
                             <Badge variant="secondary" className="text-xs mt-1">
-                              AI: {field.aiSuggestion}
+                              AI: {typeof field.aiSuggestion === 'object' && field.aiSuggestion !== null 
+                                ? JSON.stringify(field.aiSuggestion) 
+                                : field.aiSuggestion
+                              }
                             </Badge>
                           )}
                         </div>
@@ -1459,7 +2434,8 @@ This will help me tailor the form to your specific needs.`,
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

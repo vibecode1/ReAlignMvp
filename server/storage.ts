@@ -914,6 +914,263 @@ class DrizzleStorage implements IStorage {
         return null;
     }
 
+    // Document Checklist Methods
+    async getLenderByName(name: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM lenders WHERE name = ${name} AND is_active = true LIMIT 1`
+            );
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error getting lender by name:', error);
+            throw error;
+        }
+    }
+
+    async createTransactionChecklist(data: {
+        transaction_id: string;
+        lender_id: string;
+        case_type: string;
+        property_type: string;
+        delinquency_status?: string;
+        hardship_type?: string;
+        employment_status?: string;
+        bankruptcy_status?: string;
+        military_status?: string;
+    }): Promise<string> {
+        try {
+            const result = await db.execute(
+                sql`INSERT INTO transaction_document_checklists 
+                (transaction_id, lender_id, case_type, property_type, delinquency_status, 
+                 hardship_type, employment_status, bankruptcy_status, military_status)
+                VALUES (${data.transaction_id}, ${data.lender_id}, ${data.case_type}, 
+                        ${data.property_type}, ${data.delinquency_status}, ${data.hardship_type},
+                        ${data.employment_status}, ${data.bankruptcy_status}, ${data.military_status})
+                RETURNING id`
+            );
+            return result.rows[0].id;
+        } catch (error) {
+            console.error('Error creating transaction checklist:', error);
+            throw error;
+        }
+    }
+
+    async getLenderRequirements(lenderId: string, caseType: string, propertyType: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT lr.*, dr.name as document_name, dr.category, dr.description, dr.notes as document_notes
+                    FROM lender_requirements lr
+                    JOIN document_requirements dr ON lr.document_id = dr.id
+                    WHERE lr.lender_id = ${lenderId}
+                    AND (lr.case_type = ${caseType} OR lr.case_type = 'all')
+                    AND (lr.property_type = ${propertyType} OR lr.property_type = 'all')
+                    AND lr.is_required = true`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('Error getting lender requirements:', error);
+            throw error;
+        }
+    }
+
+    async createChecklistItem(data: {
+        checklist_id: string;
+        document_requirement_id: string;
+        document_name: string;
+        category: string;
+        priority: string;
+        status: string;
+        progress_percentage: number;
+        due_date?: string;
+        notes?: string;
+    }): Promise<string> {
+        try {
+            const result = await db.execute(
+                sql`INSERT INTO transaction_checklist_items 
+                (checklist_id, document_requirement_id, document_name, category, priority, 
+                 status, progress_percentage, due_date, notes)
+                VALUES (${data.checklist_id}, ${data.document_requirement_id}, ${data.document_name}, 
+                        ${data.category}, ${data.priority}, ${data.status}, ${data.progress_percentage},
+                        ${data.due_date}, ${data.notes})
+                RETURNING id`
+            );
+            return result.rows[0].id;
+        } catch (error) {
+            console.error('Error creating checklist item:', error);
+            throw error;
+        }
+    }
+
+    async getTransactionChecklist(transactionId: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT tc.*, l.name as lender_name
+                    FROM transaction_document_checklists tc
+                    JOIN lenders l ON tc.lender_id = l.id
+                    WHERE tc.transaction_id = ${transactionId}
+                    ORDER BY tc.generated_at DESC
+                    LIMIT 1`
+            );
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error getting transaction checklist:', error);
+            throw error;
+        }
+    }
+
+    async getChecklistItems(checklistId: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM transaction_checklist_items 
+                    WHERE checklist_id = ${checklistId}
+                    ORDER BY 
+                        CASE priority 
+                            WHEN 'required' THEN 1 
+                            WHEN 'conditional' THEN 2 
+                            ELSE 3 
+                        END,
+                        document_name`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('Error getting checklist items:', error);
+            throw error;
+        }
+    }
+
+    async getChecklistItem(itemId: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT tci.*, tc.transaction_id
+                    FROM transaction_checklist_items tci
+                    JOIN transaction_document_checklists tc ON tci.checklist_id = tc.id
+                    WHERE tci.id = ${itemId}`
+            );
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error getting checklist item:', error);
+            throw error;
+        }
+    }
+
+    async updateChecklistItem(itemId: string, updates: any) {
+        try {
+            const setClauses = [];
+            const values = [];
+            
+            Object.entries(updates).forEach(([key, value], index) => {
+                setClauses.push(`${key} = $${index + 2}`);
+                values.push(value);
+            });
+            
+            const query = `UPDATE transaction_checklist_items 
+                          SET ${setClauses.join(', ')}
+                          WHERE id = $1
+                          RETURNING *`;
+            
+            const result = await pool.query(query, [itemId, ...values]);
+            return result.rows[0];
+        } catch (error) {
+            console.error('Error updating checklist item:', error);
+            throw error;
+        }
+    }
+
+    async getActiveLenders() {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM lenders WHERE is_active = true ORDER BY name`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('Error getting active lenders:', error);
+            throw error;
+        }
+    }
+
+    async createChecklistTemplate(data: {
+        name: string;
+        description?: string;
+        lender_id?: string;
+        case_type?: string;
+        property_type?: string;
+        created_by: string;
+        is_public?: boolean;
+        template_data: any;
+    }) {
+        try {
+            const result = await db.execute(
+                sql`INSERT INTO document_checklist_templates 
+                (name, description, lender_id, case_type, property_type, created_by, 
+                 is_public, template_data)
+                VALUES (${data.name}, ${data.description}, ${data.lender_id}, ${data.case_type}, 
+                        ${data.property_type}, ${data.created_by}, ${data.is_public || false}, 
+                        ${JSON.stringify(data.template_data)})
+                RETURNING *`
+            );
+            return result.rows[0];
+        } catch (error) {
+            console.error('Error creating checklist template:', error);
+            throw error;
+        }
+    }
+
+    async getChecklistTemplatesForUser(userId: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM document_checklist_templates 
+                    WHERE created_by = ${userId} OR is_public = true
+                    ORDER BY created_at DESC`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('Error getting checklist templates:', error);
+            throw error;
+        }
+    }
+
+    async getDocument(documentId: string) {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM documents WHERE id = ${documentId}`
+            );
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error getting document:', error);
+            throw error;
+        }
+    }
+
+    async userHasTransactionAccess(userId: string, transactionId: string): Promise<boolean> {
+        try {
+            // Check if user is a participant in the transaction
+            const participantResult = await db.execute(
+                sql`SELECT 1 FROM transaction_participants 
+                    WHERE transaction_id = ${transactionId} AND user_id = ${userId}
+                    LIMIT 1`
+            );
+            
+            if (participantResult.rows.length > 0) {
+                return true;
+            }
+            
+            // Check if user is the negotiator who created the transaction
+            const transactionResult = await db.execute(
+                sql`SELECT 1 FROM transactions t
+                    JOIN transaction_participants tp ON t.id = tp.transaction_id
+                    WHERE t.id = ${transactionId} 
+                    AND tp.user_id = ${userId}
+                    AND tp.role_in_transaction = 'negotiator'
+                    LIMIT 1`
+            );
+            
+            return transactionResult.rows.length > 0;
+        } catch (error) {
+            console.error('Error checking transaction access:', error);
+            return false;
+        }
+    }
+
     async healthCheck(): Promise<{ status: string; timestamp: string }> {
         try {
             await db.execute(sql`SELECT 1`);

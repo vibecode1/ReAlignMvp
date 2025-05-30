@@ -11,6 +11,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: { signal?: AbortSignal }
 ): Promise<Response> {
   // Get the auth token from localStorage
   const authToken = localStorage.getItem('auth_token');
@@ -31,6 +32,7 @@ export async function apiRequest(
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    signal: options?.signal,
   });
 
   await throwIfResNotOk(res);

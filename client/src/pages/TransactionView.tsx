@@ -37,6 +37,7 @@ import PhaseManager from "@/components/transactions/PhaseManager";
 import { AddPartyForm } from "@/components/AddPartyForm";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import DocumentChecklistGenerator from "@/components/transactions/DocumentChecklistGenerator";
 
 // Define transaction interface to help with TypeScript errors
 interface TransactionDetail {
@@ -88,6 +89,7 @@ export default function TransactionView({ id }: TransactionViewProps) {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedAddress, setEditedAddress] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDocumentChecklist, setShowDocumentChecklist] = useState(false);
 
   // Fetch transaction details
   const { 
@@ -459,6 +461,21 @@ export default function TransactionView({ id }: TransactionViewProps) {
                       </div>
                     </div>
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="justify-start h-auto p-4"
+                    onClick={() => setShowDocumentChecklist(true)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-5 w-5 mt-0.5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">Document Checklist</div>
+                        <div className="text-sm text-muted-foreground">
+                          Dynamic document requirements
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -690,6 +707,27 @@ export default function TransactionView({ id }: TransactionViewProps) {
               }}
             />
           </motion.div>
+
+        {/* Document Checklist Generator */}
+        {showDocumentChecklist && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+          >
+            <DocumentChecklistGenerator 
+              transactionId={id}
+              onDocumentUpload={(documentId) => {
+                // Refresh transaction data when a document is uploaded
+                queryClient.invalidateQueries({ queryKey: [`/api/v1/transactions/${id}`] });
+                toast({
+                  title: "Document Uploaded",
+                  description: "The document has been uploaded to the checklist.",
+                });
+              }}
+            />
+          </motion.div>
+        )}
 
         {/* Message Thread - Mobile Optimized */}
         <motion.div

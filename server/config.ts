@@ -24,7 +24,7 @@ const config = {
   },
   
   // File upload
-  maxFileSize: 10 * 1024 * 1024, // 10MB
+  maxFileSize: 200 * 1024 * 1024, // 200MB
   
   // Temporary uploads directory
   uploadsDir: process.env.UPLOADS_DIR || './tmp/uploads',

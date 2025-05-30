@@ -9,8 +9,16 @@ import { NotificationService } from './services/notificationService';
 const app = express();
 // Disable ETags to prevent 304 Not Modified responses that cause stale party data
 app.disable('etag');
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Very generous request size limits for document uploads (200MB)
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: false, limit: '200mb' }));
+
+// Add middleware to log request sizes for debugging
+app.use('/api/v1/uba-forms/process-document', (req, res, next) => {
+  const contentLength = req.get('content-length');
+  console.log(`📊 UBA Document Upload - Content-Length: ${contentLength ? (parseInt(contentLength) / 1024 / 1024).toFixed(2) + 'MB' : 'unknown'}`);
+  next();
+});
 
 // JSON PARSING ERROR HANDLER for debugging 0ms 401 errors
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
