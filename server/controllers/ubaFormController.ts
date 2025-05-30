@@ -4,6 +4,9 @@ import { storage } from '../storage';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { z } from 'zod';
 import { aiService } from '../services/aiService';
+import { ENHANCED_DOCUMENT_EXTRACTION_PROMPT, AI_SERVICE_CONFIG } from '../services/aiServiceConfig';
+import { mapExtractedToUbaFields } from '@shared/ubaFieldMappings';
+import { UbaFormExportService } from '../services/ubaFormExportService';
 // PDF processing will use pdfjs-dist
 
 // Schema for UBA form data
@@ -79,6 +82,114 @@ const ProcessConversationSchema = z.object({
 });
 
 export const ubaFormController = {
+  /**
+   * Enhanced document content extraction with better error handling
+   */
+  async extractDocumentContent(fileContent: string, fileType: string, fileName: string): Promise<{
+    content: string;
+    isImage: boolean;
+    extractionMethod: string;
+  }> {
+    // For images, return as-is for Claude's vision capabilities
+    if (fileType?.startsWith('image/')) {
+      return {
+        content: fileContent,
+        isImage: true,
+        extractionMethod: 'claude_vision'
+      };
+    }
+
+    // Enhanced PDF processing
+    if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+      try {
+        // Extract buffer from base64 content
+        let pdfBuffer;
+        if (fileContent.startsWith('data:application/pdf;base64,')) {
+          const base64Data = fileContent.replace('data:application/pdf;base64,', '');
+          pdfBuffer = Buffer.from(base64Data, 'base64');
+        } else if (fileContent.length > 100 && !fileContent.includes(' ')) {
+          pdfBuffer = Buffer.from(fileContent, 'base64');
+        } else {
+          throw new Error('PDF content format not recognized');
+        }
+
+        const bufferSizeMB = pdfBuffer.length / (1024 * 1024);
+        if (bufferSizeMB > 50) {
+          throw new Error(`PDF file too large (${bufferSizeMB.toFixed(1)}MB). Maximum size is 50MB.`);
+        }
+
+        // Import PDF.js
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+        
+        // Load PDF document
+        const loadingTask = pdfjsLib.getDocument({
+          data: pdfBuffer,
+          verbosity: 0
+        });
+        
+        const pdfDocument = await loadingTask.promise;
+        const numPages = Math.min(pdfDocument.numPages, 50); // Process up to 50 pages
+        
+        let extractedText = '';
+        const pageTexts = [];
+        
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+          const page = await pdfDocument.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          // Improved text extraction with better spacing
+          const items = textContent.items as any[];
+          let pageText = '';
+          let lastY = null;
+          
+          for (const item of items) {
+            // Add newline if Y position changed significantly (new line)
+            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+              pageText += '\n';
+            }
+            pageText += item.str + ' ';
+            lastY = item.transform[5];
+          }
+          
+          pageTexts.push(`--- Page ${pageNum} ---\n${pageText.trim()}`);
+          
+          // Limit total text to 500KB
+          if (extractedText.length + pageText.length > 500000) break;
+          extractedText += pageText + '\n\n';
+        }
+        
+        const fullText = pageTexts.join('\n\n');
+        
+        // Check if we got meaningful text
+        if (fullText.trim().length < 100) {
+          console.log('PDF text extraction yielded minimal content');
+          throw new Error('Scanned PDF detected - minimal text extracted');
+        }
+        
+        return {
+          content: fullText,
+          isImage: false,
+          extractionMethod: 'pdfjs_text'
+        };
+        
+      } catch (error) {
+        console.error('PDF processing error:', error);
+        // Return error state for fallback processing
+        return {
+          content: '',
+          isImage: false,
+          extractionMethod: 'failed'
+        };
+      }
+    }
+    
+    // Plain text content
+    return {
+      content: fileContent,
+      isImage: false,
+      extractionMethod: 'raw_text'
+    };
+  },
   /**
    * Create new UBA form data (legacy method)
    */
@@ -293,7 +404,11 @@ export const ubaFormController = {
       console.log(`Is image file:`, fileType?.startsWith('image/'));
       console.log(`Is PDF file:`, fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf'));
 
-      let processedContent = fileContent;
+      // Extract document content with enhanced processing
+      const extractionResult = await this.extractDocumentContent(fileContent, fileType, fileName);
+      let processedContent = extractionResult.content;
+      const isImageDocument = extractionResult.isImage;
+      const extractionMethod = extractionResult.extractionMethod;
 
       // Handle PDF files - check if content is base64 encoded PDF
       if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
@@ -364,142 +479,39 @@ export const ubaFormController = {
         }
       }
 
-      // Enhanced document processing prompt for all file types
-      const documentTypeDescription = fileType === 'application/pdf' ? 'PDF document' : 
-                                     fileType?.startsWith('image/') ? 'image of a document' : 'document';
-      
-      const systemPrompt = `Please look at this ${documentTypeDescription} and extract all the data fields and their values.
-
-${fileType?.startsWith('image/') ? 'This is an image of a document. Please read all visible text carefully.' : ''}
-
-Identify what type of document this is and extract ALL data fields and their values that you can see.
-
-Return the results as a JSON object where each field name is a key and the extracted value is the value.
-
-For financial amounts, remove dollar signs and commas (e.g., return "1200" not "$1,200").
-
-Just extract everything you can see - use clear, descriptive field names for what you find.`;
+      // Use enhanced prompt from config
+      const systemPrompt = ENHANCED_DOCUMENT_EXTRACTION_PROMPT;
 
       try {
         // Skip AI processing if content failed to process
-        if (processedContent === 'PDF_PROCESSING_FAILED') {
-          throw new Error('PDF processing failed - using manual extraction');
+        if (extractionMethod === 'failed') {
+          throw new Error('Document processing failed - using manual extraction');
         }
         
-        // Process with AI using direct Claude call to bypass context recipe issues
-        console.log('Attempting direct Claude API call for document processing...');
+        // Use centralized AI service for document processing
+        console.log('Processing document with AI service...');
         console.log('Document type:', documentType);
         console.log('File name:', fileName);
-        console.log('System prompt length:', systemPrompt.length);
+        console.log('Extraction method:', extractionMethod);
         
-        if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === '') {
-          throw new Error('Anthropic API key not configured - AI processing unavailable');
-        }
-        
-        const { default: Anthropic } = await import('@anthropic-ai/sdk');
-        const anthropic = new Anthropic({
-          apiKey: process.env.ANTHROPIC_API_KEY,
-        });
-
-        let claudeResponse;
-        
-        // Set up timeout for Claude API calls
-        const claudeTimeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Claude API timeout after 45 seconds')), 45000);
-        });
-        
-        const claudeApiCall = async () => {
-          // For images, send the image directly to Claude for better OCR
-          if (fileType?.startsWith('image/')) {
-            console.log('Processing image file with Claude vision...');
-            console.log('File type:', fileType);
-            console.log('File content starts with data URL:', fileContent.startsWith('data:'));
-            console.log('File content length:', fileContent.length);
-            
-            // Extract base64 data properly
-            let base64Data = fileContent;
-            if (fileContent.startsWith('data:')) {
-              const parts = fileContent.split(',');
-              if (parts.length > 1) {
-                base64Data = parts[1];
-                console.log('Extracted base64 data length:', base64Data.length);
-              }
-            }
-            
-            // Validate base64 data
-            try {
-              const buffer = Buffer.from(base64Data, 'base64');
-              const imageSizeMB = buffer.length / (1024 * 1024);
-              console.log(`Image size: ${imageSizeMB.toFixed(2)}MB`);
-              
-              if (imageSizeMB > 20) {
-                throw new Error(`Image too large (${imageSizeMB.toFixed(1)}MB). Maximum size is 20MB.`);
-              }
-              
-              console.log('Base64 data is valid');
-            } catch (e) {
-              console.error('Invalid base64 data:', e);
-              throw new Error('Invalid image data format');
-            }
-            
-            return await anthropic.messages.create({
-              model: 'claude-3-5-sonnet-20241022',
-              max_tokens: 4000,
-              temperature: 0.1,
-              messages: [
-                { 
-                  role: 'user', 
-                  content: [
-                    {
-                      type: 'text',
-                      text: systemPrompt
-                    },
-                    {
-                      type: 'image',
-                      source: {
-                        type: 'base64',
-                        media_type: fileType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-                        data: base64Data
-                      }
-                    }
-                  ]
-                }
-              ],
-            });
-          } else {
-            // For PDFs and text, use text-based processing
-            // Truncate very long content to prevent API limits
-            const maxContentLength = 100000; // 100k chars max
-            let contentToProcess = processedContent;
-            if (processedContent.length > maxContentLength) {
-              contentToProcess = processedContent.substring(0, maxContentLength) + '\n\n[Content truncated due to length]';
-            }
-            
-            return await anthropic.messages.create({
-              model: 'claude-3-5-sonnet-20241022',
-              max_tokens: 4000,
-              temperature: 0.1,
-              messages: [
-                { 
-                  role: 'user', 
-                  content: `${systemPrompt}\n\nDocument content to extract from:\n${contentToProcess}`
-                }
-              ],
-            });
+        const aiResponse = await aiService.generateRecommendation({
+          userId: req.user.id,
+          contextRecipeId: 'document_extraction',
+          userInput: isImageDocument ? 'Process this document image' : processedContent,
+          additionalContext: {
+            systemPrompt: systemPrompt,
+            documentType,
+            fileName,
+            fileType,
+            extractionMethod,
+            isImage: isImageDocument,
+            imageData: isImageDocument ? processedContent : undefined,
+            // Use the newer Claude model for better extraction
+            preferredModel: AI_SERVICE_CONFIG.taskConfigs.document_extraction.model,
+            maxTokens: AI_SERVICE_CONFIG.taskConfigs.document_extraction.maxTokens,
+            temperature: AI_SERVICE_CONFIG.taskConfigs.document_extraction.temperature
           }
-        };
-
-        claudeResponse = await Promise.race([claudeApiCall(), claudeTimeoutPromise]) as any;
-
-        // Transform Claude response to match expected format
-        const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
-        const aiResponse = {
-          content: textContent?.text || '',
-          usage: {
-            prompt_tokens: claudeResponse.usage?.input_tokens || 0,
-            completion_tokens: claudeResponse.usage?.output_tokens || 0,
-          }
-        };
+        });
 
         console.log('Claude API call successful, extracted content length:', aiResponse.content.length);
         console.log('Raw Claude response:', aiResponse.content);
@@ -528,6 +540,37 @@ Just extract everything you can see - use clear, descriptive field names for wha
           }
         }
 
+        // Apply field mapping to extracted data
+        const mappingResult = mapExtractedToUbaFields(extractedData);
+        console.log(`Field mapping: ${mappingResult.mappingStats.mappedCount} of ${mappingResult.mappingStats.totalFields} fields mapped to UBA fields`);
+
+        // Save complete extracted data if UBA form ID provided
+        let attachmentId = null;
+        if (req.body.ubaFormId) {
+          const attachment = await storage.createUbaDocumentAttachment({
+            uba_form_data_id: req.body.ubaFormId,
+            document_type: this.mapToUbaDocumentType(documentType),
+            document_title: fileName,
+            file_url: req.body.fileUrl || `data:${fileType};base64,processed`,
+            file_name: fileName,
+            file_size_bytes: fileContent.length,
+            content_type: fileType,
+            processing_status: 'processed',
+            extraction_confidence: 85, // Can be calculated based on AI response
+            extracted_data: JSON.stringify(extractedData), // Store ALL extracted data
+            uba_compliance_check: JSON.stringify({
+              extracted_fields: Object.keys(extractedData),
+              mapped_fields: Object.keys(mappingResult.mappedFields),
+              unmapped_fields: Object.keys(mappingResult.unmappedFields),
+              extraction_method: extractionMethod,
+              extraction_timestamp: new Date().toISOString()
+            }),
+            meets_uba_requirements: mappingResult.mappingStats.mappedCount > 0
+          });
+          attachmentId = attachment.id;
+          console.log(`Saved document attachment ${attachmentId} with ${Object.keys(extractedData).length} extracted fields`);
+        }
+
         // Log document processing
         await storage.logWorkflowEvent({
           user_id: req.user.id,
@@ -541,17 +584,23 @@ Just extract everything you can see - use clear, descriptive field names for wha
             document_type: documentType,
             file_type: fileType,
             fields_extracted: Object.keys(extractedData).length,
-            content_length: processedContent.length
+            fields_mapped: mappingResult.mappingStats.mappedCount,
+            fields_unmapped: mappingResult.mappingStats.unmappedCount,
+            extraction_method: extractionMethod,
+            attachment_id: attachmentId
           })
         });
 
         return res.status(200).json({
           fileName,
-          extractedData,
+          extractedData: mappingResult.mappedFields, // Return mapped fields for form population
+          allExtractedData: extractedData, // Also return all extracted data
+          mappingStats: mappingResult.mappingStats,
           message: `Successfully processed ${fileName}`,
           fieldsExtracted: Object.keys(extractedData).filter(k => !['raw_text', 'extraction_failed'].includes(k)),
           fileType,
-          processingMethod: 'ai_extraction'
+          processingMethod: 'ai_extraction',
+          attachmentId
         });
 
       } catch (aiError) {
@@ -608,6 +657,27 @@ Just extract everything you can see - use clear, descriptive field names for wha
         }
       });
     }
+  },
+
+  // Helper method to map document type to UBA document type enum
+  mapToUbaDocumentType(documentType: string): 'income_verification' | 'hardship_letter' | 'financial_statement' | 'property_documents' | 'correspondence' {
+    const typeMap: Record<string, any> = {
+      'pay_stub': 'income_verification',
+      'paystub': 'income_verification',
+      'w2': 'income_verification',
+      'tax_return': 'income_verification',
+      'bank_statement': 'financial_statement',
+      'mortgage_statement': 'property_documents',
+      'hardship_letter': 'hardship_letter',
+      'loe': 'hardship_letter',
+      'property_tax': 'property_documents',
+      'insurance': 'property_documents',
+      'hoa': 'property_documents',
+      'correspondence': 'correspondence'
+    };
+    
+    const normalizedType = documentType?.toLowerCase().replace(/[^a-z0-9]/g, '_') || '';
+    return typeMap[normalizedType] || 'correspondence';
   },
 
   // Helper method for manual mortgage data extraction
@@ -1416,6 +1486,132 @@ What information would you like to provide? You can tell me about:
         error: {
           code: 'SERVER_ERROR',
           message: 'Failed to process document upload',
+        }
+      });
+    }
+  },
+
+  /**
+   * Export UBA form to servicer form (e.g., Fannie Mae Form 710)
+   */
+  async exportToServicerForm(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Authentication required',
+          }
+        });
+      }
+
+      const { formId, formType } = req.params;
+      
+      // Validate form type
+      const availableForms = await UbaFormExportService.getAvailableForms();
+      const formExists = availableForms.find(f => f.id === formType);
+      if (!formExists) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_FORM_TYPE',
+            message: `Form type ${formType} is not supported`,
+            availableForms
+          }
+        });
+      }
+      
+      // Get UBA form data by transaction ID
+      const ubaForm = await storage.getUbaFormData(formId, req.user.id);
+      if (!ubaForm) {
+        return res.status(404).json({ 
+          error: {
+            code: 'FORM_NOT_FOUND',
+            message: 'UBA form not found'
+          }
+        });
+      }
+      
+      // Get all extracted document data for the transaction
+      const documentExtractions = await storage.getTransactionDocumentExtractions(
+        ubaForm.transaction_id
+      );
+      
+      // Aggregate all extracted data
+      const extractedData = documentExtractions.reduce((acc, doc) => {
+        const data = doc.extracted_data || {};
+        return { ...acc, ...data };
+      }, {});
+      
+      console.log(`Exporting form ${formId} to ${formType} with ${Object.keys(extractedData).length} extracted fields`);
+      
+      // Parse UBA form data (convert from DB format)
+      const formData = {
+        ...ubaForm,
+        // Ensure all fields are in the expected format
+        assistance_type_requested: ubaForm.assistance_type_requested || [],
+      };
+      
+      // Generate the PDF
+      const pdfBuffer = await UbaFormExportService.populateForm(
+        formType,
+        formData,
+        extractedData
+      );
+      
+      // Log the export
+      await storage.logWorkflowEvent({
+        user_id: req.user.id,
+        event_type: 'form_exported',
+        event_category: 'uba_form',
+        event_name: `exported_to_${formType}`,
+        event_description: `Exported UBA form to ${formType}`,
+        success_indicator: true,
+        event_metadata: JSON.stringify({
+          form_id: formId,
+          form_type: formType,
+          file_size: pdfBuffer.length,
+          extracted_fields_count: Object.keys(extractedData).length,
+          form_fields_count: Object.keys(formData).length
+        })
+      });
+      
+      // Send the PDF
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `form_710_${ubaForm.loan_number || 'draft'}_${timestamp}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length.toString());
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error('Export form error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'EXPORT_ERROR',
+          message: 'Failed to export form',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }
+      });
+    }
+  },
+
+  /**
+   * Get available servicer forms for export
+   */
+  async getAvailableServicerForms(req: AuthenticatedRequest, res: Response) {
+    try {
+      const forms = await UbaFormExportService.getAvailableForms();
+      return res.status(200).json({
+        forms,
+        message: 'Available forms for export'
+      });
+    } catch (error) {
+      console.error('Get available forms error:', error);
+      return res.status(500).json({
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to retrieve available forms'
         }
       });
     }

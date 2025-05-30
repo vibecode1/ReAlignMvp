@@ -26,7 +26,9 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  Home
+  Home,
+  Download,
+  FileDown
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -34,6 +36,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { mapExtractedToUbaFields, type FieldMappingResult, UBA_FIELD_MAPPINGS } from '@shared/ubaFieldMappings';
 
 // Types for UBA Form sections following the UBA Guide rules
 interface UBAFormSection {
@@ -124,6 +127,10 @@ export const UBAFormMakerEnhanced: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [showDataPreview, setShowDataPreview] = useState<boolean>(true);
   const [caseType, setCaseType] = useState<'short_sale' | 'retention' | null>(null);
+  const [documentExtractions, setDocumentExtractions] = useState<Record<string, Record<string, any>>>({});
+  const [currentFormId, setCurrentFormId] = useState<string | null>(null);
+  const [dataViewMode, setDataViewMode] = useState<'uba' | 'all'>('uba');
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Enhanced UBA Form Sections with UBA Guide rules
   const formSections: UBAFormSection[] = [
@@ -1300,28 +1307,30 @@ If you have documents like your mortgage statement or recent correspondence from
       if (data.extracted_data) {
         console.log('AI extracted data received:', data.extracted_data);
         
-        // Sanitize extracted data to ensure all values are strings
-        const sanitizedExtractedData: Record<string, string> = {};
-        Object.entries(data.extracted_data).forEach(([key, value]) => {
-          if (typeof value === 'object' && value !== null) {
-            sanitizedExtractedData[key] = JSON.stringify(value);
-          } else {
-            sanitizedExtractedData[key] = String(value || '');
-          }
-        });
+        // Store AI extracted data in documentExtractions with a special ID
+        const aiExtractionId = `ai-conversation-${Date.now()}`;
+        setDocumentExtractions(prev => ({
+          ...prev,
+          [aiExtractionId]: data.extracted_data
+        }));
         
+        // Map extracted fields to UBA form fields
+        const mappingResult = mapExtractedToUbaFields(data.extracted_data);
+        console.log('AI field mapping result:', mappingResult);
+        
+        // Update form data with mapped fields
         setFormData(prev => {
-          const updated = { ...prev, ...sanitizedExtractedData };
+          const updated = { ...prev, ...mappingResult.mappedFields };
           console.log('Updated form data:', updated);
           return updated;
         });
         
-        // Update sections with extracted data
+        // Update sections with mapped data
         setSections(prevSections => 
           prevSections.map(section => ({
             ...section,
             fields: section.fields.map(field => {
-              const rawValue = data.extracted_data[field.name];
+              const rawValue = mappingResult.mappedFields[field.name];
               const newValue = rawValue ? (typeof rawValue === 'object' && rawValue !== null 
                 ? JSON.stringify(rawValue) 
                 : String(rawValue)) : field.value;
@@ -1343,12 +1352,17 @@ If you have documents like your mortgage statement or recent correspondence from
         );
 
         // Check if case type was determined
-        if (data.extracted_data.intent) {
-          setCaseType(data.extracted_data.intent === 'Sell' ? 'short_sale' : 'retention');
+        if (mappingResult.mappedFields.intent) {
+          setCaseType(mappingResult.mappedFields.intent === 'Sell' ? 'short_sale' : 'retention');
         }
         
         // Auto-save after AI updates the form
         setTimeout(() => autoSaveForm.mutate(), 500);
+        
+        // Log unmapped fields for debugging
+        if (mappingResult.mappingStats.unmappedCount > 0) {
+          console.log('AI unmapped fields:', mappingResult.unmappedFields);
+        }
       }
       
       // Check if AI is not available
@@ -1716,20 +1730,21 @@ If you have documents like your mortgage statement or recent correspondence from
         // Update form data with extracted information
         if (result.extractedData && typeof result.extractedData === 'object' && Object.keys(result.extractedData).length > 0) {
           try {
-            // Ensure all extracted data values are strings to prevent rendering errors
-            const sanitizedData: Record<string, string> = {};
-            Object.entries(result.extractedData).forEach(([key, value]) => {
-              if (typeof value === 'object' && value !== null) {
-                sanitizedData[key] = JSON.stringify(value);
-              } else {
-                sanitizedData[key] = String(value || '');
-              }
-            });
+            // Store the complete extracted data for this document
+            setDocumentExtractions(prev => ({
+              ...prev,
+              [newDocument.id]: result.extractedData
+            }));
+
+            // Map extracted fields to UBA form fields
+            const mappingResult = mapExtractedToUbaFields(result.extractedData);
+            console.log('Field mapping result:', mappingResult);
             
-            const updatedData = { ...formData, ...sanitizedData };
+            // Only update form with mapped UBA fields
+            const updatedData = { ...formData, ...mappingResult.mappedFields };
             setFormData(updatedData);
             
-            // Update sections with extracted data - with error protection
+            // Update sections with mapped data - with error protection
             setSections(prevSections => {
               try {
                 return prevSections.map(section => ({
@@ -1750,15 +1765,19 @@ If you have documents like your mortgage statement or recent correspondence from
               }
             });
             
-            // Show success message
-            const fieldsCount = result.fieldsExtracted?.length || Object.keys(result.extractedData).length;
+            // Show detailed success message
             try {
               toast({
                 title: "Document Processed",
-                description: `Extracted ${fieldsCount} fields from ${file.name}`,
+                description: `Extracted ${mappingResult.mappingStats.totalFields} fields from ${file.name}. Mapped ${mappingResult.mappingStats.mappedCount} to UBA form.`,
               });
             } catch (toastError) {
               console.error('Error showing success toast:', toastError);
+            }
+
+            // Log unmapped fields for debugging
+            if (mappingResult.mappingStats.unmappedCount > 0) {
+              console.log('Unmapped fields:', mappingResult.unmappedFields);
             }
           } catch (updateError) {
             console.error('Error updating form data:', updateError);
@@ -1943,6 +1962,12 @@ If you have documents like your mortgage statement or recent correspondence from
       });
       return response.json();
     },
+    onSuccess: (data) => {
+      // Capture the form ID when saving
+      if (data.id) {
+        setCurrentFormId(data.id);
+      }
+    },
     onError: (error) => {
       console.warn('Auto-save failed (non-blocking):', error);
       // Don't show error toast for auto-save failures to avoid annoying users
@@ -1989,6 +2014,109 @@ If you have documents like your mortgage statement or recent correspondence from
   const [, navigate] = useLocation();
   const urlParams = new URLSearchParams(window.location.search);
   const transactionId = urlParams.get('transactionId');
+
+  // Export all extracted data as JSON
+  const exportExtractedData = () => {
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      formId: currentFormId,
+      caseType: caseType,
+      completionPercentage: completionPercentage,
+      ubaFormData: formData,
+      documentExtractions: documentExtractions,
+      mappingSummary: Object.entries(documentExtractions).reduce((acc, [docId, data]) => {
+        const result = mapExtractedToUbaFields(data);
+        acc[docId] = {
+          source: docId.startsWith('ai-conversation-') ? 'AI Conversation' : documents.find(d => d.id === docId)?.fileName || 'Unknown',
+          stats: result.mappingStats,
+          mappedFields: Object.keys(result.mappedFields),
+          unmappedFields: Object.keys(result.unmappedFields)
+        };
+        return acc;
+      }, {} as Record<string, any>)
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `uba-form-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Data Exported",
+      description: "All extracted data has been exported as JSON",
+    });
+  };
+
+  // Export UBA form to Fannie Mae Form 710 PDF
+  const exportToFannieMae710 = async () => {
+    // First, ensure the form is saved
+    if (!currentFormId) {
+      toast({
+        title: "Saving form...",
+        description: "Please wait while we save your form data.",
+      });
+      
+      // Trigger auto-save and wait for it
+      try {
+        await autoSaveForm.mutateAsync();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to save form. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setIsExporting(true);
+    try {
+      // Get auth token for the request
+      const authToken = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
+      const response = await fetch(`/api/v1/uba-forms/export/${currentFormId}/fannie_mae_710`, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // Create a download link
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fannie_mae_form_710_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "Fannie Mae Form 710 PDF has been downloaded",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export form to PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <ErrorBoundary>
@@ -2050,6 +2178,25 @@ If you have documents like your mortgage statement or recent correspondence from
           >
             Validate
           </Button>
+          {currentFormId && completionPercentage >= 70 && (
+            <Button
+              variant="outline"
+              onClick={() => exportToFannieMae710()}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Export to Form 710
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -2216,27 +2363,126 @@ If you have documents like your mortgage statement or recent correspondence from
                   {/* Current Data Preview */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Current Form Data</CardTitle>
-                      <CardDescription>
-                        Data extracted from your conversation
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">
+                            {dataViewMode === 'uba' ? 'Current Form Data' : 'All Extracted Data'}
+                          </CardTitle>
+                          <CardDescription>
+                            {dataViewMode === 'uba' 
+                              ? 'Data mapped to UBA form fields' 
+                              : 'All data extracted from documents'}
+                          </CardDescription>
+                        </div>
+                        {Object.keys(documentExtractions).length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportExtractedData}
+                            title="Export all extracted data as JSON"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[300px]">
                         <div className="space-y-3">
-                          {Object.entries(formData).map(([key, value]) => (
-                            <div key={key} className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                              </Label>
-                              <div className="text-sm font-medium">
-                                {typeof value === 'object' && value !== null 
-                                  ? JSON.stringify(value, null, 2) 
-                                  : (value || 'Not provided')
-                                }
+                          {dataViewMode === 'uba' ? (
+                            // Show only UBA form data
+                            Object.entries(formData).map(([key, value]) => (
+                              <div key={key} className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </Label>
+                                <div className="text-sm font-medium">
+                                  {typeof value === 'object' && value !== null 
+                                    ? JSON.stringify(value, null, 2) 
+                                    : (value || 'Not provided')
+                                  }
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          ) : (
+                            // Show all extracted data from all documents
+                            <>
+                              {Object.keys(documentExtractions).length === 0 ? (
+                                <div className="text-sm text-muted-foreground text-center py-4">
+                                  No documents uploaded yet
+                                </div>
+                              ) : (
+                                Object.entries(documentExtractions).map(([docId, extractedData]) => {
+                                  const doc = documents.find(d => d.id === docId);
+                                  const mappingResult = mapExtractedToUbaFields(extractedData);
+                                  const isAiExtraction = docId.startsWith('ai-conversation-');
+                                  
+                                  return (
+                                    <div key={docId} className="space-y-2 pb-4 border-b last:border-0">
+                                      <Label className="text-sm font-semibold text-primary">
+                                        {isAiExtraction ? '💬 AI Conversation' : doc?.fileName || 'Unknown Document'}
+                                      </Label>
+                                      
+                                      {/* Mapping Summary */}
+                                      <div className="bg-muted p-2 rounded text-xs">
+                                        <div className="flex justify-between">
+                                          <span>Total Fields: {mappingResult.mappingStats.totalFields}</span>
+                                          <span className="text-green-600">Mapped: {mappingResult.mappingStats.mappedCount}</span>
+                                          <span className="text-orange-600">Unmapped: {mappingResult.mappingStats.unmappedCount}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Mapped Fields */}
+                                      {Object.keys(mappingResult.mappedFields).length > 0 && (
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-medium text-green-600">✓ Mapped to UBA Form</Label>
+                                          {Object.entries(extractedData).map(([key, value]) => {
+                                            const normalizedKey = key.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                                            const mappedField = Object.entries(UBA_FIELD_MAPPINGS).find(([k, v]) => k === normalizedKey)?.[1];
+                                            if (!mappedField && !Object.values(mappingResult.mappedFields).includes(value)) return null;
+                                            
+                                            return (
+                                              <div key={`${docId}-${key}`} className="space-y-1 pl-4">
+                                                <Label className="text-xs text-muted-foreground">
+                                                  {key} → {mappedField || 'auto-mapped'}
+                                                </Label>
+                                                <div className="text-sm font-medium">
+                                                  {typeof value === 'object' && value !== null 
+                                                    ? JSON.stringify(value, null, 2) 
+                                                    : (value || 'Not provided')
+                                                  }
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Unmapped Fields */}
+                                      {Object.keys(mappingResult.unmappedFields).length > 0 && (
+                                        <div className="space-y-1">
+                                          <Label className="text-xs font-medium text-orange-600">⚠ Not Mapped</Label>
+                                          {Object.entries(mappingResult.unmappedFields).map(([key, value]) => (
+                                            <div key={`${docId}-unmapped-${key}`} className="space-y-1 pl-4">
+                                              <Label className="text-xs text-muted-foreground">
+                                                {key}
+                                              </Label>
+                                              <div className="text-sm font-medium">
+                                                {typeof value === 'object' && value !== null 
+                                                  ? JSON.stringify(value, null, 2) 
+                                                  : (value || 'Not provided')
+                                                }
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </>
+                          )}
                         </div>
                       </ScrollArea>
                     </CardContent>
@@ -2275,15 +2521,29 @@ If you have documents like your mortgage statement or recent correspondence from
                       <CardContent>
                         <div className="space-y-2">
                           {documents.map(doc => (
-                            <div key={doc.id} className="flex items-center justify-between text-sm">
-                              <span className="truncate">{doc.fileName}</span>
-                              <Badge variant={
-                                doc.processingStatus === 'completed' ? 'default' :
-                                doc.processingStatus === 'processing' ? 'secondary' :
-                                'outline'
-                              }>
-                                {doc.processingStatus}
-                              </Badge>
+                            <div key={doc.id} className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="truncate">{doc.fileName}</span>
+                                <Badge variant={
+                                  doc.processingStatus === 'completed' ? 'default' :
+                                  doc.processingStatus === 'processing' ? 'secondary' :
+                                  'outline'
+                                }>
+                                  {doc.processingStatus}
+                                </Badge>
+                              </div>
+                              {doc.processingStatus === 'completed' && documentExtractions[doc.id] && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() => {
+                                    setDataViewMode(dataViewMode === 'uba' ? 'all' : 'uba');
+                                  }}
+                                >
+                                  {dataViewMode === 'uba' ? 'Show All Extracted Data' : 'Show Only UBA Fields'}
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>

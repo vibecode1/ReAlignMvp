@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { contextRecipeService } from './contextRecipeService';
 import { WorkflowLogger } from './workflowLogger';
+import { AI_SERVICE_CONFIG } from './aiServiceConfig';
 
 // ---- START OF DEBUGGING ----
 console.log('--- aiService.ts ---');
@@ -104,26 +105,31 @@ export class AiService {
           recipe.ai_config.user_prompt_template,
           { user_input: request.userInput, ...contextData }
         );
+      
+      // Override model if specified in additional context
+      const preferredModel = request.additionalContext?.preferredModel || recipe.ai_config.preferred_model;
+      const maxTokens = request.additionalContext?.maxTokens || recipe.ai_config.max_tokens;
+      const temperature = request.additionalContext?.temperature !== undefined ? request.additionalContext.temperature : recipe.ai_config.temperature;
 
       // Try OpenAI first, fallback to Claude if needed
       let aiResponse: any;
       let modelUsed: string;
       
-      if (openai) {
+      if (openai && !request.additionalContext?.isImage) {
         try {
-          console.log('Calling OpenAI with model:', recipe.ai_config.preferred_model);
+          console.log('Calling OpenAI with model:', preferredModel);
           const completion = await openai.chat.completions.create({
-            model: recipe.ai_config.preferred_model,
+            model: preferredModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            max_tokens: recipe.ai_config.max_tokens,
-            temperature: recipe.ai_config.temperature,
+            max_tokens: maxTokens,
+            temperature: temperature,
           });
           
           aiResponse = completion;
-          modelUsed = recipe.ai_config.preferred_model;
+          modelUsed = preferredModel;
           
         } catch (openaiError) {
           console.error('OpenAI API error, attempting Claude fallback:', openaiError);
@@ -135,26 +141,85 @@ export class AiService {
         }
       }
       
-      // Use Claude as fallback if OpenAI failed or is not available
+      // Use Claude as fallback if OpenAI failed or is not available, or for image processing
       if (!aiResponse && anthropic) {
         try {
-          console.log('Using Claude as fallback');
-          // Map OpenAI model to Claude equivalent
-          const claudeModel = recipe.ai_config.preferred_model.includes('gpt-4') 
-            ? 'claude-3-7-sonnet-20250219' 
-            : 'claude-3-haiku-20240307';
+          console.log('Using Claude');
+          // Use specified model or map from config
+          let claudeModel = preferredModel;
+          if (preferredModel.startsWith('gpt-')) {
+            claudeModel = preferredModel.includes('gpt-4') 
+              ? AI_SERVICE_CONFIG.providers.anthropic.models.powerful
+              : AI_SERVICE_CONFIG.providers.anthropic.models.balanced;
+          }
           
-          const claudeResponse = await anthropic.messages.create({
-            model: claudeModel,
-            max_tokens: recipe.ai_config.max_tokens,
-            temperature: recipe.ai_config.temperature,
-            messages: [
-              { 
-                role: 'user', 
-                content: `${systemPrompt}\n\n${userPrompt}`
+          console.log('Claude model:', claudeModel);
+          
+          // Handle image documents
+          if (request.additionalContext?.isImage && request.additionalContext?.imageData) {
+            console.log('Processing image with Claude vision');
+            const imageData = request.additionalContext.imageData;
+            let base64Data = imageData;
+            
+            // Extract base64 if it's a data URL
+            if (imageData.startsWith('data:')) {
+              const parts = imageData.split(',');
+              if (parts.length > 1) {
+                base64Data = parts[1];
               }
-            ],
-          });
+            }
+            
+            const claudeResponse = await anthropic.messages.create({
+              model: claudeModel,
+              max_tokens: maxTokens,
+              temperature: temperature,
+              messages: [
+                { 
+                  role: 'user', 
+                  content: [
+                    {
+                      type: 'text',
+                      text: systemPrompt
+                    },
+                    {
+                      type: 'image',
+                      source: {
+                        type: 'base64',
+                        media_type: request.additionalContext.fileType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+            });
+            
+            // Transform response to match expected format
+            const textContent = claudeResponse.content.find(block => block.type === 'text') as any;
+            aiResponse = {
+              choices: [{
+                message: { content: textContent?.text || '' }
+              }],
+              usage: {
+                prompt_tokens: claudeResponse.usage?.input_tokens || 0,
+                completion_tokens: claudeResponse.usage?.output_tokens || 0,
+                total_tokens: (claudeResponse.usage?.input_tokens || 0) + (claudeResponse.usage?.output_tokens || 0)
+              }
+            };
+            modelUsed = claudeModel;
+          } else {
+            // Regular text processing
+            const claudeResponse = await anthropic.messages.create({
+              model: claudeModel,
+              max_tokens: maxTokens,
+              temperature: temperature,
+              messages: [
+                { 
+                  role: 'user', 
+                  content: `${systemPrompt}\n\n${userPrompt}`
+                }
+              ],
+            });
           
           // Transform Claude response to match OpenAI format
           const textContent = claudeResponse.content.find(block => block.type === 'text') as any;

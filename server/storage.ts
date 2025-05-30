@@ -122,6 +122,7 @@ export interface IStorage {
     completion_percentage?: number;
     status?: string;
   }): Promise<any | null>;
+  getTransactionDocumentExtractions(transactionId: string): Promise<any[]>;
 
   // TODO: Add other storage methods as needed
   healthCheck(): Promise<{ status: string; timestamp: string }>;
@@ -912,6 +913,20 @@ class DrizzleStorage implements IStorage {
         // Note: This functionality is now handled by uba_form_data table
         console.warn('updateUBAForm is deprecated - use uba_form_data methods');
         return null;
+    }
+
+    async getTransactionDocumentExtractions(transactionId: string): Promise<any[]> {
+        try {
+            const result = await db.execute(
+                sql`SELECT * FROM transaction_document_extractions 
+                    WHERE transaction_id = ${transactionId} 
+                    ORDER BY created_at DESC`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('Error getting transaction document extractions:', error);
+            throw error;
+        }
     }
 
     // Document Checklist Methods

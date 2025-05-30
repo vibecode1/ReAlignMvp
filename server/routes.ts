@@ -219,6 +219,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ubaFormRouter.post('/process-document-simple', authenticateJWT, requirePermission('uba_form:create'), simpleDocumentController.processDocument);
   ubaFormRouter.post('/process-document-upload', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.processDocumentUpload);
   ubaFormRouter.post('/validate', authenticateJWT, requirePermission('uba_form:create'), ubaFormController.validateForm);
+  ubaFormRouter.get('/export/:formId/:formType', authenticateJWT, requirePermission('uba_form:view_own'), ubaFormController.exportToServicerForm);
+  ubaFormRouter.get('/export-forms', authenticateJWT, requirePermission('uba_form:view_own'), ubaFormController.getAvailableServicerForms);
 
   // -- Phase 0 - Onboarding Routes --
   const onboardingRouter = express.Router();
