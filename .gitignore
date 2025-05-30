@@ -3,4 +3,7 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gz
+*.tar.gz# Prevent sensitive files from being committed
+attached_assets/Pasted-*.txt
+*.env
+.env.*
