@@ -31,7 +31,9 @@
       "Bash(npm start)",
       "Bash(npm test:*)",
       "Bash(npx tsx:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   },
