@@ -70,14 +70,6 @@ export default function RegisterNegotiator() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <img
-            className="mx-auto h-12 w-auto"
-            src="/images/logo.png"
-            alt="ReAlign"
-          />
-        </div>
-        
         <Card className="w-full">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
