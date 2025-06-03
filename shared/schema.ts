@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, boolean, pgEnum, foreignKey, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, boolean, pgEnum, foreignKey, uniqueIndex, index, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,6 +55,38 @@ export const loeStatusEnum = pgEnum('loe_status', [
   'approved',
   'sent',
   'archived'
+]);
+
+// ReAlign 3.0 AI Architecture Enums
+export const conversationStatusEnum = pgEnum('conversation_status', ['active', 'paused', 'completed', 'escalated']);
+export const channelEnum = pgEnum('channel', ['web_chat', 'phone', 'email', 'sms']);
+export const participantTypeEnum = pgEnum('participant_type', ['homeowner', 'co_borrower', 'authorized_third_party']);
+export const senderTypeEnum = pgEnum('sender_type', ['user', 'ai', 'system']);
+export const interactionTypeEnum = pgEnum('interaction_type', [
+  'conversation', 'document_analysis', 'decision', 'recommendation', 
+  'follow_up_call', 'form_fill', 'pattern_recognition'
+]);
+export const intelligenceTypeEnum = pgEnum('intelligence_type', [
+  'requirement', 'pattern', 'success_factor', 'contact_protocol', 'timing_preference'
+]);
+export const patternTypeEnum = pgEnum('pattern_type', [
+  'success_factor', 'failure_indicator', 'servicer_behavior', 
+  'document_requirement', 'timing_optimization', 'emotional_response'
+]);
+export const callDirectionEnum = pgEnum('call_direction', ['outbound', 'inbound']);
+export const callerTypeEnum = pgEnum('caller_type', ['ai', 'human', 'blended']);
+export const callPurposeEnum = pgEnum('call_purpose', ['follow_up', 'document_request', 'status_check', 'negotiation', 'escalation']);
+export const escalationReasonEnum = pgEnum('escalation_reason', [
+  'emotional_distress', 'complex_situation', 'ai_uncertainty', 
+  'user_request', 'compliance_required', 'technical_issue'
+]);
+export const escalationStatusEnum = pgEnum('escalation_status', ['pending', 'assigned', 'in_progress', 'resolved', 'cancelled']);
+export const escalationPriorityEnum = pgEnum('escalation_priority', ['low', 'medium', 'high', 'critical']);
+export const velocityTrendEnum = pgEnum('velocity_trend', ['accelerating', 'steady', 'slowing']);
+export const promptCategoryEnum = pgEnum('prompt_category', ['conversation', 'analysis', 'generation', 'decision']);
+export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high']);
+export const activityCategoryEnum = pgEnum('activity_category', [
+  'case_management', 'document', 'communication', 'ai_interaction', 'system', 'security'
 ]);
 
 // Users table
@@ -444,6 +476,418 @@ export const loe_templates = pgTable('loe_templates', {
   };
 });
 
+// ============================================================================
+// REALIGN 3.0 AI ARCHITECTURE TABLES
+// ============================================================================
+
+// Case Memory System
+export const case_memory = pgTable('case_memory', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+  
+  // Conversation Memory
+  total_conversations: integer('total_conversations').default(0),
+  conversation_summaries: text('conversation_summaries'), // JSONB as text
+  key_topics_discussed: text('key_topics_discussed').array().default([]),
+  unresolved_questions: text('unresolved_questions'), // JSONB as text
+  communication_preferences: text('communication_preferences'), // JSONB as text
+  
+  // Document Intelligence
+  documents_collected: integer('documents_collected').default(0),
+  documents_missing: text('documents_missing').array().default([]),
+  extraction_confidence: text('extraction_confidence'), // JSONB as text
+  data_discrepancies: text('data_discrepancies'), // JSONB as text
+  document_timeline: text('document_timeline'), // JSONB as text
+  
+  // Financial Snapshot
+  current_snapshot: text('current_snapshot'), // JSONB as text
+  historical_snapshots: text('historical_snapshots'), // JSONB as text
+  trend_analysis: text('trend_analysis'), // JSONB as text
+  projection_models: text('projection_models'), // JSONB as text
+  
+  // Interaction History
+  servicer_interactions: text('servicer_interactions'), // JSONB as text
+  submission_history: text('submission_history'), // JSONB as text
+  follow_up_activities: text('follow_up_activities'), // JSONB as text
+  escalation_history: text('escalation_history'), // JSONB as text
+  
+  // Learning Insights
+  pattern_matches: text('pattern_matches'), // JSONB as text
+  success_factors: text('success_factors'), // JSONB as text
+  risk_indicators: text('risk_indicators'), // JSONB as text
+  next_best_actions: text('next_best_actions'), // JSONB as text
+}, (table) => {
+  return {
+    case_unique: uniqueIndex('case_memory_case_unique').on(table.case_id),
+    case_id_idx: index('idx_case_memory_case_id').on(table.case_id),
+    updated_idx: index('idx_case_memory_updated').on(table.updated_at),
+  };
+});
+
+// Enhanced Conversations
+export const ai_conversations = pgTable('conversations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  started_at: timestamp('started_at').defaultNow().notNull(),
+  ended_at: timestamp('ended_at'),
+  last_message_at: timestamp('last_message_at').defaultNow().notNull(),
+  
+  // Conversation State
+  status: conversationStatusEnum('status').default('active'),
+  channel: channelEnum('channel').default('web_chat'),
+  participant_type: participantTypeEnum('participant_type').default('homeowner'),
+  
+  // AI Analysis
+  emotional_state: text('emotional_state'), // JSONB as text
+  comprehension_level: decimal('comprehension_level', { precision: 3, scale: 2 }).default('0.5'),
+  urgency_score: decimal('urgency_score', { precision: 3, scale: 2 }).default('0.0'),
+  topics_covered: text('topics_covered').array().default([]),
+  action_items: text('action_items'), // JSONB as text
+  
+  // Context
+  previous_conversation_id: uuid('previous_conversation_id').references(() => ai_conversations.id),
+  momentum_score: decimal('momentum_score', { precision: 3, scale: 2 }).default('0.5'),
+  language_preference: text('language_preference').default('en'),
+  accessibility_needs: text('accessibility_needs'), // JSONB as text
+  
+  // Summary
+  summary: text('summary'),
+  ai_assessment: text('ai_assessment'), // JSONB as text
+}, (table) => {
+  return {
+    case_id_idx: index('idx_conversations_case_id').on(table.case_id),
+    started_at_idx: index('idx_conversations_started_at').on(table.started_at),
+    status_idx: index('idx_conversations_status').on(table.status),
+  };
+});
+
+// AI Messages
+export const ai_messages = pgTable('messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  conversation_id: uuid('conversation_id').notNull().references(() => ai_conversations.id, { onDelete: 'cascade' }),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  
+  // Message Data
+  sender_type: senderTypeEnum('sender_type').notNull(),
+  sender_id: uuid('sender_id').references(() => users.id),
+  content: text('content').notNull(),
+  
+  // AI Processing
+  intent_classification: text('intent_classification'), // JSONB as text
+  entities_extracted: text('entities_extracted'), // JSONB as text
+  emotional_indicators: text('emotional_indicators'), // JSONB as text
+  action_triggers: text('action_triggers'), // JSONB as text
+  requires_follow_up: boolean('requires_follow_up').default(false),
+  
+  // Metadata
+  model_used: text('model_used'),
+  processing_time_ms: integer('processing_time_ms'),
+  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }),
+  citations: text('citations'), // JSONB as text
+}, (table) => {
+  return {
+    conversation_id_idx: index('idx_messages_conversation_id').on(table.conversation_id),
+    timestamp_idx: index('idx_messages_timestamp').on(table.timestamp),
+    sender_type_idx: index('idx_messages_sender_type').on(table.sender_type),
+  };
+});
+
+// AI Interactions
+export const ai_interactions = pgTable('ai_interactions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').references(() => transactions.id, { onDelete: 'set null' }),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  interaction_type: interactionTypeEnum('interaction_type').notNull(),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  session_id: uuid('session_id').notNull(),
+  
+  // AI Processing Details
+  model_used: text('model_used').notNull(),
+  model_version: text('model_version'),
+  prompt_template_id: uuid('prompt_template_id'),
+  context_provided: text('context_provided'), // JSONB as text
+  tokens_used: integer('tokens_used').default(0),
+  processing_time_ms: integer('processing_time_ms').default(0),
+  
+  // Input/Output
+  user_input: text('user_input'),
+  ai_output: text('ai_output').notNull(),
+  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }).default('0.0'),
+  alternative_outputs: text('alternative_outputs'), // JSONB as text
+  decision_reasoning: text('decision_reasoning'), // JSONB as text
+  
+  // Quality & Learning
+  user_feedback: text('user_feedback'), // 'helpful', 'not_helpful', 'escalated'
+  feedback_text: text('feedback_text'),
+  outcome_tracking_id: uuid('outcome_tracking_id'),
+  included_in_training: boolean('included_in_training').default(false),
+  
+  // Compliance
+  bias_check_performed: boolean('bias_check_performed').default(false),
+  bias_check_results: text('bias_check_results'), // JSONB as text
+  explanation_available: boolean('explanation_available').default(true),
+  human_review_required: boolean('human_review_required').default(false),
+}, (table) => {
+  return {
+    case_id_idx: index('idx_ai_interactions_case_id').on(table.case_id),
+    user_id_idx: index('idx_ai_interactions_user_id').on(table.user_id),
+    timestamp_idx: index('idx_ai_interactions_timestamp').on(table.timestamp),
+    type_idx: index('idx_ai_interactions_type').on(table.interaction_type),
+    session_idx: index('idx_ai_interactions_session').on(table.session_id),
+  };
+});
+
+// Servicer Intelligence
+export const servicer_intelligence = pgTable('servicer_intelligence', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  servicer_id: uuid('servicer_id').notNull(), // References servicers table (to be created)
+  intelligence_type: intelligenceTypeEnum('intelligence_type').notNull(),
+  discovered_date: timestamp('discovered_date').defaultNow().notNull(),
+  last_observed: timestamp('last_observed').defaultNow().notNull(),
+  
+  // Intelligence Data
+  description: text('description').notNull(),
+  evidence: text('evidence'), // JSONB as text
+  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }).notNull().default('0.0'),
+  occurrence_count: integer('occurrence_count').default(1),
+  contradicts: text('contradicts').array().default([]), // UUID array as text array
+  
+  // Validation
+  human_verified: boolean('human_verified').default(false),
+  verified_by: uuid('verified_by').references(() => users.id),
+  verification_date: timestamp('verification_date'),
+  verification_notes: text('verification_notes'),
+  
+  // Effectiveness
+  success_rate_impact: decimal('success_rate_impact', { precision: 3, scale: 2 }).default('0.0'),
+  time_saved_hours: decimal('time_saved_hours', { precision: 5, scale: 2 }).default('0.0'),
+  cases_helped: integer('cases_helped').default(0),
+}, (table) => {
+  return {
+    servicer_idx: index('idx_servicer_intelligence_servicer').on(table.servicer_id),
+    type_idx: index('idx_servicer_intelligence_type').on(table.intelligence_type),
+    confidence_idx: index('idx_servicer_intelligence_confidence').on(table.confidence_score),
+  };
+});
+
+// Learning Patterns
+export const learning_patterns = pgTable('learning_patterns', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  pattern_type: patternTypeEnum('pattern_type').notNull(),
+  discovered_date: timestamp('discovered_date').defaultNow().notNull(),
+  last_observed: timestamp('last_observed').defaultNow().notNull(),
+  
+  // Pattern Details
+  description: text('description').notNull(),
+  conditions: text('conditions').notNull(), // JSONB as text
+  observed_outcomes: text('observed_outcomes').notNull(), // JSONB as text
+  confidence_score: decimal('confidence_score', { precision: 3, scale: 2 }).notNull().default('0.0'),
+  observation_count: integer('observation_count').default(1),
+  
+  // Evidence
+  supporting_cases: text('supporting_cases').array().default([]), // UUID array
+  contradicting_cases: text('contradicting_cases').array().default([]), // UUID array
+  statistical_significance: decimal('statistical_significance', { precision: 3, scale: 2 }).default('0.0'),
+  correlation_strength: decimal('correlation_strength', { precision: 3, scale: 2 }).default('0.0'),
+  
+  // Application
+  recommendation_text: text('recommendation_text'),
+  automated_action_possible: boolean('automated_action_possible').default(false),
+  risk_level: riskLevelEnum('risk_level').default('low'),
+  expected_impact: text('expected_impact'), // JSONB as text
+  
+  // Validation
+  human_validated: boolean('human_validated').default(false),
+  validation_method: text('validation_method'),
+  active_experiment: boolean('active_experiment').default(false),
+  superseded_by: uuid('superseded_by').references(() => learning_patterns.id),
+}, (table) => {
+  return {
+    type_idx: index('idx_learning_patterns_type').on(table.pattern_type),
+    confidence_idx: index('idx_learning_patterns_confidence').on(table.confidence_score),
+    observed_idx: index('idx_learning_patterns_observed').on(table.last_observed),
+  };
+});
+
+// Phone Calls
+export const phone_calls = pgTable('phone_calls', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  call_direction: callDirectionEnum('call_direction').notNull(),
+  caller_type: callerTypeEnum('caller_type').notNull(),
+  started_at: timestamp('started_at').defaultNow().notNull(),
+  ended_at: timestamp('ended_at'),
+  duration_seconds: integer('duration_seconds'),
+  
+  // Participants
+  from_party_id: uuid('from_party_id'), // References parties table (to be created)
+  to_party_id: uuid('to_party_id'), // References parties table (to be created)
+  transferred_to: uuid('transferred_to'), // References parties table (to be created)
+  conference_participants: text('conference_participants').array().default([]), // UUID array
+  
+  // Call Details
+  purpose: callPurposeEnum('purpose'),
+  script_template_id: uuid('script_template_id'),
+  recording_url: text('recording_url'),
+  transcript: text('transcript'),
+  ivr_path_taken: text('ivr_path_taken'), // JSONB as text
+  
+  // AI Analysis
+  sentiment_timeline: text('sentiment_timeline'), // JSONB as text
+  key_points_discussed: text('key_points_discussed').array().default([]),
+  commitments_made: text('commitments_made'), // JSONB as text
+  success_indicators: text('success_indicators'), // JSONB as text
+  follow_up_required: boolean('follow_up_required').default(false),
+  
+  // Outcomes
+  objective_achieved: boolean('objective_achieved').default(false),
+  information_gathered: text('information_gathered'), // JSONB as text
+  next_steps: text('next_steps').array().default([]),
+  escalation_triggered: boolean('escalation_triggered').default(false),
+}, (table) => {
+  return {
+    case_id_idx: index('idx_phone_calls_case_id').on(table.case_id),
+    started_at_idx: index('idx_phone_calls_started_at').on(table.started_at),
+    purpose_idx: index('idx_phone_calls_purpose').on(table.purpose),
+  };
+});
+
+// Escalation Queue
+export const escalation_queue = pgTable('escalation_queue', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  priority: escalationPriorityEnum('priority').notNull().default('medium'),
+  status: escalationStatusEnum('status').notNull().default('pending'),
+  
+  // Escalation Details
+  reason: escalationReasonEnum('reason').notNull(),
+  trigger_description: text('trigger_description').notNull(),
+  ai_attempted_actions: text('ai_attempted_actions'), // JSONB as text
+  context_summary: text('context_summary'),
+  recommended_actions: text('recommended_actions').array().default([]),
+  
+  // Assignment
+  assigned_to: uuid('assigned_to').references(() => users.id),
+  assigned_at: timestamp('assigned_at'),
+  expertise_required: text('expertise_required').array().default([]),
+  estimated_duration_minutes: integer('estimated_duration_minutes'),
+  
+  // Resolution
+  resolved_at: timestamp('resolved_at'),
+  resolution_notes: text('resolution_notes'),
+  actions_taken: text('actions_taken'), // JSONB as text
+  returned_to_ai: boolean('returned_to_ai').default(false),
+  learning_points: text('learning_points').array().default([]),
+}, (table) => {
+  return {
+    case_id_idx: index('idx_escalation_queue_case_id').on(table.case_id),
+    status_idx: index('idx_escalation_queue_status').on(table.status),
+    priority_idx: index('idx_escalation_queue_priority').on(table.priority),
+    assigned_to_idx: index('idx_escalation_queue_assigned_to').on(table.assigned_to),
+  };
+});
+
+// Temporal Context
+export const temporal_context = pgTable('temporal_context', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  case_id: uuid('case_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+  
+  // Critical Deadlines
+  foreclosure_sale_date: timestamp('foreclosure_sale_date'),
+  auction_date: timestamp('auction_date'),
+  response_deadlines: text('response_deadlines'), // JSONB as text
+  internal_deadlines: text('internal_deadlines'), // JSONB as text
+  
+  // Process Timing
+  average_response_time_hours: decimal('average_response_time_hours', { precision: 5, scale: 2 }).default('24.0'),
+  expected_completion_date: timestamp('expected_completion_date'),
+  bottlenecks: text('bottlenecks'), // JSONB as text
+  velocity_trend: velocityTrendEnum('velocity_trend').default('steady'),
+  
+  // Historical Patterns
+  best_contact_times: text('best_contact_times'), // JSONB as text
+  servicer_response_pattern: text('servicer_response_pattern'), // JSONB as text
+  optimal_follow_up_intervals: text('optimal_follow_up_intervals'), // JSONB as text
+}, (table) => {
+  return {
+    case_unique: uniqueIndex('temporal_context_case_unique').on(table.case_id),
+  };
+});
+
+// Prompt Templates
+export const prompt_templates = pgTable('prompt_templates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  category: promptCategoryEnum('category').notNull(),
+  version: integer('version').default(1),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  
+  // Template Content
+  system_prompt: text('system_prompt').notNull(),
+  user_prompt_template: text('user_prompt_template').notNull(),
+  required_context: text('required_context').array().default([]),
+  optional_context: text('optional_context').array().default([]),
+  output_format: text('output_format'), // JSONB as text
+  
+  // Configuration
+  model_preferences: text('model_preferences').array().default([]),
+  temperature: decimal('temperature', { precision: 3, scale: 2 }).default('0.7'),
+  max_tokens: integer('max_tokens').default(1000),
+  other_parameters: text('other_parameters'), // JSONB as text
+  safety_checks: text('safety_checks'), // JSONB as text
+  
+  // Performance
+  usage_count: integer('usage_count').default(0),
+  average_satisfaction: decimal('average_satisfaction', { precision: 3, scale: 2 }).default('0.0'),
+  average_confidence: decimal('average_confidence', { precision: 3, scale: 2 }).default('0.0'),
+  common_issues: text('common_issues').array().default([]),
+}, (table) => {
+  return {
+    name_version_unique: uniqueIndex('prompt_templates_name_version_unique').on(table.name, table.version),
+  };
+});
+
+// Activity Log
+export const activity_log = pgTable('activity_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  user_id: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  case_id: uuid('case_id').references(() => transactions.id, { onDelete: 'set null' }),
+  session_id: uuid('session_id'),
+  
+  // Activity Details
+  category: activityCategoryEnum('category').notNull(),
+  action: text('action').notNull(),
+  entity_type: text('entity_type'),
+  entity_id: uuid('entity_id'),
+  changes: text('changes'), // JSONB as text
+  
+  // Context
+  ip_address: text('ip_address'),
+  user_agent: text('user_agent'),
+  api_endpoint: text('api_endpoint'),
+  request_id: uuid('request_id'),
+  
+  // Security
+  risk_score: decimal('risk_score', { precision: 3, scale: 2 }).default('0.0'),
+  requires_review: boolean('requires_review').default(false),
+  reviewed_by: uuid('reviewed_by').references(() => users.id),
+  reviewed_at: timestamp('reviewed_at'),
+}, (table) => {
+  return {
+    timestamp_idx: index('idx_activity_log_timestamp').on(table.timestamp),
+    user_id_idx: index('idx_activity_log_user_id').on(table.user_id),
+    case_id_idx: index('idx_activity_log_case_id').on(table.case_id),
+    category_idx: index('idx_activity_log_category').on(table.category),
+    requires_review_idx: index('idx_activity_log_requires_review').on(table.requires_review),
+  };
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(['negotiator', 'seller', 'buyer', 'listing_agent', 'buyers_agent', 'escrow']),
@@ -565,6 +1009,57 @@ export const insertLoeTemplateSchema = createInsertSchema(loe_templates, {
   ]),
 }).omit({ id: true, created_at: true, updated_at: true });
 
+// ReAlign 3.0 AI Architecture Insert Schemas
+export const insertCaseMemorySchema = createInsertSchema(case_memory, {}).omit({ id: true, created_at: true, updated_at: true });
+
+export const insertAIConversationSchema = createInsertSchema(ai_conversations, {
+  status: z.enum(['active', 'paused', 'completed', 'escalated']).optional(),
+  channel: z.enum(['web_chat', 'phone', 'email', 'sms']).optional(),
+  participant_type: z.enum(['homeowner', 'co_borrower', 'authorized_third_party']).optional(),
+}).omit({ id: true, started_at: true, last_message_at: true });
+
+export const insertAIMessageSchema = createInsertSchema(ai_messages, {
+  sender_type: z.enum(['user', 'ai', 'system']),
+}).omit({ id: true, timestamp: true });
+
+export const insertAIInteractionSchema = createInsertSchema(ai_interactions, {
+  interaction_type: z.enum(['conversation', 'document_analysis', 'decision', 'recommendation', 'follow_up_call', 'form_fill', 'pattern_recognition']),
+  user_feedback: z.enum(['helpful', 'not_helpful', 'escalated']).optional(),
+}).omit({ id: true, timestamp: true });
+
+export const insertServicerIntelligenceSchema = createInsertSchema(servicer_intelligence, {
+  intelligence_type: z.enum(['requirement', 'pattern', 'success_factor', 'contact_protocol', 'timing_preference']),
+}).omit({ id: true, discovered_date: true, last_observed: true });
+
+export const insertLearningPatternSchema = createInsertSchema(learning_patterns, {
+  pattern_type: z.enum(['success_factor', 'failure_indicator', 'servicer_behavior', 'document_requirement', 'timing_optimization', 'emotional_response']),
+  risk_level: z.enum(['low', 'medium', 'high']).optional(),
+}).omit({ id: true, discovered_date: true, last_observed: true });
+
+export const insertPhoneCallSchema = createInsertSchema(phone_calls, {
+  call_direction: z.enum(['outbound', 'inbound']),
+  caller_type: z.enum(['ai', 'human', 'blended']),
+  purpose: z.enum(['follow_up', 'document_request', 'status_check', 'negotiation', 'escalation']).optional(),
+}).omit({ id: true, started_at: true });
+
+export const insertEscalationQueueSchema = createInsertSchema(escalation_queue, {
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  status: z.enum(['pending', 'assigned', 'in_progress', 'resolved', 'cancelled']).optional(),
+  reason: z.enum(['emotional_distress', 'complex_situation', 'ai_uncertainty', 'user_request', 'compliance_required', 'technical_issue']),
+}).omit({ id: true, created_at: true });
+
+export const insertTemporalContextSchema = createInsertSchema(temporal_context, {
+  velocity_trend: z.enum(['accelerating', 'steady', 'slowing']).optional(),
+}).omit({ id: true, updated_at: true });
+
+export const insertPromptTemplateSchema = createInsertSchema(prompt_templates, {
+  category: z.enum(['conversation', 'analysis', 'generation', 'decision']),
+}).omit({ id: true, created_at: true });
+
+export const insertActivityLogSchema = createInsertSchema(activity_log, {
+  category: z.enum(['case_management', 'document', 'communication', 'ai_interaction', 'system', 'security']),
+}).omit({ id: true, timestamp: true });
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -622,3 +1117,37 @@ export type InsertLoeVersion = z.infer<typeof insertLoeVersionSchema>;
 
 export type LoeTemplate = typeof loe_templates.$inferSelect;
 export type InsertLoeTemplate = z.infer<typeof insertLoeTemplateSchema>;
+
+// ReAlign 3.0 AI Architecture Types
+export type CaseMemory = typeof case_memory.$inferSelect;
+export type InsertCaseMemory = z.infer<typeof insertCaseMemorySchema>;
+
+export type AIConversation = typeof ai_conversations.$inferSelect;
+export type InsertAIConversation = z.infer<typeof insertAIConversationSchema>;
+
+export type AIMessage = typeof ai_messages.$inferSelect;
+export type InsertAIMessage = z.infer<typeof insertAIMessageSchema>;
+
+export type AIInteraction = typeof ai_interactions.$inferSelect;
+export type InsertAIInteraction = z.infer<typeof insertAIInteractionSchema>;
+
+export type ServicerIntelligence = typeof servicer_intelligence.$inferSelect;
+export type InsertServicerIntelligence = z.infer<typeof insertServicerIntelligenceSchema>;
+
+export type LearningPattern = typeof learning_patterns.$inferSelect;
+export type InsertLearningPattern = z.infer<typeof insertLearningPatternSchema>;
+
+export type PhoneCall = typeof phone_calls.$inferSelect;
+export type InsertPhoneCall = z.infer<typeof insertPhoneCallSchema>;
+
+export type EscalationQueue = typeof escalation_queue.$inferSelect;
+export type InsertEscalationQueue = z.infer<typeof insertEscalationQueueSchema>;
+
+export type TemporalContext = typeof temporal_context.$inferSelect;
+export type InsertTemporalContext = z.infer<typeof insertTemporalContextSchema>;
+
+export type PromptTemplate = typeof prompt_templates.$inferSelect;
+export type InsertPromptTemplate = z.infer<typeof insertPromptTemplateSchema>;
+
+export type ActivityLog = typeof activity_log.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;

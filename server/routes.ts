@@ -23,6 +23,11 @@ import { documentChecklistController } from './controllers/documentChecklistCont
 import financialCalculatorController from './controllers/financialCalculatorController';
 import ClaudeController from "./controllers/claudeController.js";
 import OpenAIController from "./controllers/openaiController.js";
+import { aiConversationController } from './controllers/aiConversationController';
+import { caseMemoryController } from './controllers/caseMemoryController';
+import { aiServiceController } from './controllers/aiServiceController';
+import { documentIntelligenceController } from './controllers/documentIntelligenceController';
+import { learningPatternController } from './controllers/learningPatternController';
 import { WebSocketServer } from "ws";
 import publicRouter from "./routes/public";
 
@@ -286,6 +291,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   calculatorRouter.post('/affordability-modification', authenticateJWT, financialCalculatorController.calculateAffordabilityForModification);
   calculatorRouter.post('/evaluate-uba-form', authenticateJWT, financialCalculatorController.evaluateUBAFormForWorkoutOption);
 
+  // -- ReAlign 3.0 AI Routes --
+  const aiRouter = express.Router();
+  
+  // AI Conversation endpoints
+  aiRouter.post('/conversation', authenticateJWT, aiConversationController.handleConversation);
+  aiRouter.get('/conversations/:caseId/history', authenticateJWT, aiConversationController.getConversationHistory);
+  aiRouter.post('/conversations/:conversationId/escalate', authenticateJWT, aiConversationController.escalateConversation);
+  aiRouter.get('/conversations/active', authenticateJWT, aiConversationController.getActiveConversations);
+  
+  // AI Service endpoints
+  aiRouter.post('/analyze', authenticateJWT, aiServiceController.analyzeText);
+  aiRouter.post('/generate', authenticateJWT, aiServiceController.generateResponse);
+  aiRouter.get('/interactions', authenticateJWT, aiServiceController.getAIInteractions);
+  aiRouter.post('/interactions/:interactionId/feedback', authenticateJWT, aiServiceController.submitFeedback);
+  aiRouter.get('/models', authenticateJWT, aiServiceController.getAvailableModels);
+  aiRouter.get('/health', aiServiceController.healthCheck);
+
+  // Case Memory endpoints
+  const memoryRouter = express.Router();
+  memoryRouter.post('/:caseId', authenticateJWT, caseMemoryController.initializeMemory);
+  memoryRouter.get('/:caseId', authenticateJWT, caseMemoryController.getMemory);
+  memoryRouter.put('/:caseId', authenticateJWT, caseMemoryController.updateMemory);
+  memoryRouter.get('/:caseId/summary', authenticateJWT, caseMemoryController.getMemorySummary);
+  memoryRouter.get('/:caseId/context/conversation', authenticateJWT, caseMemoryController.getConversationContext);
+  memoryRouter.get('/:caseId/context/document', authenticateJWT, caseMemoryController.getDocumentContext);
+  memoryRouter.get('/:caseId/context/financial', authenticateJWT, caseMemoryController.getFinancialContext);
+
+  // Also add conversation history endpoint directly on the conversations path
+  apiRouter.get('/conversations/:caseId/history', authenticateJWT, aiConversationController.getConversationHistory);
+
+  // Document Intelligence endpoints
+  const documentIntelligenceRouter = express.Router();
+  documentIntelligenceRouter.post('/analyze', authenticateJWT, documentIntelligenceController.analyzeDocument);
+  documentIntelligenceRouter.post('/extract', authenticateJWT, documentIntelligenceController.extractData);
+  documentIntelligenceRouter.get('/:documentId/insights', authenticateJWT, documentIntelligenceController.getDocumentInsights);
+  documentIntelligenceRouter.post('/batch-analyze', authenticateJWT, documentIntelligenceController.batchAnalyzeDocuments);
+  documentIntelligenceRouter.get('/case/:caseId/summary', authenticateJWT, documentIntelligenceController.getCaseDocumentSummary);
+
+  // Learning Pattern endpoints
+  const learningRouter = express.Router();
+  learningRouter.get('/patterns', authenticateJWT, learningPatternController.getPatterns);
+  learningRouter.post('/patterns', authenticateJWT, learningPatternController.recordPattern);
+  learningRouter.get('/insights/:caseId', authenticateJWT, learningPatternController.getCaseInsights);
+  learningRouter.post('/servicer-intelligence', authenticateJWT, learningPatternController.recordServicerIntelligence);
+  learningRouter.get('/servicer/:servicerId', authenticateJWT, learningPatternController.getServicerIntelligence);
+  learningRouter.post('/apply', authenticateJWT, learningPatternController.applyLearningToCase);
+
   // Add API Router level tracing
   console.log('!!! APP TRACE: About to add apiRouter middleware and mount routers');
   apiRouter.use((req, res, next) => {
@@ -322,6 +374,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/checklists', checklistRouter);
   console.log('Registering Financial Calculator router at /calculators');
   apiRouter.use('/calculators', calculatorRouter);
+  console.log('Registering ReAlign 3.0 AI router at /ai');
+  apiRouter.use('/ai', aiRouter);
+  console.log('Registering Case Memory router at /memory');
+  apiRouter.use('/memory', memoryRouter);
+  console.log('Registering Document Intelligence router at /documents');
+  apiRouter.use('/documents', documentIntelligenceRouter);
+  console.log('Registering Learning Pattern router at /learning');
+  apiRouter.use('/learning', learningRouter);
 
   // Register public routes (no authentication required)
   console.log('Registering public router at /api/public');

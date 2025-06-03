@@ -1,102 +1,149 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Enhanced typography and visual hierarchy */
-  h1 {
-    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
+    
+    --radius: 0.5rem;
+    
+    /* Emotional state variables */
+    --emotional-bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+    --emotional-animation-speed: 1s;
+    --emotional-spacing-multiplier: 1;
   }
   
-  h2 {
-    @apply text-xl sm:text-2xl font-semibold tracking-tight;
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    /* ... dark mode colors ... */
   }
   
-  h3 {
-    @apply text-lg sm:text-xl font-semibold;
+  /* Emotional state classes */
+  .emotional-stressed {
+    --emotional-bg-gradient: linear-gradient(180deg, #EFF6FF 0%, #DBEAFE 100%);
+    --emotional-animation-speed: 3s;
+    --emotional-spacing-multiplier: 1.2;
   }
   
-  h4 {
-    @apply text-base sm:text-lg font-medium;
+  .emotional-confused {
+    --emotional-bg-gradient: linear-gradient(180deg, #F9FAFB 0%, #F3F4F6 100%);
+    --emotional-animation-speed: 2s;
+    --emotional-spacing-multiplier: 1.5;
   }
   
-  /* Better mobile button states and touch targets */
-  .btn-mobile {
-    @apply min-h-[44px] min-w-[44px] transition-all duration-200 relative;
+  .emotional-hopeful {
+    --emotional-bg-gradient: linear-gradient(180deg, #ECFDF5 0%, #D1FAE5 100%);
+    --emotional-animation-speed: 1.5s;
+    --emotional-spacing-multiplier: 1;
   }
   
-  .btn-mobile:hover {
-    @apply scale-[1.02] shadow-md;
+  .emotional-confident {
+    --emotional-bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 100%);
+    --emotional-animation-speed: 1s;
+    --emotional-spacing-multiplier: 1;
   }
   
-  .btn-mobile:active {
-    @apply scale-[0.98] shadow-sm;
-  }
-  
-  .btn-mobile:disabled {
-    @apply opacity-50 cursor-not-allowed transform-none shadow-none;
-  }
-  
-  .btn-mobile:focus-visible {
-    @apply ring-2 ring-blue-500/50 ring-offset-2;
-  }
-  
-  /* Loading state for buttons */
-  .btn-loading {
-    @apply pointer-events-none relative;
-  }
-  
-  .btn-loading::after {
-    content: '';
-    @apply absolute inset-0 bg-current opacity-20 animate-pulse rounded;
-  }
-  
-  /* Enhanced focus states for accessibility */
-  .focus-enhanced {
-    @apply focus:ring-2 focus:ring-blue-500/20 focus:outline-none;
-  }
-  
-  /* Smooth scrolling for the entire page */
-  html {
-    @apply scroll-smooth;
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter var', -apple-system, sans-serif;
+    background: var(--emotional-bg-gradient);
+    transition: background 0.8s ease;
   }
 }
 
-:root {
-      --background: 0 0% 100%;
---foreground: 20 14.3% 4.1%;
---muted: 60 4.8% 95.9%;
---muted-foreground: 25 5.3% 44.7%;
---popover: 0 0% 100%;
---popover-foreground: 20 14.3% 4.1%;
---card: 0 0% 100%;
---card-foreground: 20 14.3% 4.1%;
---border: 20 5.9% 90%;
---input: 20 5.9% 90%;
-/* ReAlign 2.0 Primary Brand Colors - Deep Blue Primary */
---primary: 221 83% 53%;
---primary-foreground: 0 0% 100%;
---primary-hover: 221 83% 48%;
---primary-light: 221 83% 95%;
+@layer components {
+  /* AI thinking animation */
+  .ai-thinking-gradient {
+    background: linear-gradient(
+      90deg,
+      theme('colors.lavender-mist'),
+      theme('colors.purple-glow'),
+      theme('colors.cosmic-purple'),
+      theme('colors.purple-glow'),
+      theme('colors.lavender-mist')
+    );
+    background-size: 200% 100%;
+    animation: aiThinking var(--emotional-animation-speed) ease infinite;
+  }
+  
+  /* Confidence indicators */
+  .confidence-high {
+    @apply border-l-4 border-ai-high bg-green-50/50;
+  }
+  
+  .confidence-medium {
+    @apply border-l-4 border-ai-medium bg-amber-50/50;
+  }
+  
+  .confidence-low {
+    @apply border-l-4 border-ai-low bg-red-50/50;
+  }
+  
+  /* Progress celebrations */
+  .celebration-particle {
+    @apply absolute w-2 h-2 rounded-full;
+    animation: particle-float 3s ease-out forwards;
+  }
+  
+  @keyframes particle-float {
+    0% {
+      transform: translateY(0) translateX(0) scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100px) translateX(var(--particle-x)) scale(1);
+      opacity: 0;
+    }
+  }
+  
+  /* Focus states with emotional awareness */
+  .focus-calm {
+    @apply focus:ring-2 focus:ring-calm-sky focus:ring-offset-2 focus:outline-none;
+    transition: all 0.2s ease;
+  }
+  
+  .focus-energetic {
+    @apply focus:ring-2 focus:ring-sage-green focus:ring-offset-2 focus:outline-none;
+    transition: all 0.15s ease;
+  }
+}
 
-/* Teal/Green Secondary */
---secondary: 158 64% 52%;
---secondary-foreground: 0 0% 100%;
---accent: 25 95% 53%;
---accent-foreground: 0 0% 100%;
-
-/* Enhanced Semantic Colors */
---destructive: 0 84% 60%;
---destructive-foreground: 0 0% 98%;
---success: 142 76% 36%;
---success-foreground: 0 0% 98%;
---warning: 38 92% 50%;
---warning-foreground: 0 0% 98%;
-
---ring: 213 94% 68%;
---radius: 0.75rem;
+@layer utilities {
+  /* Responsive text that adapts to emotional state */
+  .text-responsive {
+    font-size: calc(1rem * var(--emotional-spacing-multiplier));
+    line-height: calc(1.5 * var(--emotional-spacing-multiplier));
+  }
+  
+  /* Smooth scroll with emotional pacing */
+  .scroll-smooth-emotional {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(4rem * var(--emotional-spacing-multiplier));
+  }
 
 
 

@@ -1,0 +1,779 @@
+﻿ReAlign Data Model 3.0 - AI-Driven Loss Mitigation Platform
+Date: June 2, 2025
+Version: 3.0 (Complete AI-Driven Loss Mitigation Platform)
+Overview
+This data model represents a complete reimagining to support ReAlign 3.0's vision as a comprehensive AI-driven loss mitigation system. The model emphasizes:
+* Complete Case Memory Architecture: Every interaction, decision, and outcome is stored with full context
+* AI-First Design: All entities include AI-specific fields for learning, context, and decision-making
+* Servicer Intelligence: Dynamic learning and adaptation to each servicer's requirements
+* End-to-End Orchestration: Support for the entire loss mitigation lifecycle
+* Continuous Learning: Every interaction feeds back into the system for improvement
+Core Entities
+Case
+The central entity maintaining complete memory of the loss mitigation journey.
+Case
+├── Core Information
+│   ├── id (UUID, primary key)
+│   ├── case_number (text, unique)
+│   ├── created_at (timestamp)
+│   ├── updated_at (timestamp)
+│   ├── status (enum: intake, document_collection, analysis, preparation, submission, negotiation, resolution, closed)
+│   ├── sub_status (text) [Detailed status within main status]
+│   ├── priority (enum: low, medium, high, critical)
+│   ├── resolution_deadline (timestamp) [e.g., foreclosure sale date]
+│   └── resolution_type (enum: loan_modification, short_sale, deed_in_lieu, repayment_plan, forbearance, withdrawal, foreclosure)
+│
+├── Relationships
+│   ├── primary_homeowner_id (UUID -> Party)
+│   ├── property_id (UUID -> Property)
+│   ├── loan_id (UUID -> Loan)
+│   ├── hardship_id (UUID -> Hardship)
+│   ├── assigned_counselor_id (UUID -> User, optional)
+│   └── servicer_id (UUID -> Servicer)
+│
+├── AI Context
+│   ├── emotional_journey (JSONB) [Timeline of emotional states]
+│   ├── key_decisions (JSONB) [Major decision points and rationales]
+│   ├── ai_assessment (JSONB) [Initial and ongoing AI analysis]
+│   ├── success_probability (float) [0-1, continuously updated]
+│   ├── risk_factors (JSONB) [Identified risks and mitigation strategies]
+│   └── recommended_strategies (JSONB) [AI-recommended approaches]
+│
+└── Memory
+    ├── conversation_summary (text) [AI-generated summary of all conversations]
+    ├── milestone_history (JSONB) [Key events and achievements]
+    ├── learned_preferences (JSONB) [User communication preferences, best times to contact, etc.]
+    └── case_notes (JSONB) [Structured notes from all sources]
+
+
+CaseMemory
+Comprehensive memory system for each case.
+CaseMemory
+├── Identification
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   └── created_at (timestamp)
+│
+├── Conversation Memory
+│   ├── total_conversations (integer)
+│   ├── conversation_summaries (JSONB) [Summaries of each conversation]
+│   ├── key_topics_discussed (text[])
+│   ├── unresolved_questions (JSONB)
+│   └── communication_preferences (JSONB)
+│
+├── Document Intelligence
+│   ├── documents_collected (integer)
+│   ├── documents_missing (text[])
+│   ├── extraction_confidence (JSONB) [Confidence scores for each extracted data point]
+│   ├── data_discrepancies (JSONB) [Identified inconsistencies]
+│   └── document_timeline (JSONB) [When each document was received/requested]
+│
+├── Financial Snapshot
+│   ├── current_snapshot (JSONB) [Latest financial picture]
+│   ├── historical_snapshots (JSONB[]) [Financial history over time]
+│   ├── trend_analysis (JSONB) [Income/expense trends]
+│   └── projection_models (JSONB) [Future financial projections]
+│
+├── Interaction History
+│   ├── servicer_interactions (JSONB) [All servicer communications]
+│   ├── submission_history (JSONB) [All submissions and responses]
+│   ├── follow_up_activities (JSONB) [Calls, emails, etc.]
+│   └── escalation_history (JSONB) [Human interventions]
+│
+└── Learning Insights
+    ├── pattern_matches (JSONB) [Similar cases and outcomes]
+    ├── success_factors (JSONB) [What's working for this case]
+    ├── risk_indicators (JSONB) [Warning signs]
+    └── next_best_actions (JSONB) [AI recommendations]
+
+
+Conversation
+Individual conversations with complete context.
+Conversation
+├── Core Data
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── started_at (timestamp)
+│   ├── ended_at (timestamp, nullable)
+│   ├── channel (enum: web_chat, phone, email, sms)
+│   ├── participant_type (enum: homeowner, co_borrower, authorized_third_party)
+│   └── status (enum: active, paused, completed, escalated)
+│
+├── AI Analysis
+│   ├── emotional_state (JSONB) [Current emotional indicators]
+│   ├── comprehension_level (float) [0-1, understanding of process]
+│   ├── urgency_score (float) [0-1, based on deadline proximity]
+│   ├── topics_covered (text[])
+│   └── action_items (JSONB) [Tasks identified during conversation]
+│
+└── Context
+    ├── previous_conversation_id (UUID, nullable)
+    ├── momentum_score (float) [Conversation progress indicator]
+    ├── language_preference (text)
+    └── accessibility_needs (JSONB)
+
+
+Message
+Individual messages within conversations.
+Message
+├── Core Data
+│   ├── id (UUID)
+│   ├── conversation_id (UUID -> Conversation)
+│   ├── timestamp (timestamp)
+│   ├── sender_type (enum: user, ai, system)
+│   ├── sender_id (UUID, nullable)
+│   └── content (text)
+│
+├── AI Processing
+│   ├── intent_classification (JSONB) [Detected intents and confidence]
+│   ├── entities_extracted (JSONB) [Names, dates, amounts, etc.]
+│   ├── emotional_indicators (JSONB) [Detected emotional state]
+│   ├── action_triggers (JSONB) [Actions triggered by this message]
+│   └── requires_follow_up (boolean)
+│
+└── Metadata
+    ├── model_used (text) [Which AI model processed this]
+    ├── processing_time_ms (integer)
+    ├── confidence_score (float)
+    └── citations (JSONB) [References to documents or guidelines]
+
+
+Party
+Enhanced party entity supporting all participant types including AI agents.
+Party
+├── Core Information
+│   ├── id (UUID)
+│   ├── type (enum: borrower, co_borrower, authorized_third_party, servicer_contact, realtor, attorney, counselor, ai_agent)
+│   ├── first_name (text, nullable for companies/agents)
+│   ├── last_name (text, nullable for companies/agents)
+│   ├── company_name (text, nullable)
+│   ├── email (text)
+│   ├── phone (text)
+│   └── preferred_contact_method (enum: email, phone, text, mail)
+│
+├── Detailed Information
+│   ├── date_of_birth (date, encrypted)
+│   ├── ssn_last_four (text, encrypted)
+│   ├── full_ssn (text, encrypted, restricted access)
+│   ├── current_address (JSONB)
+│   ├── mailing_address (JSONB)
+│   └── employment_info (JSONB, encrypted)
+│
+├── Military Status (if applicable)
+│   ├── is_military (boolean)
+│   ├── military_status (enum: active_duty, veteran, deployed, surviving_spouse)
+│   ├── branch (text)
+│   └── pcs_orders (boolean)
+│
+├── AI Agent Properties (if type = ai_agent)
+│   ├── agent_model (text)
+│   ├── agent_capabilities (text[])
+│   ├── authorization_scope (JSONB)
+│   └── interaction_logs (JSONB)
+│
+└── Relationship Context
+    ├── relationship_to_borrower (text)
+    ├── authorization_level (enum: full, limited, view_only)
+    ├── authorization_document_id (UUID -> Document)
+    └── communication_preferences (JSONB)
+
+
+Property
+Comprehensive property information.
+Property
+├── Basic Information
+│   ├── id (UUID)
+│   ├── address (JSONB) [street, city, state, zip]
+│   ├── county (text)
+│   ├── parcel_number (text)
+│   ├── property_type (enum: single_family, condo, townhouse, multi_family, manufactured)
+│   └── year_built (integer)
+│
+├── Occupancy & Use
+│   ├── occupancy_status (enum: owner_occupied, tenant_occupied, vacant)
+│   ├── primary_residence (boolean)
+│   ├── rental_income (decimal, monthly)
+│   └── hoa_fees (decimal, monthly)
+│
+├── Value & Condition
+│   ├── original_purchase_price (decimal)
+│   ├── original_purchase_date (date)
+│   ├── current_value_estimate (decimal)
+│   ├── value_estimate_date (date)
+│   ├── value_source (text) [BPO, appraisal, AVM]
+│   ├── condition (enum: excellent, good, fair, poor)
+│   └── repair_needs (JSONB)
+│
+└── Listing Information (if applicable)
+    ├── is_listed (boolean)
+    ├── listing_date (date)
+    ├── listing_price (decimal)
+    ├── listing_agent_id (UUID -> Party)
+    ├── days_on_market (integer)
+    └── offer_history (JSONB)
+
+
+Loan
+Complete loan information with modification history.
+Loan
+├── Original Terms
+│   ├── id (UUID)
+│   ├── loan_number (text, unique)
+│   ├── origination_date (date)
+│   ├── original_balance (decimal)
+│   ├── original_interest_rate (decimal)
+│   ├── loan_type (enum: conventional, fha, va, usda, other)
+│   ├── loan_term_months (integer)
+│   └── lien_position (enum: first, second, other)
+│
+├── Current Status
+│   ├── current_balance (decimal)
+│   ├── current_interest_rate (decimal)
+│   ├── monthly_payment (decimal)
+│   ├── escrow_payment (decimal)
+│   ├── total_monthly_payment (decimal)
+│   ├── next_payment_due (date)
+│   ├── last_payment_date (date)
+│   └── delinquency_status (JSONB) [months behind, amount past due]
+│
+├── Servicer Information
+│   ├── current_servicer_id (UUID -> Servicer)
+│   ├── servicer_loan_number (text) [Servicer's internal number]
+│   ├── investor_name (text)
+│   ├── investor_loan_number (text)
+│   └── servicing_transfer_history (JSONB)
+│
+└── Modification History
+    ├── previous_modifications (JSONB[])
+    ├── current_trial_plan (JSONB)
+    ├── forbearance_history (JSONB[])
+    └── payment_history (JSONB) [Last 24 months]
+
+
+Servicer
+Comprehensive servicer profile with learning capabilities.
+Servicer
+├── Basic Information
+│   ├── id (UUID)
+│   ├── name (text)
+│   ├── aliases (text[]) [Alternative names, abbreviations]
+│   ├── nmls_id (text)
+│   ├── primary_contact (JSONB)
+│   └── escalation_contacts (JSONB[])
+│
+├── Contact Methods
+│   ├── loss_mit_phone (text)
+│   ├── loss_mit_fax (text)
+│   ├── loss_mit_email (text)
+│   ├── portal_url (text)
+│   ├── api_endpoint (text, nullable)
+│   └── preferred_submission_method (enum: api, portal, email, fax)
+│
+├── Requirements (Learned)
+│   ├── documented_requirements (JSONB) [Official requirements]
+│   ├── discovered_requirements (JSONB) [Learned through experience]
+│   ├── document_preferences (JSONB) [Format, order, etc.]
+│   ├── submission_tips (text[]) [Best practices]
+│   └── common_rejection_reasons (JSONB)
+│
+├── Timing Patterns
+│   ├── average_response_time_days (integer)
+│   ├── best_submission_days (text[])
+│   ├── peak_hours (JSONB)
+│   ├── holiday_schedule (JSONB)
+│   └── processing_speed_trend (enum: improving, stable, degrading)
+│
+└── Success Metrics
+    ├── approval_rate (decimal) [0-1]
+    ├── first_submission_success_rate (decimal)
+    ├── average_iterations_to_approval (decimal)
+    ├── relationship_quality_score (decimal) [0-1]
+    └── last_pattern_update (timestamp)
+
+
+ServicerIntelligence
+Dynamic learning about servicer behaviors and requirements.
+ServicerIntelligence
+├── Identification
+│   ├── id (UUID)
+│   ├── servicer_id (UUID -> Servicer)
+│   ├── intelligence_type (enum: requirement, pattern, success_factor, contact_protocol)
+│   └── discovered_date (timestamp)
+│
+├── Intelligence Data
+│   ├── description (text)
+│   ├── evidence (JSONB) [Cases/interactions that support this]
+│   ├── confidence_score (decimal) [0-1]
+│   ├── occurrence_count (integer)
+│   ├── last_observed (timestamp)
+│   └── contradicts (UUID[]) [Other intelligence entries this contradicts]
+│
+├── Validation
+│   ├── human_verified (boolean)
+│   ├── verified_by (UUID -> User)
+│   ├── verification_date (timestamp)
+│   └── verification_notes (text)
+│
+└── Effectiveness
+    ├── success_rate_impact (decimal) [How much this improves success]
+    ├── time_saved_hours (decimal)
+    └── cases_helped (integer)
+
+
+Document
+Enhanced document management with AI processing.
+Document
+├── Basic Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── document_type (enum: paystub, bank_statement, tax_return, hardship_letter, etc.)
+│   ├── document_name (text)
+│   ├── uploaded_at (timestamp)
+│   ├── uploaded_by (UUID -> User)
+│   └── file_url (text, encrypted)
+│
+├── Processing Status
+│   ├── status (enum: uploaded, processing, processed, failed, verified)
+│   ├── processing_started_at (timestamp)
+│   ├── processing_completed_at (timestamp)
+│   ├── processing_model (text) [AI model used]
+│   └── processing_confidence (decimal) [0-1]
+│
+├── Extracted Data
+│   ├── raw_extracted_data (JSONB) [All extracted information]
+│   ├── normalized_data (JSONB) [Standardized format]
+│   ├── key_values (JSONB) [Important values for quick access]
+│   ├── extraction_warnings (text[]) [Issues found during extraction]
+│   └── requires_human_review (boolean)
+│
+├── Validation
+│   ├── validation_status (enum: pending, valid, invalid, partial)
+│   ├── validation_issues (JSONB)
+│   ├── cross_reference_results (JSONB) [Comparison with other docs]
+│   └── servicer_requirements_met (boolean)
+│
+└── Usage Tracking
+    ├── times_submitted (integer)
+    ├── last_submitted (timestamp)
+    ├── submission_results (JSONB) [Accepted/rejected by which servicers]
+    └── expiration_date (date, nullable)
+
+
+Hardship
+Comprehensive hardship tracking with evidence.
+Hardship
+├── Core Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── primary_type (enum: unemployment, income_reduction, expense_increase, divorce, death, disability, disaster, business_failure, other)
+│   ├── secondary_types (enum[]) [Additional contributing factors]
+│   ├── start_date (date)
+│   ├── expected_duration (enum: temporary_under_6mo, temporary_6_12mo, permanent)
+│   └── resolved (boolean)
+│
+├── Details
+│   ├── description (text) [Full narrative]
+│   ├── ai_summary (text) [AI-generated concise summary]
+│   ├── financial_impact_monthly (decimal)
+│   ├── contributing_factors (JSONB)
+│   └── recovery_plan (text, nullable)
+│
+├── Documentation
+│   ├── evidence_documents (UUID[]) [-> Document]
+│   ├── documentation_complete (boolean)
+│   ├── missing_documentation (text[])
+│   └── waiver_approved (boolean)
+│
+└── AI Analysis
+    ├── severity_score (decimal) [0-1]
+    ├── credibility_score (decimal) [0-1]
+    ├── similar_cases_outcome (JSONB)
+    └── recommended_programs (text[])
+
+
+FinancialSnapshot
+Point-in-time financial picture with trends.
+FinancialSnapshot
+├── Identification
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── snapshot_date (date)
+│   ├── is_current (boolean)
+│   └── source (enum: user_provided, document_extracted, calculated)
+│
+├── Income
+│   ├── gross_monthly_income (decimal)
+│   ├── net_monthly_income (decimal)
+│   ├── income_sources (JSONB[]) [Detailed breakdown]
+│   ├── income_stability (enum: stable, declining, increasing, volatile)
+│   └── unemployment_benefits (decimal, nullable)
+│
+├── Expenses
+│   ├── total_monthly_expenses (decimal)
+│   ├── housing_expenses (JSONB) [Mortgage, insurance, taxes, HOA]
+│   ├── debt_payments (JSONB[]) [All non-housing debts]
+│   ├── living_expenses (JSONB) [Food, utilities, transportation]
+│   └── expense_reduction_potential (decimal) [AI-calculated]
+│
+├── Assets & Liabilities
+│   ├── liquid_assets (decimal)
+│   ├── retirement_assets (decimal)
+│   ├── other_real_estate (JSONB[])
+│   ├── total_debt (decimal)
+│   ├── credit_score (integer, nullable)
+│   └── credit_score_date (date, nullable)
+│
+└── Analysis
+    ├── debt_to_income_ratio (decimal)
+    ├── housing_expense_ratio (decimal)
+    ├── surplus_deficit_monthly (decimal)
+    ├── months_of_reserves (decimal)
+    └── financial_stability_score (decimal) [0-1, AI-calculated]
+
+
+LossMitigationApplication
+Tracks complete application lifecycle.
+LossMitigationApplication
+├── Basic Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── application_type (enum: modification, short_sale, deed_in_lieu, forbearance, repayment_plan)
+│   ├── created_at (timestamp)
+│   ├── submitted_at (timestamp, nullable)
+│   └── status (enum: draft, ready, submitted, under_review, approved, denied, withdrawn)
+│
+├── Preparation
+│   ├── completeness_score (decimal) [0-1]
+│   ├── missing_items (text[])
+│   ├── validation_issues (JSONB)
+│   ├── ai_recommendations (JSONB)
+│   └── estimated_approval_probability (decimal) [0-1]
+│
+├── Submission Details
+│   ├── submission_method (enum: api, portal, email, fax)
+│   ├── submission_tracking_id (text)
+│   ├── submission_documents (UUID[]) [-> Document]
+│   ├── cover_letter (text)
+│   └── special_circumstances (text)
+│
+├── Review Process
+│   ├── servicer_reference_number (text)
+│   ├── assigned_negotiator (text)
+│   ├── review_notes (JSONB[]) [Timeline of servicer feedback]
+│   ├── additional_requests (JSONB[])
+│   └── response_deadline (timestamp, nullable)
+│
+└── Outcome
+    ├── decision (enum: approved, denied, withdrawn, expired)
+    ├── decision_date (timestamp)
+    ├── decision_reasons (text[])
+    ├── terms_offered (JSONB) [If approved]
+    └── counteroffer_possible (boolean)
+
+
+AIInteraction
+Comprehensive tracking of all AI activities.
+AIInteraction
+├── Core Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case, nullable)
+│   ├── user_id (UUID -> User)
+│   ├── interaction_type (enum: conversation, document_analysis, decision, recommendation, follow_up_call, form_fill)
+│   ├── timestamp (timestamp)
+│   └── session_id (UUID)
+│
+├── AI Processing
+│   ├── model_used (text)
+│   ├── model_version (text)
+│   ├── prompt_template_id (UUID -> PromptTemplate)
+│   ├── context_provided (JSONB) [What context was given to AI]
+│   ├── tokens_used (integer)
+│   └── processing_time_ms (integer)
+│
+├── Input/Output
+│   ├── user_input (text, nullable)
+│   ├── ai_output (text)
+│   ├── confidence_score (decimal) [0-1]
+│   ├── alternative_outputs (JSONB) [Other considered responses]
+│   └── decision_reasoning (JSONB) [Why AI chose this response]
+│
+├── Quality & Learning
+│   ├── user_feedback (enum: helpful, not_helpful, escalated, null)
+│   ├── feedback_text (text, nullable)
+│   ├── outcome_tracking_id (UUID) [For measuring effectiveness]
+│   └── included_in_training (boolean)
+│
+└── Compliance
+    ├── bias_check_performed (boolean)
+    ├── bias_check_results (JSONB)
+    ├── explanation_available (boolean)
+    └── human_review_required (boolean)
+
+
+PhoneCall
+AI-driven phone call tracking.
+PhoneCall
+├── Basic Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── call_direction (enum: outbound, inbound)
+│   ├── caller_type (enum: ai, human, blended)
+│   ├── started_at (timestamp)
+│   ├── ended_at (timestamp)
+│   └── duration_seconds (integer)
+│
+├── Participants
+│   ├── from_party_id (UUID -> Party)
+│   ├── to_party_id (UUID -> Party)
+│   ├── transferred_to (UUID -> Party, nullable)
+│   └── conference_participants (UUID[]) [-> Party]
+│
+├── Call Details
+│   ├── purpose (enum: follow_up, document_request, status_check, negotiation, escalation)
+│   ├── script_template_id (UUID -> ScriptTemplate, nullable)
+│   ├── recording_url (text, encrypted)
+│   ├── transcript (text)
+│   └── ivr_path_taken (JSONB) [Menu selections]
+│
+├── AI Analysis
+│   ├── sentiment_timeline (JSONB) [Sentiment throughout call]
+│   ├── key_points_discussed (text[])
+│   ├── commitments_made (JSONB) [By both parties]
+│   ├── success_indicators (JSONB)
+│   └── follow_up_required (boolean)
+│
+└── Outcomes
+    ├── objective_achieved (boolean)
+    ├── information_gathered (JSONB)
+    ├── next_steps (text[])
+    └── escalation_triggered (boolean)
+
+
+LearningPattern
+System-wide learning and pattern recognition.
+LearningPattern
+├── Identification
+│   ├── id (UUID)
+│   ├── pattern_type (enum: success_factor, failure_indicator, servicer_behavior, document_requirement, timing_optimization)
+│   ├── discovered_date (timestamp)
+│   └── last_observed (timestamp)
+│
+├── Pattern Details
+│   ├── description (text)
+│   ├── conditions (JSONB) [When this pattern applies]
+│   ├── observed_outcomes (JSONB) [What happens when pattern occurs]
+│   ├── confidence_score (decimal) [0-1]
+│   └── observation_count (integer)
+│
+├── Evidence
+│   ├── supporting_cases (UUID[]) [-> Case]
+│   ├── contradicting_cases (UUID[]) [-> Case]
+│   ├── statistical_significance (decimal)
+│   └── correlation_strength (decimal)
+│
+├── Application
+│   ├── recommendation_text (text) [How to use this pattern]
+│   ├── automated_action_possible (boolean)
+│   ├── risk_level (enum: low, medium, high) [Risk of applying pattern]
+│   └── expected_impact (JSONB) [Success rate improvement, time saved]
+│
+└── Validation
+    ├── human_validated (boolean)
+    ├── validation_method (text)
+    ├── active_experiment (boolean) [Currently being tested]
+    └── superseded_by (UUID, nullable) [-> LearningPattern]
+
+
+User
+System users including counselors, admins, and homeowners.
+User
+├── Core Information
+│   ├── id (UUID)
+│   ├── email (text, unique)
+│   ├── role (enum: admin, counselor, supervisor, homeowner, ai_system)
+│   ├── first_name (text)
+│   ├── last_name (text)
+│   ├── active (boolean)
+│   └── created_at (timestamp)
+│
+├── Authentication
+│   ├── password_hash (text)
+│   ├── mfa_enabled (boolean)
+│   ├── mfa_secret (text, encrypted)
+│   ├── last_login (timestamp)
+│   └── failed_login_attempts (integer)
+│
+├── Preferences
+│   ├── ui_preferences (JSONB)
+│   ├── notification_preferences (JSONB)
+│   ├── ai_interaction_style (enum: detailed, concise, guided)
+│   └── timezone (text)
+│
+├── Performance (for counselors)
+│   ├── cases_handled (integer)
+│   ├── average_case_duration_days (decimal)
+│   ├── success_rate (decimal) [0-1]
+│   ├── escalation_rate (decimal) [0-1]
+│   └── last_training_date (date)
+│
+└── AI Learning
+    ├── interaction_patterns (JSONB) [How user typically interacts]
+    ├── expertise_areas (text[]) [What they're good at]
+    ├── assistance_preferences (JSONB) [When they want AI help]
+    └── feedback_history (JSONB) [Their feedback on AI interactions]
+
+
+ActivityLog
+Comprehensive audit trail for all system activities.
+ActivityLog
+├── Core Information
+│   ├── id (UUID)
+│   ├── timestamp (timestamp)
+│   ├── user_id (UUID -> User, nullable) [Null for system actions]
+│   ├── case_id (UUID -> Case, nullable)
+│   └── session_id (UUID)
+│
+├── Activity Details
+│   ├── category (enum: case_management, document, communication, ai_interaction, system, security)
+│   ├── action (text) [Specific action taken]
+│   ├── entity_type (text) [What type of entity was affected]
+│   ├── entity_id (UUID) [ID of affected entity]
+│   └── changes (JSONB) [Before/after for updates]
+│
+├── Context
+│   ├── ip_address (inet)
+│   ├── user_agent (text)
+│   ├── api_endpoint (text, nullable)
+│   └── request_id (UUID) [For tracing]
+│
+└── Security
+    ├── risk_score (decimal) [0-1, for anomaly detection]
+    ├── requires_review (boolean)
+    └── reviewed_by (UUID -> User, nullable)
+
+
+Supporting Entities
+TemporalContext
+Tracks time-sensitive aspects of cases.
+TemporalContext
+├── Case Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   └── updated_at (timestamp)
+│
+├── Critical Deadlines
+│   ├── foreclosure_sale_date (timestamp, nullable)
+│   ├── auction_date (timestamp, nullable)
+│   ├── response_deadlines (JSONB) [Multiple deadlines with descriptions]
+│   └── internal_deadlines (JSONB) [Self-imposed deadlines]
+│
+├── Process Timing
+│   ├── average_response_time_hours (decimal)
+│   ├── expected_completion_date (timestamp)
+│   ├── bottlenecks (JSONB) [Current delays and causes]
+│   └── velocity_trend (enum: accelerating, steady, slowing)
+│
+└── Historical Patterns
+    ├── best_contact_times (JSONB) [When homeowner is responsive]
+    ├── servicer_response_pattern (JSONB) [When servicer typically responds]
+    └── optimal_follow_up_intervals (JSONB) [Best timing for follow-ups]
+
+
+PromptTemplate
+Reusable AI prompt templates.
+PromptTemplate
+├── Basic Information
+│   ├── id (UUID)
+│   ├── name (text)
+│   ├── description (text)
+│   ├── category (enum: conversation, analysis, generation, decision)
+│   └── version (integer)
+│
+├── Template Content
+│   ├── system_prompt (text)
+│   ├── user_prompt_template (text) [With placeholders]
+│   ├── required_context (text[]) [What context must be provided]
+│   ├── optional_context (text[]) [Additional context that can help]
+│   └── output_format (JSONB) [Expected response structure]
+│
+├── Configuration
+│   ├── model_preferences (text[]) [Preferred models in order]
+│   ├── temperature (decimal)
+│   ├── max_tokens (integer)
+│   ├── other_parameters (JSONB)
+│   └── safety_checks (JSONB) [Required validations]
+│
+└── Performance
+    ├── usage_count (integer)
+    ├── average_satisfaction (decimal) [0-1]
+    ├── average_confidence (decimal) [0-1]
+    └── common_issues (text[])
+
+
+EscalationQueue
+Human intervention and escalation tracking.
+EscalationQueue
+├── Core Information
+│   ├── id (UUID)
+│   ├── case_id (UUID -> Case)
+│   ├── created_at (timestamp)
+│   ├── priority (enum: low, medium, high, critical)
+│   └── status (enum: pending, assigned, in_progress, resolved, cancelled)
+│
+├── Escalation Details
+│   ├── reason (enum: emotional_distress, complex_situation, ai_uncertainty, user_request, compliance_required)
+│   ├── trigger_description (text)
+│   ├── ai_attempted_actions (JSONB) [What AI tried before escalating]
+│   ├── context_summary (text) [AI-generated summary for human]
+│   └── recommended_actions (text[]) [AI suggestions for human]
+│
+├── Assignment
+│   ├── assigned_to (UUID -> User, nullable)
+│   ├── assigned_at (timestamp)
+│   ├── expertise_required (text[]) [Skills needed]
+│   └── estimated_duration_minutes (integer)
+│
+└── Resolution
+    ├── resolved_at (timestamp)
+    ├── resolution_notes (text)
+    ├── actions_taken (JSONB)
+    ├── returned_to_ai (boolean) [Whether AI resumed handling]
+    └── learning_points (text[]) [What system should learn]
+
+
+Data Integrity & Relationships
+Primary Relationships
+1. Case is the central entity connecting all other entities
+2. CaseMemory maintains a 1:1 relationship with Case
+3. Conversations belong to Cases and contain Messages
+4. Documents are linked to Cases and processed by AI
+5. ServicerIntelligence enhances Servicer profiles over time
+6. LearningPatterns are discovered from collective Case outcomes
+Temporal Integrity
+* All entities include created_at and updated_at timestamps
+* Historical data is preserved (no hard deletes)
+* Financial snapshots create a time series for each case
+* Learning patterns track observation frequency and recency
+Security & Encryption
+* PII fields are encrypted at rest (SSN, DOB, financial data)
+* Document URLs use encrypted storage references
+* Phone call recordings are encrypted and access-controlled
+* API keys and secrets use separate key management
+Implementation Notes
+For AI Coding Agents
+1. Clear Entity Boundaries: Each entity has a single responsibility
+2. Standardized Field Names: Consistent naming conventions throughout
+3. Explicit Relationships: All foreign keys clearly marked with -> EntityName
+4. AI-Friendly Metadata: Enums and JSONB fields are well-documented
+5. Versioning Support: Built-in version tracking for templates and patterns
+Performance Considerations
+1. Indexes: Create on all foreign keys, timestamps, and status fields
+2. Partitioning: Consider partitioning large tables by date (ActivityLog, AIInteraction)
+3. Archival: Implement archival strategy for closed cases after 7 years
+4. Caching: Cache frequently accessed ServicerIntelligence and LearningPatterns
+Compliance & Audit
+1. Complete Audit Trail: ActivityLog captures all system actions
+2. Data Retention: Configurable retention policies per entity type
+3. Right to Delete: Implement soft delete with PII scrubbing
+4. Consent Tracking: Record user consent for AI processing
+This data model fully supports ReAlign 3.0's vision of an AI-driven loss mitigation platform with complete memory, continuous learning, and end-to-end automation.

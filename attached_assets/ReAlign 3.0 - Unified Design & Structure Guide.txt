@@ -1,0 +1,984 @@
+﻿ReAlign 3.0 - Unified Design & Structure Guide
+Document Version: 3.0 (Complete AI-Driven Platform)
+Date: June 2, 2025
+Status: Major Revision - Full AI Orchestration Architecture
+Changes in Version 3.0
+* Complete paradigm shift to AI-first architecture with persistent memory system
+* Conversational interface as primary interaction model across all features
+* Emotional intelligence integration throughout the UI/UX
+* End-to-end automation visualization and control patterns
+* Continuous learning feedback mechanisms embedded in all interactions
+* AI agent development interfaces for system maintenance and extension
+1. Introduction
+Purpose
+This document defines the unified design system for ReAlign 3.0, an AI-driven loss mitigation platform that orchestrates the entire journey from homeowner distress to successful resolution. It ensures a consistent, emotionally intelligent, and highly effective experience that adapts to each user's needs while maintaining complete context across all interactions.
+Platform Vision
+To be the definitive AI platform that transforms loss mitigation from a complex, manual, emotionally draining process into an intelligent, compassionate, and highly effective automated system that serves as the primary interface between distressed homeowners and the mortgage servicing industry.
+Core Architecture
+   * ┌─────────────────────────────────────────────────────────┐
+   * │                    AI Orchestration Layer                │
+   * │  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
+   * │  │  Complete   │  │   Domain     │  │  Continuous   │ │
+   * │  │   Memory    │  │  Knowledge   │  │   Learning    │ │
+   * │  └─────────────┘  └──────────────┘  └───────────────┘ │
+   * └─────────────────────────────────────────────────────────┘
+   *                             │
+   * ┌─────────────────────────────────────────────────────────┐
+   * │                  User Experience Layer                   │
+   * │  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
+   * │  │Conversational│  │  Document    │  │  Progress     │ │
+   * │  │     AI      │  │Intelligence  │  │Visualization  │ │
+   * │  └─────────────┘  └──────────────┘  └───────────────┘ │
+   * └─────────────────────────────────────────────────────────┘
+
+
+2. Core Design Philosophy
+AI-First, Memory-Driven Principles
+2.1 Conversational Primacy
+* Every interaction begins with natural conversation
+* UI elements support and enhance conversation, not replace it
+* Structured forms appear as conversation aids, not separate interfaces
+* Voice and text input have equal priority
+2.2 Complete Context Awareness
+* System remembers everything: conversations, documents, decisions, outcomes
+* No repeated questions or lost information
+* Seamless continuation across sessions
+* Visual indicators of what the system knows
+2.3 Emotional Intelligence
+* Real-time emotional state detection and response
+* UI adapts to user's emotional condition
+* Calming animations during stress
+* Celebratory moments for achievements
+2.4 Progressive Automation
+* Show AI working on user's behalf
+* Transparent decision-making
+* Human escalation always available
+* Control without complexity
+Design Principles Hierarchy
+1. Calm Confidence - Steady, knowledgeable presence in crisis
+2. Continuous Context - Never lose the thread of the journey
+3. Compassionate Efficiency - Fast but never rushed
+4. Guided Autonomy - Empower while protecting from mistakes
+5. Transparent Intelligence - Show AI thinking and confidence
+3. Visual Design System
+3.1 Adaptive Color System
+Base Palette
+   * // Primary - Trust & Stability
+   * $deep-ocean: #0F172A;      // Primary brand
+   * $calm-sky: #3B82F6;        // Interactive elements
+   * $ocean-depth: #1E3A8A;     // Secondary brand
+   *    * // Success & Progress - Hope & Growth  
+   * $sage-green: #10B981;      // Success states
+   * $mint-fresh: #6EE7B7;      // Progress indicators
+   * $forest-deep: #047857;     // Completed states
+   *    * // Attention - Urgency without Alarm
+   * $warm-amber: #F59E0B;      // CTAs, attention
+   * $soft-sunset: #FCD34D;     // Warnings
+   * $autumn-glow: #DC2626;     // Critical only
+   *    * // AI Presence - Intelligence & Magic
+   * $lavender-mist: #8B5CF6;   // AI indicator
+   * $purple-glow: #A78BFA;     // AI active
+   * $cosmic-purple: #6D28D9;   // AI thinking
+   *    * // Neutrals - Structure & Clarity
+   * $slate-900: #0F172A;       // Text primary
+   * $slate-600: #475569;       // Text secondary
+   * $slate-300: #CBD5E1;       // Borders
+   * $slate-100: #F1F5F9;       // Backgrounds
+   * $white: #FFFFFF;           // Pure white
+
+
+Emotional Response Gradients
+The interface subtly shifts based on detected emotional states:
+   * // Distressed State
+   * .emotional-distressed {
+   *   --primary: #{$calm-sky};
+   *   --background: linear-gradient(180deg, #EFF6FF 0%, #DBEAFE 100%);
+   *   --animation-speed: 3s; // Slower, calming
+   * }
+   *    * // Confused State  
+   * .emotional-confused {
+   *   --primary: #{$deep-ocean};
+   *   --contrast: 1.2; // Higher clarity
+   *   --spacing: 1.5; // More breathing room
+   * }
+   *    * // Hopeful State
+   * .emotional-hopeful {
+   *   --primary: #{$sage-green};
+   *   --background: linear-gradient(180deg, #ECFDF5 0%, #D1FAE5 100%);
+   *   --animation-speed: 1.5s; // Energetic
+   * }
+   *    * // Confident State
+   * .emotional-confident {
+   *   --primary: #{$ocean-depth};
+   *   --background: #{$white};
+   *   --animation-speed: 1s; // Normal
+   * }
+
+
+3.2 Typography System
+Font Stack
+   * $font-primary: 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   * $font-conversational: 'SF Pro Display', -apple-system, 'Segoe UI', sans-serif;
+   * $font-mono: 'SF Mono', 'Fira Code', Consolas, monospace;
+
+
+Type Scale
+   * $type-scale: (
+   *   'display': (size: 48px, height: 56px, weight: 800, tracking: -0.02em),
+   *   'h1': (size: 32px, height: 40px, weight: 700, tracking: -0.01em),
+   *   'h2': (size: 24px, height: 32px, weight: 600, tracking: 0),
+   *   'h3': (size: 20px, height: 28px, weight: 600, tracking: 0),
+   *   'body-large': (size: 18px, height: 28px, weight: 400, tracking: 0),
+   *   'body': (size: 16px, height: 24px, weight: 400, tracking: 0),
+   *   'caption': (size: 14px, height: 20px, weight: 400, tracking: 0.01em),
+   *   'micro': (size: 12px, height: 16px, weight: 500, tracking: 0.02em)
+   * );
+
+
+3.3 Spatial System
+Base Grid: 4px
+   * $space: (
+   *   'micro': 4px,
+   *   'xs': 8px,
+   *   'sm': 12px,
+   *   'md': 16px,
+   *   'lg': 24px,
+   *   'xl': 32px,
+   *   '2xl': 48px,
+   *   '3xl': 64px,
+   *   '4xl': 96px
+   * );
+
+
+3.4 Elevation & Depth
+   * $shadows: (
+   *   'xs': 0 1px 2px rgba(0, 0, 0, 0.05),
+   *   'sm': 0 2px 4px rgba(0, 0, 0, 0.05),
+   *   'md': 0 4px 12px rgba(0, 0, 0, 0.08),
+   *   'lg': 0 8px 24px rgba(0, 0, 0, 0.12),
+   *   'xl': 0 16px 48px rgba(0, 0, 0, 0.16),
+   *   'glow': 0 0 24px rgba(139, 92, 246, 0.25) // AI glow
+   * );
+
+
+4. AI Conversation Interface
+4.1 Persistent AI Companion
+Desktop Layout
+   * ┌─────────────────────────────────────────────────────────────┐
+   * │ Navigation │          Main Content          │ AI Assistant  │
+   * │   (240px)  │         (Flexible)            │   (380px)     │
+   * │            │                               │               │
+   * │  ┌──────┐  │  ┌─────────────────────────┐ │ ┌───────────┐ │
+   * │  │ Logo │  │  │                         │ │ │ AI Avatar │ │
+   * │  ├──────┤  │  │   Case Progress View    │ │ ├───────────┤ │
+   * │  │ Home │  │  │                         │ │ │           │ │
+   * │  │Cases │  │  │   ┌─────────────────┐  │ │ │   Chat    │ │
+   * │  │ Docs │  │  │   │ Timeline Visual │  │ │ │  History  │ │
+   * │  │Tools │  │  │   └─────────────────┘  │ │ │           │ │
+   * │  │ Help │  │  │                         │ │ ├───────────┤ │
+   * │  ├──────┤  │  │   ┌─────────────────┐  │ │ │   Input   │ │
+   * │  │  AI  │  │  │   │ Current Status  │  │ │ │   Area    │ │
+   * │  └──────┘  │  │   └─────────────────┘  │ │ └───────────┘ │
+   * └─────────────────────────────────────────────────────────────┘
+
+
+Mobile Layout
+* Full-screen conversational interface
+* Swipe to reveal content panels
+* Bottom input area with quick actions
+4.2 Conversation Components
+AI Message Bubble
+   * <div className="ai-message">
+   *   <div className="ai-avatar">
+   *     <div className="ai-status-indicator" /> // Pulsing when active
+   *   </div>
+   *   <div className="message-content">
+   *     <div className="message-text">{message}</div>
+   *     <div className="confidence-indicator" level={confidence} />
+   *     <div className="source-attribution">{source}</div>
+   *   </div>
+   *   <div className="message-actions">
+   *     <button className="helpful">👍</button>
+   *     <button className="not-helpful">👎</button>
+   *     <button className="explain">Explain</button>
+   *   </div>
+   * </div>
+
+
+Emotional State Indicator
+   * <div className="emotional-indicator">
+   *   <div className="emotion-gradient" style={emotionColors}>
+   *     <div className="emotion-icon">{emotionEmoji}</div>
+   *   </div>
+   *   <span className="emotion-label">{emotionText}</span>
+   * </div>
+
+
+4.3 Context Cards
+Inline Information Display
+   * <div className="context-card">
+   *   <div className="card-header">
+   *     <Icon name="info" />
+   *     <h4>FHA Loss Mitigation Options</h4>
+   *     <button className="expand">↓</button>
+   *   </div>
+   *   <div className="card-content">
+   *     <div className="option-list">
+   *       {options.map(option => (
+   *         <div className="option">
+   *           <h5>{option.name}</h5>
+   *           <p>{option.description}</p>
+   *           <div className="eligibility">{option.eligible ? '✓' : '✗'}</div>
+   *         </div>
+   *       ))}
+   *     </div>
+   *   </div>
+   * </div>
+
+
+5. Document Intelligence Interface
+5.1 Document Upload Experience
+Smart Upload Zone
+   * <div className="document-upload-zone">
+   *   <div className="upload-area" onDrop={handleDrop}>
+   *     <Icon name="upload-cloud" size={48} />
+   *     <h3>Drop documents here</h3>
+   *     <p>Or click to browse</p>
+   *     <div className="ai-hint">
+   *       The AI will automatically detect document types and extract information
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="recent-uploads">
+   *     {uploads.map(doc => (
+   *       <DocumentCard 
+   *         document={doc}
+   *         extractionStatus={doc.aiStatus}
+   *         confidence={doc.confidence}
+   *       />
+   *     ))}
+   *   </div>
+   * </div>
+
+
+5.2 Document Processing Visualization
+Extraction Status Card
+   * <div className="extraction-card">
+   *   <div className="document-preview">
+   *     <img src={thumbnail} alt={documentName} />
+   *     <div className="processing-overlay">
+   *       <ProcessingAnimation />
+   *       <p>AI is reading your {documentType}...</p>
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="extraction-results">
+   *     <h4>Extracted Information</h4>
+   *     {extractedFields.map(field => (
+   *       <div className="field-row">
+   *         <label>{field.label}</label>
+   *         <div className="field-value">
+   *           <input value={field.value} onChange={handleEdit} />
+   *           <ConfidenceBar score={field.confidence} />
+   *         </div>
+   *       </div>
+   *     ))}
+   *   </div>
+   *   
+   *   <div className="validation-status">
+   *     <Icon name={validated ? 'check-circle' : 'alert-circle'} />
+   *     <span>{validationMessage}</span>
+   *   </div>
+   * </div>
+
+
+6. Case Journey Visualization
+6.1 Timeline Component
+Interactive Journey Timeline
+   * <div className="case-timeline">
+   *   <div className="timeline-header">
+   *     <h3>Your Loss Mitigation Journey</h3>
+   *     <div className="timeline-stats">
+   *       <span>Started: {startDate}</span>
+   *       <span>Progress: {progress}%</span>
+   *       <span>Est. Completion: {estimatedDate}</span>
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="timeline-track">
+   *     {milestones.map((milestone, index) => (
+   *       <div className={`milestone ${milestone.status}`}>
+   *         <div className="milestone-marker">
+   *           <Icon name={milestone.icon} />
+   *         </div>
+   *         <div className="milestone-content">
+   *           <h4>{milestone.title}</h4>
+   *           <p>{milestone.description}</p>
+   *           {milestone.status === 'current' && (
+   *             <div className="ai-guidance">
+   *               <AIAvatar size="small" />
+   *               <p>{milestone.aiGuidance}</p>
+   *             </div>
+   *           )}
+   *         </div>
+   *         {index < milestones.length - 1 && (
+   *           <div className="connector" />
+   *         )}
+   *       </div>
+   *     ))}
+   *   </div>
+   *   
+   *   <div className="timeline-prediction">
+   *     <Icon name="sparkles" />
+   *     <p>Based on similar cases, you're likely to receive a decision by {predictionDate}</p>
+   *   </div>
+   * </div>
+
+
+6.2 Progress Visualization
+Multi-Dimensional Progress
+   * <div className="progress-dashboard">
+   *   <div className="overall-progress">
+   *     <CircularProgress 
+   *       value={overallProgress} 
+   *       size={120}
+   *       strokeWidth={8}
+   *       color={progressColor}
+   *     >
+   *       <div className="progress-center">
+   *         <span className="percentage">{overallProgress}%</span>
+   *         <span className="label">Complete</span>
+   *       </div>
+   *     </CircularProgress>
+   *   </div>
+   *   
+   *   <div className="category-progress">
+   *     {categories.map(category => (
+   *       <div className="category-item">
+   *         <div className="category-header">
+   *           <Icon name={category.icon} />
+   *           <span>{category.name}</span>
+   *           <span className="count">{category.completed}/{category.total}</span>
+   *         </div>
+   *         <LinearProgress value={category.progress} />
+   *       </div>
+   *     ))}
+   *   </div>
+   *   
+   *   <div className="next-actions">
+   *     <h4>AI Recommended Next Steps</h4>
+   *     {nextSteps.map(step => (
+   *       <button className="action-button">
+   *         <Icon name={step.icon} />
+   *         <span>{step.label}</span>
+   *         <span className="time-est">{step.timeEstimate}</span>
+   *       </button>
+   *     ))}
+   *   </div>
+   * </div>
+
+
+7. Emotional Intelligence UI
+7.1 Emotional State Indicators
+Ambient Emotional Feedback
+   * .interface-wrapper {
+   *   // Subtle background gradients based on emotional state
+   *   &.emotional-stressed {
+   *     background: linear-gradient(
+   *       180deg, 
+   *       rgba(219, 234, 254, 0.3) 0%, 
+   *       rgba(191, 219, 254, 0.1) 100%
+   *     );
+   *     
+   *     .ai-avatar {
+   *       animation: gentle-breathing 4s ease-in-out infinite;
+   *     }
+   *   }
+   *   
+   *   &.emotional-confident {
+   *     background: linear-gradient(
+   *       180deg,
+   *       rgba(236, 253, 245, 0.2) 0%,
+   *       rgba(209, 250, 229, 0.1) 100%
+   *     );
+   *     
+   *     .progress-indicators {
+   *       animation: subtle-glow 2s ease-in-out infinite;
+   *     }
+   *   }
+   * }
+
+
+7.2 Supportive Micro-Interactions
+Encouraging Animations
+   * // Task completion celebration
+   * <motion.div
+   *   initial={{ scale: 0 }}
+   *   animate={{ scale: 1 }}
+   *   transition={{ type: "spring", stiffness: 200 }}
+   * >
+   *   <div className="celebration">
+   *     <Confetti colors={['#10B981', '#34D399', '#6EE7B7']} />
+   *     <h3>Great job! 🎉</h3>
+   *     <p>You've completed your financial documentation</p>
+   *   </div>
+   * </motion.div>
+   *    * // Gentle nudge for next action
+   * <motion.div
+   *   animate={{ x: [0, 5, 0] }}
+   *   transition={{ repeat: Infinity, duration: 2, delay: 5 }}
+   * >
+   *   <button className="suggested-action">
+   *     <span>Ready for the next step?</span>
+   *     <Icon name="arrow-right" />
+   *   </button>
+   * </motion.div>
+
+
+8. Form Intelligence
+8.1 Conversational Form Filling
+AI-Guided Form Interface
+   * <div className="intelligent-form">
+   *   <div className="form-conversation">
+   *     <AIAvatar />
+   *     <p>Let me help you fill out this form. First, what's your current monthly income?</p>
+   *   </div>
+   *   
+   *   <div className="form-field highlighted">
+   *     <label>Monthly Income</label>
+   *     <div className="input-group">
+   *       <input 
+   *         type="text" 
+   *         value={income}
+   *         onChange={handleChange}
+   *         className="ai-assisted"
+   *       />
+   *       <button className="ai-fill">
+   *         <Icon name="sparkles" />
+   *         Fill from docs
+   *       </button>
+   *     </div>
+   *     <div className="field-confidence">
+   *       AI confidence: <ConfidenceBar score={0.95} />
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="form-progress">
+   *     <span>Section 2 of 5</span>
+   *     <LinearProgress value={40} />
+   *   </div>
+   * </div>
+
+
+8.2 Smart Validation
+Real-time Validation Feedback
+   * <div className="validation-feedback">
+   *   {validation.type === 'success' && (
+   *     <motion.div
+   *       initial={{ opacity: 0, y: -10 }}
+   *       animate={{ opacity: 1, y: 0 }}
+   *       className="validation-success"
+   *     >
+   *       <Icon name="check-circle" color="#10B981" />
+   *       <span>Perfect! This matches your pay stub.</span>
+   *     </motion.div>
+   *   )}
+   *   
+   *   {validation.type === 'warning' && (
+   *     <div className="validation-warning">
+   *       <Icon name="alert-triangle" color="#F59E0B" />
+   *       <span>{validation.message}</span>
+   *       <button className="help-link">Need help?</button>
+   *     </div>
+   *   )}
+   * </div>
+
+
+9. Learning & Feedback Integration
+9.1 Continuous Learning UI
+Feedback Collection
+   * <div className="learning-feedback">
+   *   <div className="feedback-prompt">
+   *     <p>Was this suggestion helpful?</p>
+   *     <div className="feedback-actions">
+   *       <button className="feedback-positive">
+   *         <Icon name="thumbs-up" />
+   *         Yes
+   *       </button>
+   *       <button className="feedback-negative">
+   *         <Icon name="thumbs-down" />
+   *         No
+   *       </button>
+   *       <button className="feedback-detail">
+   *         <Icon name="message-circle" />
+   *         Explain
+   *       </button>
+   *     </div>
+   *   </div>
+   *   
+   *   {showDetail && (
+   *     <div className="feedback-detail">
+   *       <textarea 
+   *         placeholder="Help us understand what could be better..."
+   *         value={feedback}
+   *         onChange={handleFeedback}
+   *       />
+   *       <button className="submit-feedback">Send Feedback</button>
+   *     </div>
+   *   )}
+   * </div>
+
+
+9.2 Pattern Recognition Display
+Similar Cases Insight
+   * <div className="pattern-insight">
+   *   <div className="insight-header">
+   *     <Icon name="trending-up" />
+   *     <h4>Based on 847 similar cases</h4>
+   *   </div>
+   *   
+   *   <div className="insight-content">
+   *     <div className="success-rate">
+   *       <CircularProgress value={78} size={60} />
+   *       <div className="rate-label">
+   *         <span className="percentage">78%</span>
+   *         <span className="description">Success Rate</span>
+   *       </div>
+   *     </div>
+   *     
+   *     <div className="key-factors">
+   *       <h5>Key Success Factors:</h5>
+   *       <ul>
+   *         {factors.map(factor => (
+   *           <li key={factor.id}>
+   *             <Icon name="check" color="#10B981" />
+   *             <span>{factor.description}</span>
+   *           </li>
+   *         ))}
+   *       </ul>
+   *     </div>
+   *     
+   *     <button className="view-details">
+   *       View detailed analysis
+   *       <Icon name="arrow-right" />
+   *     </button>
+   *   </div>
+   * </div>
+
+
+10. Responsive Behavior
+10.1 Breakpoint System
+   * $breakpoints: (
+   *   'mobile': 320px,   // Mobile-first base
+   *   'mobile-lg': 480px, // Larger phones
+   *   'tablet': 768px,   // Tablets
+   *   'desktop': 1024px, // Desktop
+   *   'desktop-lg': 1440px, // Large screens
+   *   'ultra': 1920px    // Ultra-wide
+   * );
+
+
+10.2 Adaptive Layouts
+Mobile (320px - 768px)
+* Full-screen conversational interface
+* Bottom sheet patterns for forms
+* Swipe gestures for navigation
+* Voice input prominently featured
+* Simplified progress visualization
+Tablet (768px - 1024px)
+* Split-view: conversation + content
+* Floating AI assistant panel
+* Touch-optimized controls
+* Landscape optimization
+Desktop (1024px+)
+* Three-column layout standard
+* Persistent AI assistant sidebar
+* Full timeline visualization
+* Advanced data displays
+* Keyboard shortcuts enabled
+10.3 Container Queries
+   * .case-card {
+   *   container-type: inline-size;
+   *   
+   *   .card-content {
+   *     @container (min-width: 400px) {
+   *       display: grid;
+   *       grid-template-columns: 1fr 1fr;
+   *     }
+   *     
+   *     @container (min-width: 600px) {
+   *       grid-template-columns: 2fr 1fr 1fr;
+   *     }
+   *   }
+   * }
+
+
+11. Motion & Animation
+11.1 Animation Principles
+Timing Functions
+   * $easing: (
+   *   'default': cubic-bezier(0.4, 0, 0.2, 1),
+   *   'gentle': cubic-bezier(0.4, 0, 0.6, 1),
+   *   'energetic': cubic-bezier(0.68, -0.55, 0.265, 1.55),
+   *   'smooth': cubic-bezier(0.25, 0.1, 0.25, 1)
+   * );
+
+
+Duration Scale
+   * $duration: (
+   *   'instant': 100ms,
+   *   'quick': 200ms,
+   *   'normal': 300ms,
+   *   'deliberate': 500ms,
+   *   'slow': 800ms,
+   *   'showcase': 1200ms
+   * );
+
+
+11.2 Signature Animations
+AI Thinking Animation
+   * @keyframes ai-thinking {
+   *   0% {
+   *     background-position: 0% 50%;
+   *   }
+   *   50% {
+   *     background-position: 100% 50%;
+   *   }
+   *   100% {
+   *     background-position: 0% 50%;
+   *   }
+   * }
+   *    * .ai-thinking {
+   *   background: linear-gradient(
+   *     90deg,
+   *     $lavender-mist,
+   *     $purple-glow,
+   *     $cosmic-purple,
+   *     $purple-glow,
+   *     $lavender-mist
+   *   );
+   *   background-size: 200% 100%;
+   *   animation: ai-thinking 2s ease infinite;
+   * }
+
+
+Progress Celebration
+   * const CelebrationAnimation = () => (
+   *   <motion.div
+   *     initial={{ scale: 0, rotate: -180 }}
+   *     animate={{ scale: 1, rotate: 0 }}
+   *     transition={{
+   *       type: "spring",
+   *       stiffness: 260,
+   *       damping: 20
+   *     }}
+   *   >
+   *     <div className="celebration-badge">
+   *       <Icon name="star" />
+   *       <span>Milestone Achieved!</span>
+   *     </div>
+   *   </motion.div>
+   * );
+
+
+12. Accessibility & Inclusive Design
+12.1 WCAG 2.1 AAA Standards
+Color Contrast Requirements
+* Normal text: 7:1 minimum
+* Large text: 4.5:1 minimum
+* Interactive elements: 3:1 minimum
+* Focus indicators: 3:1 against all backgrounds
+Keyboard Navigation
+   * .focusable {
+   *   &:focus-visible {
+   *     outline: 3px solid $calm-sky;
+   *     outline-offset: 2px;
+   *     border-radius: 4px;
+   *   }
+   * }
+   *    * // Skip links
+   * .skip-link {
+   *   position: absolute;
+   *   top: -40px;
+   *   left: 0;
+   *   background: $deep-ocean;
+   *   color: white;
+   *   padding: 8px;
+   *   text-decoration: none;
+   *   
+   *   &:focus {
+   *     top: 0;
+   *   }
+   * }
+
+
+12.2 Screen Reader Optimization
+ARIA Landmarks
+   * <div role="main" aria-label="Case Management">
+   *   <section aria-label="AI Assistant">
+   *     <div role="log" aria-live="polite" aria-label="Conversation">
+   *       {messages}
+   *     </div>
+   *   </section>
+   *   
+   *   <section aria-label="Case Progress">
+   *     <h2 id="progress-heading">Your Progress</h2>
+   *     <div aria-labelledby="progress-heading">
+   *       {progressContent}
+   *     </div>
+   *   </section>
+   * </div>
+
+
+12.3 Cognitive Accessibility
+Simplified Mode Toggle
+   * <div className="accessibility-controls">
+   *   <button 
+   *     onClick={toggleSimplifiedMode}
+   *     aria-pressed={simplifiedMode}
+   *   >
+   *     <Icon name="toggle" />
+   *     <span>Simplified View</span>
+   *   </button>
+   * </div>
+   *    * // Simplified mode adjustments
+   * .simplified-mode {
+   *   // Reduced animations
+   *   * {
+   *     animation-duration: 0.1s !important;
+   *     transition-duration: 0.1s !important;
+   *   }
+   *   
+   *   // Increased spacing
+   *   .content {
+   *     line-height: 1.8;
+   *     letter-spacing: 0.02em;
+   *   }
+   *   
+   *   // Clearer hierarchy
+   *   h1, h2, h3 {
+   *     border-bottom: 2px solid $slate-300;
+   *     padding-bottom: $space-sm;
+   *   }
+   * }
+
+
+13. Component Architecture
+13.1 Core Components
+AI Components
+   * /components/ai/
+   * ├── AIAvatar.tsx          // Animated AI presence
+   * ├── AIChat.tsx            // Main conversation interface
+   * ├── ConfidenceIndicator.tsx // Shows AI certainty
+   * ├── EmotionalState.tsx    // Emotional detection display
+   * ├── ContextCard.tsx       // Inline information cards
+   * └── LearningFeedback.tsx  // Feedback collection
+
+
+Journey Components
+   * /components/journey/
+   * ├── CaseTimeline.tsx      // Visual journey timeline
+   * ├── ProgressDashboard.tsx // Multi-dimensional progress
+   * ├── MilestoneCard.tsx     // Individual achievements
+   * ├── PredictiveInsights.tsx // AI predictions
+   * └── NextSteps.tsx         // Recommended actions
+
+
+Document Components
+   * /components/documents/
+   * ├── SmartUpload.tsx       // Intelligent upload zone
+   * ├── DocumentProcessor.tsx  // Processing visualization
+   * ├── ExtractionResults.tsx // Show extracted data
+   * ├── ValidationStatus.tsx   // Document validation
+   * └── DocumentViewer.tsx    // In-app preview
+
+
+13.2 Composite Patterns
+Case Dashboard Layout
+   * <DashboardLayout>
+   *   <Header>
+   *     <CaseSummary case={currentCase} />
+   *     <EmotionalIndicator state={emotionalState} />
+   *   </Header>
+   *   
+   *   <MainContent>
+   *     <CaseTimeline milestones={milestones} />
+   *     <ProgressDashboard categories={progressCategories} />
+   *     <NextSteps recommendations={aiRecommendations} />
+   *   </MainContent>
+   *   
+   *   <Sidebar>
+   *     <AIChat 
+   *       context={caseContext}
+   *       onMessage={handleMessage}
+   *       emotionalState={emotionalState}
+   *     />
+   *   </Sidebar>
+   * </DashboardLayout>
+
+
+14. Implementation Guidelines
+14.1 Technology Stack
+   * // Core Framework
+   * - React 18.2+ with Concurrent Features
+   * - TypeScript 5.0+ with strict mode
+   * - Next.js 14+ for SSR/SSG
+   *    * // Styling
+   * - Tailwind CSS 3.4+ with custom design tokens
+   * - CSS Modules for component isolation
+   * - Framer Motion for animations
+   * - Radix UI for accessible primitives
+   *    * // State Management
+   * - Zustand for UI state
+   * - TanStack Query for server state
+   * - Jotai for atomic state management
+   *    * // AI Integration
+   * - OpenAI SDK for GPT-4 integration
+   * - Vercel AI SDK for streaming
+   * - LangChain for complex workflows
+   *    * // Real-time
+   * - Socket.io for live updates
+   * - WebRTC for voice features
+
+
+14.2 Performance Requirements
+Core Web Vitals Targets
+* LCP (Largest Contentful Paint): < 2.5s
+* FID (First Input Delay): < 100ms
+* CLS (Cumulative Layout Shift): < 0.1
+* TTI (Time to Interactive): < 3.5s
+Optimization Strategies
+   * // Lazy load heavy components
+   * const AIChat = lazy(() => import('./components/ai/AIChat'));
+   *    * // Virtualize long lists
+   * import { VirtualList } from '@tanstack/react-virtual';
+   *    * // Optimize images
+   * import Image from 'next/image';
+   *    * // Implement service worker
+   * if ('serviceWorker' in navigator) {
+   *   navigator.serviceWorker.register('/sw.js');
+   * }
+
+
+14.3 Testing Strategy
+   * // Component testing
+   * - Vitest for unit tests
+   * - React Testing Library for integration
+   * - Playwright for E2E tests
+   * - Chromatic for visual regression
+   *    * // AI testing
+   * - Prompt testing framework
+   * - Response quality metrics
+   * - Emotional detection accuracy
+   * - Conversation flow testing
+   *    * // Accessibility testing
+   * - axe-core for automated checks
+   * - Manual screen reader testing
+   * - Keyboard navigation validation
+   * - Color contrast verification
+
+
+15. AI Agent Development Interface
+15.1 Development Mode UI
+AI Agent Dashboard
+   * <div className="ai-dev-mode">
+   *   <div className="code-context">
+   *     <CodeEditor 
+   *       language="typescript"
+   *       value={currentCode}
+   *       annotations={aiAnnotations}
+   *     />
+   *   </div>
+   *   
+   *   <div className="ai-assistant-dev">
+   *     <h3>AI Development Assistant</h3>
+   *     <div className="context-display">
+   *       <pre>{JSON.stringify(currentContext, null, 2)}</pre>
+   *     </div>
+   *     <div className="suggestions">
+   *       {aiSuggestions.map(suggestion => (
+   *         <SuggestionCard 
+   *           suggestion={suggestion}
+   *           onApply={applySuggestion}
+   *         />
+   *       ))}
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="test-runner">
+   *     <TestResults results={testResults} />
+   *     <button onClick={runTests}>Run AI Tests</button>
+   *   </div>
+   * </div>
+
+
+15.2 Technical Debt Visualization
+   * <div className="tech-debt-dashboard">
+   *   <div className="debt-overview">
+   *     <h3>Technical Debt Tracker</h3>
+   *     <div className="debt-metrics">
+   *       <MetricCard label="Total Debt Items" value={debtCount} />
+   *       <MetricCard label="Critical Items" value={criticalCount} />
+   *       <MetricCard label="Est. Hours" value={estimatedHours} />
+   *     </div>
+   *   </div>
+   *   
+   *   <div className="debt-visualization">
+   *     <TreeMap 
+   *       data={debtByComponent}
+   *       colorScale={debtSeverityScale}
+   *     />
+   *   </div>
+   *   
+   *   <div className="debt-list">
+   *     {debtItems.map(item => (
+   *       <DebtCard 
+   *         item={item}
+   *         onResolve={markResolved}
+   *         onEscalate={escalateToHuman}
+   *       />
+   *     ))}
+   *   </div>
+   * </div>
+
+
+16. Future Considerations
+16.1 Emerging Technologies
+Voice UI Integration
+* Wake word detection
+* Natural conversation flow
+* Emotion detection from voice
+* Multi-language support
+AR/VR Interfaces
+* Spatial document review
+* 3D timeline visualization
+* Virtual counselor meetings
+* Immersive data exploration
+Biometric Integration
+* Stress level monitoring
+* Adaptive UI based on biometrics
+* Health-aware scheduling
+* Wellness recommendations
+16.2 Scalability Patterns
+Micro-Frontend Architecture
+   * // Module federation setup
+   * const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
+   *    * module.exports = {
+   *   plugins: [
+   *     new ModuleFederationPlugin({
+   *       name: "realign_core",
+   *       remotes: {
+   *         ai_chat: "ai_chat@http://localhost:3001/remoteEntry.js",
+   *         documents: "documents@http://localhost:3002/remoteEntry.js",
+   *         journey: "journey@http://localhost:3003/remoteEntry.js",
+   *       },
+   *     }),
+   *   ],
+   * };
+
+
+Conclusion
+This design guide establishes ReAlign 3.0 as a revolutionary AI-first platform that transforms the loss mitigation experience. By prioritizing conversational interaction, emotional intelligence, and continuous learning, we create an interface that adapts to each user's needs while maintaining the highest standards of accessibility and performance.
+The system's success lies in its ability to make complex processes feel simple, provide emotional support during crisis, and continuously improve through every interaction. This guide ensures consistency across all touchpoints while allowing for the flexibility needed in an AI-driven, learning system.
+Regular updates to this guide should reflect new learnings from user interactions, advances in AI capabilities, and evolving best practices in conversational interface design.
+   *

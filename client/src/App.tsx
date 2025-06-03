@@ -20,6 +20,7 @@ import NotificationSettings from "@/pages/NotificationSettings";
 import PublicTrackerView from "@/pages/PublicTrackerView";
 import Account from "@/pages/Account";
 import AppShell from "@/components/layout/AppShell";
+import { AIAppShell } from "@/components/layout/AIAppShell";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { HomePage } from "@/pages/HomePage";
 import { AboutPage } from "@/pages/AboutPage";
@@ -57,6 +58,7 @@ import { useEffect } from "react";
 import UBAFormMaker from './pages/UBAFormMaker';
 import UBAFormMakerEnhanced from './pages/UBAFormMakerEnhanced';
 import LoeDrafter from './pages/LoeDrafter';
+import CasesPage from './pages/CasesPage';
 
 type Role = 'negotiator' | 'seller' | 'buyer' | 'listing_agent' | 'buyers_agent' | 'escrow';
 
@@ -118,7 +120,16 @@ const ProtectedRoute = ({
   }
 
   // All checks passed
-  return (
+  // Use AI-first shell for loss mitigation features
+  const isLossMitigationRoute = window.location.pathname.includes('/loss-mitigation') || 
+                                window.location.pathname.includes('/cases') ||
+                                window.location.pathname.includes('/documents');
+  
+  return isLossMitigationRoute ? (
+    <AIAppShell>
+      <Component />
+    </AIAppShell>
+  ) : (
     <AppShell>
       <Component />
     </AppShell>
@@ -287,6 +298,9 @@ function Router() {
       </Route>
       <Route path="/account">
         <ProtectedRoute component={Account} />
+      </Route>
+      <Route path="/cases">
+        <ProtectedRoute component={CasesPage} />
       </Route>
       <Route path="/uba-form-maker">
         <ProtectedRoute component={UBAFormMakerEnhanced} allowedRoles={['negotiator']} />
